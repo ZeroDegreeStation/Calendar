@@ -1,0 +1,49 @@
+name: Sync Booking Data
+
+on:
+  push:
+    paths:
+      - 'data/*.xlsx'
+  schedule:
+    - cron: '*/30 * * * *'  # Every 30 minutes
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      run: npm install -g xlsx-cli
+    
+    - name: Convert Excel to JSON
+      run: |
+        for file in data/*.xlsx; do
+          if [ -f "$file" ]; then
+            npx xlsx-cli "$file" --sheet 1 > "data/${file##*/}.json"
+          fi
+        done
+    
+    - name: Generate Statistics
+      run: |
+        echo "📊 Booking Statistics" > data/stats.md
+        echo "==================" >> data/stats.md
+        echo "Generated: $(date)" >> data/stats.md
+        echo "" >> data/stats.md
+        
+        # Add more statistics here
+    
+    - name: Commit and push
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
+        git add data/*.json data/*.md
+        git commit -m "Auto-sync booking data [skip ci]" || exit 0
+        git push
