@@ -3,38 +3,885 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Booking Calendar</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Admin - Excel Booking Calendar</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/calendar.css">
+    
+    <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .admin-header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .admin-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .admin-title i {
+            font-size: 32px;
+            color: #4285F4;
+        }
+        
+        .admin-title h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .admin-title p {
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .admin-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .admin-card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .admin-card h2 i {
+            color: #4285F4;
+        }
+        
+        .stats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .file-list {
+            margin-top: 16px;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #F5F5F5;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .file-info i {
+            color: #34A853;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            text-align: left;
+            padding: 12px;
+            background: #F5F5F5;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .badge {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: rgba(52, 199, 89, 0.1);
+            color: #34C759;
+        }
+        
+        .badge-warning {
+            background: rgba(255, 159, 10, 0.1);
+            color: #FF9F0A;
+        }
+        
+        .badge-danger {
+            background: rgba(255, 59, 48, 0.1);
+            color: #FF3B30;
+        }
+        
+        .availability-control {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .github-config {
+            background: #F5F5F5;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <div class="bg-white rounded-xl shadow-lg p-6">
-            <h1 class="text-2xl font-bold mb-6">📊 Booking Management</h1>
-            
-            <!-- Admin controls here -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <button onclick="exportToExcel()" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-                    <i class="fas fa-file-excel mr-2"></i>Export Bookings
-                </button>
-                <button onclick="syncToGitHub()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                    <i class="fas fa-sync-alt mr-2"></i>Sync to GitHub
-                </button>
-                <button onclick="generateReport()" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
-                    <i class="fas fa-chart-bar mr-2"></i>Generate Report
-                </button>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="admin-header">
+            <div class="admin-title">
+                <i class="fas fa-cog"></i>
+                <div>
+                    <h1>Admin Dashboard</h1>
+                    <p>Manage your booking calendar and GitHub sync</p>
+                </div>
+            </div>
+            <div>
+                <a href="index.html" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i> Back to Calendar
+                </a>
+            </div>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="admin-grid">
+            <div class="admin-card">
+                <h2><i class="fas fa-chart-bar"></i> Booking Statistics</h2>
+                <div class="stats-list">
+                    <div class="stat-row">
+                        <span class="stat-label">Total Bookings</span>
+                        <span class="stat-value" id="totalBookings">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Revenue</span>
+                        <span class="stat-value" id="totalRevenue">$0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Unique Customers</span>
+                        <span class="stat-value" id="uniqueCustomers">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Today's Bookings</span>
+                        <span class="stat-value" id="todayBookings">0</span>
+                    </div>
+                </div>
             </div>
             
-            <!-- Bookings Table -->
-            <div id="bookingsTable" class="overflow-x-auto">
-                <!-- Table will be populated here -->
+            <div class="admin-card">
+                <h2><i class="fas fa-calendar-alt"></i> Availability Overview</h2>
+                <div class="stats-list">
+                    <div class="stat-row">
+                        <span class="stat-label">Available Days (30d)</span>
+                        <span class="stat-value" id="availableDays">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Limited Days</span>
+                        <span class="stat-value" id="limitedDays">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Fully Booked</span>
+                        <span class="stat-value" id="bookedDays">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Closed Days</span>
+                        <span class="stat-value" id="closedDays">0</span>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="openAvailabilityModal()">
+                        <i class="fas fa-edit"></i> Manage Availability
+                    </button>
+                </div>
+            </div>
+            
+            <div class="admin-card">
+                <h2><i class="fas fa-github"></i> GitHub Sync</h2>
+                <div class="stats-list">
+                    <div class="stat-row">
+                        <span class="stat-label">Repository</span>
+                        <span class="stat-value" id="repoName">ZeroDegreeStation/Calendar</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Branch</span>
+                        <span class="stat-value" id="branchName">main</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Last Sync</span>
+                        <span class="stat-value" id="lastSync">Never</span>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="syncToGitHub()">
+                        <i class="fas fa-sync-alt"></i> Push Changes
+                    </button>
+                    <button class="btn btn-primary" onclick="pullFromGitHub()">
+                        <i class="fas fa-download"></i> Pull Updates
+                    </button>
+                </div>
+                
+                <div class="github-config">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                        GitHub Token
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="password" id="githubToken" class="form-control" 
+                               placeholder="Enter personal access token" style="flex: 1;">
+                        <button class="btn btn-outline" onclick="saveToken()">Save</button>
+                    </div>
+                    <p style="font-size: 12px; color: #666; margin-top: 8px;">
+                        Token requires 'repo' scope for write access
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- File Management -->
+        <div class="admin-grid">
+            <div class="admin-card">
+                <h2><i class="fas fa-file-excel"></i> Excel Files</h2>
+                <div class="file-list">
+                    <div class="file-item">
+                        <div class="file-info">
+                            <i class="fas fa-file-excel"></i>
+                            <div>
+                                <div style="font-weight: 500;">calendar-availability.xlsx</div>
+                                <div style="font-size: 12px; color: #666;">Override unavailable dates</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-outline" onclick="downloadFile('availability')">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-outline" onclick="uploadFile('availability')">
+                                <i class="fas fa-upload"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="file-item">
+                        <div class="file-info">
+                            <i class="fas fa-file-excel"></i>
+                            <div>
+                                <div style="font-weight: 500;">calendar-bookings.xlsx</div>
+                                <div style="font-size: 12px; color: #666;">All booking records</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-outline" onclick="downloadFile('bookings')">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-outline" onclick="exportBookingsCSV()">
+                                <i class="fas fa-file-csv"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="file-item">
+                        <div class="file-info">
+                            <i class="fas fa-file-excel"></i>
+                            <div>
+                                <div style="font-weight: 500;">calendar-time-slots.xlsx</div>
+                                <div style="font-size: 12px; color: #666;">Time slot configuration</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-outline" onclick="downloadFile('timeSlots')">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-outline" onclick="resetTimeSlots()">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="btn-group" style="margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="generateTemplates()">
+                        <i class="fas fa-file-export"></i> Generate Templates
+                    </button>
+                    <button class="btn btn-outline" onclick="backupAll()">
+                        <i class="fas fa-archive"></i> Backup All
+                    </button>
+                </div>
+            </div>
+            
+            <div class="admin-card">
+                <h2><i class="fas fa-clock"></i> Default Settings</h2>
+                <div style="padding: 8px 0;">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                            Default Price ($)
+                        </label>
+                        <input type="number" id="defaultPrice" value="100" min="0" step="5" 
+                               class="form-control" style="width: 120px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                            Max Bookings Per Day
+                        </label>
+                        <input type="number" id="defaultMaxBookings" value="10" min="1" 
+                               class="form-control" style="width: 120px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                            Default Time Slots
+                        </label>
+                        <select id="defaultTimeSlots" class="form-control" style="width: 100%;">
+                            <option value="9-17">9:00 AM - 5:00 PM (1 hour slots)</option>
+                            <option value="8-20">8:00 AM - 8:00 PM (1 hour slots)</option>
+                            <option value="24">24/7 (Hourly slots)</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Bookings Table -->
+        <div class="table-container">
+            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-list"></i> Recent Bookings
+            </h2>
+            <table id="bookingsTable">
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Email</th>
+                        <th>Guests</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Booked On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="bookingsTableBody">
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 48px; color: #666;">
+                            Loading bookings...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Availability Modal -->
+    <div id="availabilityModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-calendar-alt"></i> Manage Availability</h2>
+                <button class="close-btn" onclick="closeAvailabilityModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 16px; align-items: flex-end;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Date</label>
+                            <input type="date" id="overrideDate" class="form-control" style="width: 100%;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Status</label>
+                            <select id="overrideStatus" class="form-control" style="width: 100%;">
+                                <option value="Available">Available</option>
+                                <option value="Limited">Limited</option>
+                                <option value="Booked">Fully Booked</option>
+                                <option value="Closed">Closed</option>
+                            </select>
+                        </div>
+                        <div style="width: 120px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Price</label>
+                            <input type="number" id="overridePrice" class="form-control" placeholder="Default">
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" onclick="addAvailabilityOverride()">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Price</th>
+                                <th>Max Bookings</th>
+                                <th>Booked</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="availabilityTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeAvailabilityModal()">Close</button>
+                <button class="btn btn-success" onclick="saveAvailability()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
             </div>
         </div>
     </div>
     
     <script>
-        // Admin functions here
+        // Initialize admin panel
+        class AdminPanel {
+            constructor() {
+                this.excelHandler = new ExcelHandler();
+                this.githubSync = new GitHubSync();
+                this.availabilityOverrides = [];
+                this.bookings = [];
+                
+                this.init();
+            }
+            
+            async init() {
+                await this.loadData();
+                this.updateStats();
+                this.renderBookingsTable();
+                this.renderAvailabilityTable();
+                this.setupEventListeners();
+            }
+            
+            async loadData() {
+                try {
+                    const [overrides, bookings] = await Promise.all([
+                        this.excelHandler.loadAvailabilityOverrides(),
+                        this.excelHandler.loadBookings()
+                    ]);
+                    
+                    this.availabilityOverrides = overrides || [];
+                    this.bookings = bookings || [];
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                }
+            }
+            
+            updateStats() {
+                const today = new Date().toISOString().split('T')[0];
+                
+                // Booking stats
+                document.getElementById('totalBookings').textContent = this.bookings.length;
+                
+                const totalRevenue = this.bookings.reduce((sum, b) => sum + (parseInt(b['Total Price']) || 0), 0);
+                document.getElementById('totalRevenue').textContent = `$${totalRevenue}`;
+                
+                const uniqueCustomers = [...new Set(this.bookings.map(b => b.Email))].length;
+                document.getElementById('uniqueCustomers').textContent = uniqueCustomers;
+                
+                const todayBookings = this.bookings.filter(b => b.Date === today).length;
+                document.getElementById('todayBookings').textContent = todayBookings;
+                
+                // Availability stats
+                const next30Days = [];
+                for (let i = 0; i < 30; i++) {
+                    const date = new Date();
+                    date.setDate(date.getDate() + i);
+                    next30Days.push(date.toISOString().split('T')[0]);
+                }
+                
+                let available = 0, limited = 0, booked = 0, closed = 0;
+                
+                next30Days.forEach(date => {
+                    const override = this.availabilityOverrides.find(o => o.Date === date);
+                    
+                    if (override) {
+                        if (override.Status === 'Closed') closed++;
+                        else if (override.Status === 'Booked') booked++;
+                        else if (override.Status === 'Limited') limited++;
+                        else available++;
+                    } else {
+                        // Check booking count
+                        const bookingCount = this.bookings.filter(b => b.Date === date).length;
+                        if (bookingCount >= 10) booked++;
+                        else if (bookingCount >= 7) limited++;
+                        else available++;
+                    }
+                });
+                
+                document.getElementById('availableDays').textContent = available;
+                document.getElementById('limitedDays').textContent = limited;
+                document.getElementById('bookedDays').textContent = booked;
+                document.getElementById('closedDays').textContent = closed;
+                
+                // GitHub info
+                document.getElementById('repoName').textContent = 'ZeroDegreeStation/Calendar';
+                document.getElementById('branchName').textContent = 'main';
+                document.getElementById('lastSync').textContent = new Date().toLocaleString();
+            }
+            
+            renderBookingsTable() {
+                const tbody = document.getElementById('bookingsTableBody');
+                
+                if (this.bookings.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 48px; color: #666;">
+                                No bookings found
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                // Sort by booking date (newest first)
+                const sorted = [...this.bookings].sort((a, b) => 
+                    new Date(b['Booking Date']) - new Date(a['Booking Date'])
+                ).slice(0, 20);
+                
+                tbody.innerHTML = sorted.map(booking => `
+                    <tr>
+                        <td style="font-family: monospace; font-size: 12px;">${booking['Booking ID']}</td>
+                        <td>${booking.Date}</td>
+                        <td>${booking['Customer Name']}</td>
+                        <td>${booking.Email}</td>
+                        <td>${booking.Guests || 1}</td>
+                        <td style="font-weight: 600; color: #34C759;">$${booking['Total Price']}</td>
+                        <td>
+                            <span class="badge badge-success">${booking.Status || 'Confirmed'}</span>
+                        </td>
+                        <td>${booking['Booking Date']}</td>
+                        <td>
+                            <button class="btn btn-outline" style="padding: 4px 8px;" 
+                                    onclick="viewBooking('${booking['Booking ID']}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+            renderAvailabilityTable() {
+                const tbody = document.getElementById('availabilityTableBody');
+                
+                if (this.availabilityOverrides.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 24px; color: #666;">
+                                No availability overrides. All days are available by default.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                // Sort by date
+                const sorted = [...this.availabilityOverrides].sort((a, b) => 
+                    new Date(a.Date) - new Date(b.Date)
+                );
+                
+                tbody.innerHTML = sorted.map(override => `
+                    <tr>
+                        <td>${override.Date}</td>
+                        <td>
+                            <span class="badge ${this.getStatusBadgeClass(override.Status)}">
+                                ${override.Status || 'Available'}
+                            </span>
+                        </td>
+                        <td>${override.Price ? `$${override.Price}` : 'Default'}</td>
+                        <td>${override.MaxBookings || 10}</td>
+                        <td>${override.Booked || 0}</td>
+                        <td>
+                            <button class="btn btn-outline" style="padding: 4px 8px; color: #FF3B30;" 
+                                    onclick="removeOverride('${override.Date}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+            getStatusBadgeClass(status) {
+                switch(status) {
+                    case 'Closed': return 'badge-danger';
+                    case 'Booked': return 'badge-danger';
+                    case 'Limited': return 'badge-warning';
+                    default: return 'badge-success';
+                }
+            }
+            
+            async addAvailabilityOverride() {
+                const date = document.getElementById('overrideDate').value;
+                const status = document.getElementById('overrideStatus').value;
+                const price = document.getElementById('overridePrice').value;
+                
+                if (!date) {
+                    alert('Please select a date');
+                    return;
+                }
+                
+                const override = {
+                    'Date': date,
+                    'Status': status,
+                    'Price': price || null,
+                    'MaxBookings': status === 'Closed' ? 0 : 10,
+                    'Booked': 0,
+                    'Available': status === 'Closed' ? 0 : 10,
+                    'Notes': ''
+                };
+                
+                // Remove existing override if any
+                this.availabilityOverrides = this.availabilityOverrides.filter(o => o.Date !== date);
+                
+                // Add new override
+                this.availabilityOverrides.push(override);
+                
+                // Sort and re-render
+                this.availabilityOverrides.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                this.renderAvailabilityTable();
+                
+                // Clear form
+                document.getElementById('overrideDate').value = '';
+                document.getElementById('overridePrice').value = '';
+            }
+            
+            async removeOverride(date) {
+                if (confirm(`Remove availability override for ${date}?`)) {
+                    this.availabilityOverrides = this.availabilityOverrides.filter(o => o.Date !== date);
+                    this.renderAvailabilityTable();
+                }
+            }
+            
+            async saveAvailability() {
+                try {
+                    await this.githubSync.pushAvailability(this.availabilityOverrides);
+                    alert('Availability saved successfully!');
+                    closeAvailabilityModal();
+                } catch (error) {
+                    console.error('Error saving availability:', error);
+                    alert('Failed to save availability. Check GitHub token.');
+                }
+            }
+            
+            setupEventListeners() {
+                // Load saved token
+                const savedToken = localStorage.getItem('github_token');
+                if (savedToken) {
+                    document.getElementById('githubToken').value = savedToken;
+                    this.githubSync.setToken(savedToken);
+                }
+            }
+        }
+        
+        // Functions for global access
+        const admin = new AdminPanel();
+        window.admin = admin;
+        
+        function openAvailabilityModal() {
+            document.getElementById('availabilityModal').classList.add('visible');
+            admin.renderAvailabilityTable();
+        }
+        
+        function closeAvailabilityModal() {
+            document.getElementById('availabilityModal').classList.remove('visible');
+        }
+        
+        function addAvailabilityOverride() {
+            admin.addAvailabilityOverride();
+        }
+        
+        function removeOverride(date) {
+            admin.removeOverride(date);
+        }
+        
+        function saveAvailability() {
+            admin.saveAvailability();
+        }
+        
+        async function syncToGitHub() {
+            try {
+                await admin.githubSync.pushBookings(admin.bookings);
+                await admin.githubSync.pushAvailability(admin.availabilityOverrides);
+                alert('Successfully synced to GitHub!');
+            } catch (error) {
+                console.error('Sync failed:', error);
+                alert('Failed to sync to GitHub. Check your token.');
+            }
+        }
+        
+        function pullFromGitHub() {
+            admin.loadData();
+            admin.updateStats();
+            admin.renderBookingsTable();
+            alert('Data refreshed from GitHub!');
+        }
+        
+        function saveToken() {
+            const token = document.getElementById('githubToken').value;
+            if (token) {
+                localStorage.setItem('github_token', token);
+                admin.githubSync.setToken(token);
+                alert('Token saved successfully!');
+            }
+        }
+        
+        function downloadFile(type) {
+            let data, filename;
+            
+            switch(type) {
+                case 'availability':
+                    data = admin.availabilityOverrides;
+                    filename = 'calendar-availability.xlsx';
+                    break;
+                case 'bookings':
+                    data = admin.bookings;
+                    filename = 'calendar-bookings.xlsx';
+                    break;
+                case 'timeSlots':
+                    data = admin.excelHandler.getDefaultTimeSlots();
+                    filename = 'calendar-time-slots.xlsx';
+                    break;
+            }
+            
+            admin.excelHandler.exportToExcel(data, filename);
+        }
+        
+        function exportBookingsCSV() {
+            const worksheet = XLSX.utils.json_to_sheet(admin.bookings);
+            const csv = XLSX.utils.sheet_to_csv(worksheet);
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'calendar-bookings.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function generateTemplates() {
+            const templates = admin.excelHandler.generateTemplates();
+            
+            // Generate template files
+            admin.excelHandler.exportToExcel(templates.availability, 'calendar-availability-template.xlsx');
+            admin.excelHandler.exportToExcel(templates.bookings, 'calendar-bookings-template.xlsx');
+            admin.excelHandler.exportToExcel(templates.timeSlots, 'calendar-time-slots-template.xlsx');
+            
+            alert('Template files generated successfully!');
+        }
+        
+        function backupAll() {
+            const backup = {
+                availability: admin.availabilityOverrides,
+                bookings: admin.bookings,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `calendar-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function saveSettings() {
+            const defaultPrice = document.getElementById('defaultPrice').value;
+            const defaultMaxBookings = document.getElementById('defaultMaxBookings').value;
+            const defaultTimeSlots = document.getElementById('defaultTimeSlots').value;
+            
+            localStorage.setItem('default_price', defaultPrice);
+            localStorage.setItem('default_max_bookings', defaultMaxBookings);
+            localStorage.setItem('default_time_slots', defaultTimeSlots);
+            
+            alert('Settings saved successfully!');
+        }
+        
+        function viewBooking(bookingId) {
+            // Find booking details
+            const booking = admin.bookings.find(b => b['Booking ID'] === bookingId);
+            if (booking) {
+                alert(JSON.stringify(booking, null, 2));
+            }
+        }
     </script>
 </body>
 </html>

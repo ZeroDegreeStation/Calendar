@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📅 Excel Booking Calendar - Google Style</title>
+    <title>Excel Booking Calendar</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/calendar.css">
     
     <!-- FullCalendar -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
@@ -12,839 +15,183 @@
     <!-- SheetJS for Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <style>
-        .calendar-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .availability-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        
-        .fc-day-available {
-            background-color: rgba(52, 199, 89, 0.1);
-            cursor: pointer;
-        }
-        
-        .fc-day-limited {
-            background-color: rgba(255, 149, 0, 0.1);
-            cursor: pointer;
-        }
-        
-        .fc-day-booked {
-            background-color: rgba(255, 59, 48, 0.1);
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-        
-        .fc-day-holiday {
-            background-color: rgba(142, 142, 147, 0.1);
-            cursor: not-allowed;
-            text-decoration: line-through;
-        }
-        
-        .fc-day-selected {
-            background-color: rgba(0, 122, 255, 0.2) !important;
-            border: 2px solid #007AFF !important;
-        }
-        
-        .booking-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        
-        .booking-form {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        
-        .time-slot {
-            padding: 10px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            margin: 5px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .time-slot:hover {
-            background: #f3f4f6;
-        }
-        
-        .time-slot.selected {
-            background: #007AFF;
-            color: white;
-            border-color: #007AFF;
-        }
-        
-        .time-slot.booked {
-            background: #f3f4f6;
-            color: #9ca3af;
-            cursor: not-allowed;
-            text-decoration: line-through;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        .animate-slide-in {
-            animation: slideIn 0.3s ease-out;
-        }
-    </style>
 </head>
-<body class="bg-gray-50">
+<body>
     <div class="calendar-container">
         <!-- Header -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <div class="flex flex-wrap items-center justify-between">
+        <div class="calendar-header">
+            <div class="header-left">
+                <i class="fas fa-calendar-alt calendar-icon"></i>
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-2">
-                        <i class="fas fa-calendar-alt text-blue-500"></i>
-                        Excel Booking Calendar
-                    </h1>
-                    <p class="text-gray-600 mt-1">Google-like calendar powered by GitHub + Excel</p>
-                </div>
-                
-                <!-- GitHub Connection Status -->
-                <div id="githubStatus" class="flex items-center gap-3">
-                    <span class="flex items-center gap-2">
-                        <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-                        <span class="text-sm text-gray-600">Connected to GitHub</span>
-                    </span>
-                    <button onclick="calendar.refreshData()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
-                        <i class="fas fa-sync-alt mr-2"></i>Sync
-                    </button>
+                    <h1>Excel Booking Calendar</h1>
+                    <p>Powered by GitHub + Excel</p>
                 </div>
             </div>
-            
-            <!-- Legend -->
-            <div class="flex flex-wrap gap-6 mt-4 pt-4 border-t">
-                <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 bg-green-100 border-2 border-green-500 rounded"></div>
-                    <span class="text-sm">Available</span>
+            <div class="header-right">
+                <div id="githubStatus" class="github-status">
+                    <span class="status-dot"></span>
+                    <span>GitHub Sync</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 bg-yellow-100 border-2 border-yellow-500 rounded"></div>
-                    <span class="text-sm">Limited</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 bg-red-100 border-2 border-red-500 rounded"></div>
-                    <span class="text-sm">Booked</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 bg-gray-100 border-2 border-gray-500 rounded"></div>
-                    <span class="text-sm">Holiday/Closed</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 bg-blue-100 border-2 border-blue-500 rounded"></div>
-                    <span class="text-sm">Selected</span>
-                </div>
+                <button id="refreshBtn" class="btn btn-primary">
+                    <i class="fas fa-sync-alt"></i> Sync
+                </button>
+                <a href="admin.html" class="btn btn-outline">
+                    <i class="fas fa-cog"></i> Admin
+                </a>
             </div>
         </div>
-        
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <span class="color-box available"></span>
+                <span>Available</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box limited"></span>
+                <span>Limited</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box booked"></span>
+                <span>Booked</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box closed"></span>
+                <span>Closed</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box selected"></span>
+                <span>Selected</span>
+            </div>
+            <div class="legend-item">
+                <span class="color-box past"></span>
+                <span>Past</span>
+            </div>
+        </div>
+
         <!-- Stats Dashboard -->
-        <div id="statsDashboard" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"></div>
-        
-        <!-- Main Calendar -->
-        <div class="bg-white rounded-xl shadow-lg p-6">
+        <div id="statsDashboard" class="stats-grid"></div>
+
+        <!-- Calendar -->
+        <div class="calendar-wrapper">
             <div id="calendar"></div>
         </div>
-    </div>
-    
-    <!-- Booking Modal -->
-    <div id="bookingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="booking-form animate-slide-in">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">
-                    <i class="fas fa-calendar-check text-blue-500 mr-2"></i>
-                    Book Your Slot
-                </h2>
-                <button onclick="calendar.closeModal()" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <div id="modalDateInfo" class="bg-blue-50 p-4 rounded-lg mb-6">
-                <!-- Date info will be populated here -->
-            </div>
-            
-            <form id="bookingForm" onsubmit="calendar.submitBooking(event)">
-                <!-- Time Slots -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-clock mr-2"></i>Select Time Slot
-                    </label>
-                    <div id="timeSlots" class="grid grid-cols-3 gap-2">
-                        <!-- Time slots will be populated here -->
-                    </div>
+
+        <!-- Booking Summary Bar -->
+        <div id="bookingSummary" class="booking-summary hidden">
+            <div class="summary-content">
+                <div class="summary-info">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span id="selectedDatesText">No dates selected</span>
                 </div>
-                
-                <!-- Customer Information -->
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                        <input type="text" id="customerName" required 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                               placeholder="John Doe">
+                <div class="summary-actions">
+                    <div class="summary-price">
+                        <span>Total:</span>
+                        <span id="totalPrice">$0</span>
                     </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
-                        <input type="email" id="customerEmail" required 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                               placeholder="john@example.com">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                        <input type="tel" id="customerPhone" 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                               placeholder="(555) 123-4567">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Number of Participants</label>
-                        <select id="participants" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="1">1 person</option>
-                            <option value="2">2 people</option>
-                            <option value="3">3 people</option>
-                            <option value="4">4 people</option>
-                            <option value="5">5 people</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
-                        <textarea id="specialRequests" rows="2" 
-                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                  placeholder="Any special requirements?"></textarea>
-                    </div>
-                </div>
-                
-                <!-- Price Summary -->
-                <div id="priceSummary" class="mt-6 p-4 bg-gray-50 rounded-lg hidden">
-                    <!-- Price will be shown here -->
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="flex gap-3 mt-6">
-                    <button type="button" onclick="calendar.closeModal()" 
-                            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
-                        Cancel
-                    </button>
-                    <button type="submit" id="submitBookingBtn"
-                            class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
-                        Confirm Booking
+                    <button id="bookNowBtn" class="btn btn-success" onclick="calendar.openBookingModal()">
+                        <i class="fas fa-calendar-check"></i> Book Now
                     </button>
                 </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Confirmation Modal -->
-    <div id="confirmationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center animate-slide-in">
-            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-check text-4xl text-green-500"></i>
             </div>
-            <h3 class="text-2xl font-bold text-gray-800 mb-2">Booking Confirmed!</h3>
-            <div id="confirmationDetails" class="text-gray-600 mb-6"></div>
-            <button onclick="calendar.closeConfirmation()" 
-                    class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
-                Done
-            </button>
         </div>
     </div>
 
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-calendar-check"></i> Complete Your Booking</h2>
+                <button class="close-btn" onclick="calendar.closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalSelectedDates" class="selected-dates-summary"></div>
+                
+                <form id="bookingForm">
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Full Name *</label>
+                        <input type="text" id="customerName" required placeholder="Enter your full name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-envelope"></i> Email Address *</label>
+                        <input type="email" id="customerEmail" required placeholder="your@email.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-phone"></i> Phone Number</label>
+                        <input type="tel" id="customerPhone" placeholder="(555) 123-4567">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-users"></i> Number of Guests</label>
+                        <select id="guests">
+                            <option value="1">1 Guest</option>
+                            <option value="2" selected>2 Guests</option>
+                            <option value="3">3 Guests</option>
+                            <option value="4">4 Guests</option>
+                            <option value="5">5 Guests</option>
+                            <option value="6">6+ Guests</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-comment"></i> Special Requests</label>
+                        <textarea id="specialRequests" rows="3" placeholder="Any special requirements?"></textarea>
+                    </div>
+                    
+                    <div id="priceBreakdown" class="price-breakdown"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="calendar.closeModal()">Cancel</button>
+                <button class="btn btn-success" onclick="calendar.submitBooking()">
+                    <i class="fas fa-check-circle"></i> Confirm Booking
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal hidden">
+        <div class="modal-content confirmation-content">
+            <div class="confirmation-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Booking Confirmed!</h2>
+            <div id="confirmationDetails"></div>
+            <div id="confirmationBookingId" class="booking-id"></div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="calendar.closeConfirmation()">Done</button>
+                <button class="btn btn-outline" onclick="calendar.viewBookings()">View Bookings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Bookings Modal -->
+    <div id="myBookingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-bookmark"></i> My Bookings</h2>
+                <button class="close-btn" onclick="calendar.closeMyBookings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="bookingsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="scripts/excel-handler.js"></script>
+    <script src="scripts/booking-system.js"></script>
+    <script src="scripts/github-sync.js"></script>
     <script>
-        class ExcelBookingCalendar {
-            constructor() {
-                this.calendar = null;
-                this.availabilityData = [];
-                this.bookingsData = [];
-                this.timeSlotsData = [];
-                this.selectedDate = null;
-                this.selectedDateInfo = null;
-                this.selectedTimeSlot = null;
-                
-                // GitHub Configuration
-                this.githubConfig = {
-                    owner: 'YOUR_USERNAME',
-                    repo: 'excel-booking-calendar',
-                    branch: 'main',
-                    availabilityFile: 'data/calendar-availability.xlsx',
-                    bookingsFile: 'data/calendar-bookings.xlsx',
-                    timeSlotsFile: 'data/calendar-time-slots.xlsx'
-                };
-                
-                this.init();
-            }
-            
-            async init() {
-                await this.loadAllData();
-                this.initCalendar();
-                this.updateStats();
-                this.setupEventListeners();
-            }
-            
-            async loadAllData() {
-                try {
-                    // Try to load from GitHub first
-                    await Promise.all([
-                        this.loadAvailability(),
-                        this.loadBookings(),
-                        this.loadTimeSlots()
-                    ]);
-                } catch (error) {
-                    console.error('Error loading from GitHub, using sample data:', error);
-                    this.loadSampleData();
-                }
-            }
-            
-            async loadAvailability() {
-                try {
-                    const url = `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${this.githubConfig.availabilityFile}`;
-                    const response = await fetch(url);
-                    const arrayBuffer = await response.arrayBuffer();
-                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.availabilityData = XLSX.utils.sheet_to_json(worksheet);
-                } catch (error) {
-                    console.log('Using sample availability data');
-                    this.loadSampleAvailability();
-                }
-            }
-            
-            async loadBookings() {
-                try {
-                    const url = `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${this.githubConfig.bookingsFile}`;
-                    const response = await fetch(url);
-                    const arrayBuffer = await response.arrayBuffer();
-                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.bookingsData = XLSX.utils.sheet_to_json(worksheet);
-                } catch (error) {
-                    console.log('Using sample bookings data');
-                    this.loadSampleBookings();
-                }
-            }
-            
-            async loadTimeSlots() {
-                try {
-                    const url = `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${this.githubConfig.timeSlotsFile}`;
-                    const response = await fetch(url);
-                    const arrayBuffer = await response.arrayBuffer();
-                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    this.timeSlotsData = XLSX.utils.sheet_to_json(worksheet);
-                } catch (error) {
-                    console.log('Using default time slots');
-                    this.loadDefaultTimeSlots();
-                }
-            }
-            
-            loadSampleAvailability() {
-                this.availabilityData = [
-                    { Date: '2024-03-15', Day: 'Friday', Status: 'Available', MaxBookings: 10, Booked: 3, Available: 7, Price: 50 },
-                    { Date: '2024-03-16', Day: 'Saturday', Status: 'Available', MaxBookings: 8, Booked: 1, Available: 7, Price: 75 },
-                    { Date: '2024-03-17', Day: 'Sunday', Status: 'Limited', MaxBookings: 5, Booked: 4, Available: 1, Price: 75 },
-                    { Date: '2024-03-18', Day: 'Monday', Status: 'Available', MaxBookings: 10, Booked: 0, Available: 10, Price: 50 },
-                    { Date: '2024-03-19', Day: 'Tuesday', Status: 'Booked', MaxBookings: 10, Booked: 10, Available: 0, Price: 50 },
-                    { Date: '2024-03-20', Day: 'Wednesday', Status: 'Holiday', MaxBookings: 0, Booked: 0, Available: 0, Price: 0 }
-                ];
-            }
-            
-            loadSampleBookings() {
-                this.bookingsData = [
-                    { 'Booking ID': 'BKG001', Date: '2024-03-15', 'Customer Name': 'John Doe', Email: 'john@email.com', 'Time Slot': '10:00 AM', Participants: 2, 'Total Price': 100, Status: 'Confirmed' },
-                    { 'Booking ID': 'BKG002', Date: '2024-03-15', 'Customer Name': 'Jane Smith', Email: 'jane@email.com', 'Time Slot': '2:00 PM', Participants: 3, 'Total Price': 150, Status: 'Confirmed' }
-                ];
-            }
-            
-            loadDefaultTimeSlots() {
-                this.timeSlotsData = [
-                    { Date: '2024-03-15', 'Time Slot': '09:00 AM', Capacity: 5, Booked: 2, Available: 3, Status: 'Open' },
-                    { Date: '2024-03-15', 'Time Slot': '10:00 AM', Capacity: 5, Booked: 1, Available: 4, Status: 'Open' },
-                    { Date: '2024-03-15', 'Time Slot': '11:00 AM', Capacity: 5, Booked: 0, Available: 5, Status: 'Open' },
-                    { Date: '2024-03-15', 'Time Slot': '02:00 PM', Capacity: 5, Booked: 3, Available: 2, Status: 'Open' }
-                ];
-            }
-            
-            initCalendar() {
-                const calendarEl = document.getElementById('calendar');
-                
-                this.calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'dayGridMonth',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek'
-                    },
-                    dateCellDidMount: (info) => {
-                        this.styleDateCell(info);
-                    },
-                    dateClick: (info) => {
-                        this.handleDateClick(info);
-                    },
-                    events: this.generateCalendarEvents(),
-                    dayMaxEvents: true,
-                    height: 'auto',
-                    aspectRatio: 1.8
-                });
-                
-                this.calendar.render();
-            }
-            
-            styleDateCell(info) {
-                const dateStr = info.date.toISOString().split('T')[0];
-                const availability = this.availabilityData.find(a => a.Date === dateStr);
-                
-                if (availability) {
-                    let className = '';
-                    switch(availability.Status) {
-                        case 'Available':
-                            className = 'fc-day-available';
-                            break;
-                        case 'Limited':
-                            className = 'fc-day-limited';
-                            break;
-                        case 'Booked':
-                            className = 'fc-day-booked';
-                            break;
-                        case 'Holiday':
-                            className = 'fc-day-holiday';
-                            break;
-                    }
-                    
-                    if (className) {
-                        info.el.classList.add(className);
-                    }
-                    
-                    // Add availability badge
-                    if (availability.Status !== 'Holiday') {
-                        const badge = document.createElement('div');
-                        badge.className = 'text-xs mt-1 text-center';
-                        badge.innerHTML = `
-                            <span class="availability-badge" style="background: ${this.getStatusColor(availability.Status)}20; color: ${this.getStatusColor(availability.Status)}">
-                                ${availability.Available}/${availability.MaxBookings} spots
-                            </span>
-                        `;
-                        info.el.appendChild(badge);
-                    }
-                }
-            }
-            
-            getStatusColor(status) {
-                const colors = {
-                    'Available': '#34C759',
-                    'Limited': '#FF9F0A',
-                    'Booked': '#FF3B30',
-                    'Holiday': '#8E8E93'
-                };
-                return colors[status] || '#007AFF';
-            }
-            
-            generateCalendarEvents() {
-                const events = [];
-                
-                // Add availability as events
-                this.availabilityData.forEach(item => {
-                    if (item.Status !== 'Holiday' && item.Available > 0) {
-                        events.push({
-                            title: `${item.Available} spots`,
-                            start: item.Date,
-                            allDay: true,
-                            display: 'background',
-                            color: this.getStatusColor(item.Status) + '20',
-                            textColor: this.getStatusColor(item.Status)
-                        });
-                    }
-                });
-                
-                // Add bookings as events
-                this.bookingsData.forEach(booking => {
-                    if (booking.Status === 'Confirmed') {
-                        events.push({
-                            title: `📅 ${booking['Customer Name']}`,
-                            start: booking.Date,
-                            allDay: true,
-                            color: '#007AFF',
-                            textColor: 'white',
-                            extendedProps: {
-                                type: 'booking',
-                                bookingId: booking['Booking ID']
-                            }
-                        });
-                    }
-                });
-                
-                return events;
-            }
-            
-            handleDateClick(info) {
-                const dateStr = info.dateStr;
-                const availability = this.availabilityData.find(a => a.Date === dateStr);
-                
-                if (!availability || availability.Available <= 0 || availability.Status === 'Holiday') {
-                    this.showNotification('This date is not available for booking', 'error');
-                    return;
-                }
-                
-                this.selectedDate = dateStr;
-                this.selectedDateInfo = availability;
-                this.openBookingModal();
-            }
-            
-            openBookingModal() {
-                const modal = document.getElementById('bookingModal');
-                const dateInfo = document.getElementById('modalDateInfo');
-                const timeSlots = document.getElementById('timeSlots');
-                const priceSummary = document.getElementById('priceSummary');
-                
-                // Show date information
-                dateInfo.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-calendar-day text-2xl text-blue-600"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-800">${this.selectedDate}</h3>
-                            <p class="text-sm text-gray-600">
-                                ${this.selectedDateInfo.Day} • ${this.selectedDateInfo.Available} spots available
-                                ${this.selectedDateInfo.Price ? ` • $${this.selectedDateInfo.Price} per person` : ''}
-                            </p>
-                        </div>
-                    </div>
-                `;
-                
-                // Load time slots for this date
-                this.loadTimeSlotsForDate(this.selectedDate, timeSlots);
-                
-                // Show price summary
-                if (this.selectedDateInfo.Price) {
-                    priceSummary.classList.remove('hidden');
-                    priceSummary.innerHTML = `
-                        <div class="flex justify-between items-center">
-                            <span class="font-medium">Price per person:</span>
-                            <span class="text-xl font-bold text-blue-600">$${this.selectedDateInfo.Price}</span>
-                        </div>
-                        <div id="totalPrice" class="flex justify-between items-center mt-2 pt-2 border-t">
-                            <span class="font-medium">Total:</span>
-                            <span class="text-xl font-bold text-green-600">$0</span>
-                        </div>
-                    `;
-                } else {
-                    priceSummary.classList.add('hidden');
-                }
-                
-                modal.classList.remove('hidden');
-            }
-            
-            loadTimeSlotsForDate(date, container) {
-                const slotsForDate = this.timeSlotsData.filter(slot => slot.Date === date);
-                const bookingsForDate = this.bookingsData.filter(booking => booking.Date === date);
-                
-                if (slotsForDate.length > 0) {
-                    // Use specific time slots from Excel
-                    container.innerHTML = slotsForDate.map(slot => {
-                        const isBooked = slot.Available <= 0;
-                        const bookedCount = bookingsForDate.filter(b => b['Time Slot'] === slot['Time Slot']).length;
-                        const available = slot.Capacity - bookedCount;
-                        
-                        return `
-                            <div class="time-slot ${isBooked ? 'booked' : ''} ${this.selectedTimeSlot === slot['Time Slot'] ? 'selected' : ''}"
-                                 onclick="${!isBooked ? 'calendar.selectTimeSlot(this, \'' + slot['Time Slot'] + '\', ' + available + ')' : ''}">
-                                <div class="font-medium">${slot['Time Slot']}</div>
-                                <div class="text-xs ${isBooked ? 'text-gray-400' : 'text-green-600'}">
-                                    ${available} left
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                } else {
-                    // Generate default time slots
-                    const defaultSlots = ['09:00 AM', '10:00 AM', '11:00 AM', '01:00 PM', '02:00 PM', '03:00 PM'];
-                    
-                    container.innerHTML = defaultSlots.map(slot => {
-                        const bookedCount = bookingsForDate.filter(b => b['Time Slot'] === slot).length;
-                        const maxPerSlot = 5;
-                        const available = maxPerSlot - bookedCount;
-                        const isBooked = available <= 0;
-                        
-                        return `
-                            <div class="time-slot ${isBooked ? 'booked' : ''} ${this.selectedTimeSlot === slot ? 'selected' : ''}"
-                                 onclick="${!isBooked ? 'calendar.selectTimeSlot(this, \'' + slot + '\', ' + available + ')' : ''}">
-                                <div class="font-medium">${slot}</div>
-                                <div class="text-xs ${isBooked ? 'text-gray-400' : 'text-green-600'}">
-                                    ${available} left
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            }
-            
-            selectTimeSlot(element, slot, available) {
-                // Remove selected class from all slots
-                document.querySelectorAll('.time-slot').forEach(el => {
-                    el.classList.remove('selected');
-                });
-                
-                // Add selected class to clicked slot
-                element.classList.add('selected');
-                this.selectedTimeSlot = slot;
-                
-                // Update price
-                const participants = document.getElementById('participants').value;
-                const totalPrice = this.selectedDateInfo.Price * participants;
-                document.getElementById('totalPrice').innerHTML = `
-                    <span class="font-medium">Total:</span>
-                    <span class="text-xl font-bold text-green-600">$${totalPrice}</span>
-                `;
-            }
-            
-            async submitBooking(event) {
-                event.preventDefault();
-                
-                if (!this.selectedTimeSlot) {
-                    this.showNotification('Please select a time slot', 'error');
-                    return;
-                }
-                
-                const bookingData = {
-                    'Booking ID': this.generateBookingId(),
-                    Date: this.selectedDate,
-                    'Customer Name': document.getElementById('customerName').value,
-                    Email: document.getElementById('customerEmail').value,
-                    Phone: document.getElementById('customerPhone').value,
-                    'Time Slot': this.selectedTimeSlot,
-                    Participants: document.getElementById('participants').value,
-                    'Total Price': this.selectedDateInfo.Price * document.getElementById('participants').value,
-                    Status: 'Confirmed',
-                    'Booking Date': new Date().toISOString().split('T')[0],
-                    'Special Requests': document.getElementById('specialRequests').value
-                };
-                
-                // Add to local bookings
-                this.bookingsData.push(bookingData);
-                
-                // Update availability
-                const availabilityIndex = this.availabilityData.findIndex(a => a.Date === this.selectedDate);
-                if (availabilityIndex !== -1) {
-                    this.availabilityData[availabilityIndex].Booked += parseInt(bookingData.Participants);
-                    this.availabilityData[availabilityIndex].Available -= parseInt(bookingData.Participants);
-                }
-                
-                // Update calendar
-                this.calendar.removeAllEvents();
-                this.calendar.addEventSource(this.generateCalendarEvents());
-                
-                // Close booking modal and show confirmation
-                this.closeModal();
-                this.showConfirmation(bookingData);
-                
-                // Sync to GitHub (in production)
-                await this.syncToGitHub();
-                
-                this.showNotification('Booking confirmed successfully!', 'success');
-            }
-            
-            generateBookingId() {
-                const lastBooking = this.bookingsData[this.bookingsData.length - 1];
-                const lastId = lastBooking ? parseInt(lastBooking['Booking ID'].replace('BKG', '')) : 0;
-                return `BKG${String(lastId + 1).padStart(3, '0')}`;
-            }
-            
-            showConfirmation(booking) {
-                const modal = document.getElementById('confirmationModal');
-                const details = document.getElementById('confirmationDetails');
-                
-                details.innerHTML = `
-                    <div class="text-left space-y-2">
-                        <p><strong>Booking ID:</strong> ${booking['Booking ID']}</p>
-                        <p><strong>Date:</strong> ${booking.Date}</p>
-                        <p><strong>Time:</strong> ${booking['Time Slot']}</p>
-                        <p><strong>Name:</strong> ${booking['Customer Name']}</p>
-                        <p><strong>Total:</strong> $${booking['Total Price']}</p>
-                    </div>
-                    <p class="mt-4 text-sm text-gray-500">
-                        A confirmation has been sent to ${booking.Email}
-                    </p>
-                `;
-                
-                modal.classList.remove('hidden');
-            }
-            
-            closeModal() {
-                document.getElementById('bookingModal').classList.add('hidden');
-                document.getElementById('bookingForm').reset();
-                this.selectedTimeSlot = null;
-            }
-            
-            closeConfirmation() {
-                document.getElementById('confirmationModal').classList.add('hidden');
-            }
-            
-            async syncToGitHub() {
-                // In production, this would use GitHub API to update Excel files
-                console.log('Syncing to GitHub...');
-                
-                // For demo, we'll simulate successful sync
-                this.showNotification('Data synced to GitHub', 'success');
-            }
-            
-            async refreshData() {
-                this.showNotification('Refreshing data from GitHub...', 'info');
-                await this.loadAllData();
-                this.calendar.removeAllEvents();
-                this.calendar.addEventSource(this.generateCalendarEvents());
-                this.updateStats();
-                this.showNotification('Data refreshed successfully!', 'success');
-            }
-            
-            updateStats() {
-                const statsContainer = document.getElementById('statsDashboard');
-                
-                const totalAvailable = this.availabilityData.reduce((sum, day) => sum + (day.Available || 0), 0);
-                const totalBooked = this.bookingsData.filter(b => b.Status === 'Confirmed').length;
-                const upcomingDays = this.availabilityData.filter(day => new Date(day.Date) > new Date() && day.Available > 0).length;
-                const revenue = this.bookingsData.reduce((sum, b) => sum + (b['Total Price'] || 0), 0);
-                
-                statsContainer.innerHTML = `
-                    <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-green-200 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-calendar-check text-green-600"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm text-green-600">Available Spots</div>
-                                <div class="text-2xl font-bold text-green-700">${totalAvailable}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-users text-blue-600"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm text-blue-600">Total Bookings</div>
-                                <div class="text-2xl font-bold text-blue-700">${totalBooked}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-lg border border-yellow-200">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-yellow-200 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-sun text-yellow-600"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm text-yellow-600">Upcoming Days</div>
-                                <div class="text-2xl font-bold text-yellow-700">${upcomingDays}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-purple-200 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-dollar-sign text-purple-600"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm text-purple-600">Total Revenue</div>
-                                <div class="text-2xl font-bold text-purple-700">$${revenue}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            showNotification(message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white flex items-center gap-2 z-50 ${
-                    type === 'success' ? 'bg-green-500' : 
-                    type === 'error' ? 'bg-red-500' : 
-                    type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                } animate-slide-in`;
-                
-                notification.innerHTML = `
-                    <i class="fas ${this.getNotificationIcon(type)}"></i>
-                    <span>${message}</span>
-                `;
-                
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {
-                    notification.style.opacity = '0';
-                    setTimeout(() => notification.remove(), 500);
-                }, 3000);
-            }
-            
-            getNotificationIcon(type) {
-                const icons = {
-                    success: 'fa-check-circle',
-                    error: 'fa-exclamation-circle',
-                    warning: 'fa-exclamation-triangle',
-                    info: 'fa-info-circle'
-                };
-                return icons[type] || 'fa-info-circle';
-            }
-            
-            setupEventListeners() {
-                // Close modal on escape key
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') {
-                        this.closeModal();
-                        this.closeConfirmation();
-                    }
-                });
-                
-                // Update price when participants change
-                document.getElementById('participants')?.addEventListener('change', () => {
-                    if (this.selectedDateInfo && this.selectedDateInfo.Price) {
-                        const participants = document.getElementById('participants').value;
-                        const totalPrice = this.selectedDateInfo.Price * participants;
-                        document.getElementById('totalPrice').innerHTML = `
-                            <span class="font-medium">Total:</span>
-                            <span class="text-xl font-bold text-green-600">$${totalPrice}</span>
-                        `;
-                    }
-                });
-            }
-        }
-        
-        // Initialize the calendar
-        const calendar = new ExcelBookingCalendar();
-        window.calendar = calendar; // For global access
+        // Initialize the calendar application
+        document.addEventListener('DOMContentLoaded', function() {
+            window.calendar = new BookingSystem();
+        });
     </script>
 </body>
 </html>
