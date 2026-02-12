@@ -305,11 +305,73 @@ body {
     box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
     transform: translateY(100%);
     transition: transform 0.3s ease;
-    z-index: 100;
+    z-index: 1000;
 }
 
 .booking-summary.visible {
     transform: translateY(0);
+}
+
+.booking-summary.hidden {
+    transform: translateY(100%);
+}
+
+/* FIXED: Booking button styles */
+.btn-success {
+    background: #34C759;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-success:hover {
+    background: #2C9E49;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(52, 199, 89, 0.3);
+}
+
+.btn-success:active {
+    transform: translateY(0);
+}
+
+.btn-success i {
+    margin-right: 8px;
+}
+
+/* FIXED: Clear button styles */
+.btn-outline {
+    background: transparent;
+    border: 1px solid #E5E5EA;
+    color: #3A3A3C;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-outline:hover {
+    background: #F2F2F7;
+    border-color: #8E8E93;
+}
+
+/* FIXED: Modal footer buttons */
+.modal-footer .btn {
+    padding: 12px 24px;
+    font-size: 14px;
+}
+
+.modal-footer .btn-success {
+    background: #34C759;
+}
+
+.modal-footer .btn-outline {
+    background: transparent;
+    border: 1px solid #E5E5EA;
 }
 
 .summary-content {

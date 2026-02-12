@@ -301,9 +301,11 @@ class BookingSystem {
         const summaryEl = document.getElementById('bookingSummary');
         const selectedDatesText = document.getElementById('selectedDatesText');
         const totalPriceEl = document.getElementById('totalPrice');
+        const bookNowBtn = document.getElementById('bookNowBtn');
         
         if (this.selectedDates.length === 0) {
             summaryEl.classList.remove('visible');
+            summaryEl.classList.add('hidden');
             return;
         }
         
@@ -315,8 +317,42 @@ class BookingSystem {
         const totalPrice = this.selectedDates.reduce((sum, date) => sum + this.getPrice(date), 0);
         totalPriceEl.textContent = `$${totalPrice}`;
         
+        // FIXED: Ensure booking button is enabled and visible
+        if (bookNowBtn) {
+            bookNowBtn.disabled = false;
+            bookNowBtn.style.opacity = '1';
+            bookNowBtn.style.cursor = 'pointer';
+        }
         // Show summary
+        summaryEl.classList.remove('hidden');
         summaryEl.classList.add('visible');
+    }
+
+    /**
+     * Clear all selected dates - FIXED to properly update UI
+     */
+    clearDateSelection() {
+        this.selectedDates = [];
+        
+        // Remove highlight from all calendar cells
+        document.querySelectorAll('.fc-day-selected').forEach(el => {
+            el.classList.remove('fc-day-selected');
+        });
+        
+        // Hide booking summary
+        const summaryEl = document.getElementById('bookingSummary');
+        if (summaryEl) {
+            summaryEl.classList.remove('visible');
+            summaryEl.classList.add('hidden');
+        }
+        
+        // Update selected dates text
+        const selectedDatesText = document.getElementById('selectedDatesText');
+        if (selectedDatesText) {
+            selectedDatesText.textContent = 'No dates selected';
+        }
+        
+        console.log('Date selection cleared');
     }
 
     /**
@@ -342,10 +378,33 @@ class BookingSystem {
             return;
         }
         
+        // Check if selected dates are still available
+        const unavailableDates = this.selectedDates.filter(date => {
+            const status = this.getDayStatus(date);
+            return !['available', 'limited'].includes(status.class);
+        });
+    
+        if (unavailableDates.length > 0) {
+            this.showNotification(`Some dates are no longer available: ${unavailableDates.join(', ')}`, 'error');
+            // Remove unavailable dates from selection
+            this.selectedDates = this.selectedDates.filter(date => !unavailableDates.includes(date));
+            this.updateBookingSummary();
+            return;
+        }
+    
         const modal = document.getElementById('bookingModal');
+        if (!modal) {
+            console.error('Booking modal not found');
+            return;
+        }
+    
         const selectedDatesEl = document.getElementById('modalSelectedDates');
         const priceBreakdownEl = document.getElementById('priceBreakdown');
-        
+    
+        if (!selectedDatesEl || !priceBreakdownEl) {
+            console.error('Modal elements not found');
+            return;
+        }
         // Populate selected dates
         const totalNights = this.selectedDates.length;
         const totalPrice = this.selectedDates.reduce((sum, date) => sum + this.getPrice(date), 0);

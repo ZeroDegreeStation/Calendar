@@ -79,7 +79,7 @@
             <div id="calendar"></div>
         </div>
 
-        <!-- Booking Summary Bar -->
+        <!-- Booking Summary Bar - FIXED: Added booking button -->
         <div id="bookingSummary" class="booking-summary hidden">
             <div class="summary-content">
                 <div class="summary-info">
@@ -91,8 +91,13 @@
                         <span>Total:</span>
                         <span id="totalPrice">$0</span>
                     </div>
-                    <button id="bookNowBtn" class="btn btn-success" onclick="calendar.openBookingModal()">
+                    <!-- FIXED: Added booking button with proper onclick handler -->
+                    <button id="bookNowBtn" class="btn btn-success" onclick="window.calendar?.openBookingModal()">
                         <i class="fas fa-calendar-check"></i> Book Now
+                    </button>
+                    <!-- FIXED: Added clear selection button -->
+                    <button id="clearBtn" class="btn btn-outline" onclick="window.calendar?.clearDateSelection()">
+                        <i class="fas fa-times"></i> Clear
                     </button>
                 </div>
             </div>
@@ -104,12 +109,12 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2><i class="fas fa-calendar-check"></i> Complete Your Booking</h2>
-                <button class="close-btn" onclick="calendar.closeModal()">&times;</button>
+                <button class="close-btn" onclick="window.calendar?.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="modalSelectedDates" class="selected-dates-summary"></div>
                 
-                <form id="bookingForm">
+                <form id="bookingForm" onsubmit="event.preventDefault(); window.calendar?.submitBooking();">
                     <div class="form-group">
                         <label><i class="fas fa-user"></i> Full Name *</label>
                         <input type="text" id="customerName" required placeholder="Enter your full name">
@@ -143,13 +148,15 @@
                     </div>
                     
                     <div id="priceBreakdown" class="price-breakdown"></div>
+                    
+                    <!-- FIXED: Added modal footer inside form for better UX -->
+                    <div class="modal-footer" style="margin-top: 24px; padding: 0; border: none;">
+                        <button type="button" class="btn btn-outline" onclick="window.calendar?.closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check-circle"></i> Confirm Booking
+                        </button>
+                    </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="calendar.closeModal()">Cancel</button>
-                <button class="btn btn-success" onclick="calendar.submitBooking()">
-                    <i class="fas fa-check-circle"></i> Confirm Booking
-                </button>
             </div>
         </div>
     </div>
@@ -164,8 +171,8 @@
             <div id="confirmationDetails"></div>
             <div id="confirmationBookingId" class="booking-id"></div>
             <div class="modal-footer">
-                <button class="btn btn-primary" onclick="calendar.closeConfirmation()">Done</button>
-                <button class="btn btn-outline" onclick="calendar.viewBookings()">View Bookings</button>
+                <button class="btn btn-primary" onclick="window.calendar?.closeConfirmation()">Done</button>
+                <button class="btn btn-outline" onclick="window.calendar?.viewBookings()">View Bookings</button>
             </div>
         </div>
     </div>
@@ -175,7 +182,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2><i class="fas fa-bookmark"></i> My Bookings</h2>
-                <button class="close-btn" onclick="calendar.closeMyBookings()">&times;</button>
+                <button class="close-btn" onclick="window.calendar?.closeMyBookings()">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="bookingsList"></div>
@@ -185,13 +192,60 @@
 
     <!-- Scripts -->
     <script src="scripts/excel-handler.js"></script>
-    <script src="scripts/booking-system.js"></script>
     <script src="scripts/github-sync.js"></script>
+    <script src="scripts/booking-system.js"></script>
     <script>
-        // Initialize the calendar application
+        // FIXED: Initialize the calendar application with proper error handling
         document.addEventListener('DOMContentLoaded', function() {
-            window.calendar = new BookingSystem();
+            try {
+                window.calendar = new BookingSystem();
+                console.log('Calendar initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize calendar:', error);
+                // Show error message to user
+                const container = document.querySelector('.calendar-container');
+                if (container) {
+                    container.innerHTML += `
+                        <div style="background: #FF3B30; color: white; padding: 16px; border-radius: 8px; margin-top: 16px;">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Failed to load calendar. Please refresh the page.
+                        </div>
+                    `;
+                }
+            }
         });
+    </script>
+    
+    <!-- FIXED: Added fallback for when calendar is not initialized -->
+    <script>
+        // Ensure calendar object exists for button clicks
+        window.calendar = window.calendar || {
+            openBookingModal: function() { 
+                alert('Please select some dates first'); 
+            },
+            closeModal: function() { 
+                document.getElementById('bookingModal')?.classList.remove('visible'); 
+            },
+            submitBooking: function() { 
+                alert('Booking system is initializing. Please try again.'); 
+            },
+            clearDateSelection: function() { 
+                // Clear selected dates from UI
+                document.querySelectorAll('.fc-day-selected').forEach(el => {
+                    el.classList.remove('fc-day-selected');
+                });
+                document.getElementById('bookingSummary')?.classList.remove('visible');
+            },
+            closeConfirmation: function() {
+                document.getElementById('confirmationModal')?.classList.remove('visible');
+            },
+            viewBookings: function() {
+                document.getElementById('myBookingsModal')?.classList.add('visible');
+            },
+            closeMyBookings: function() {
+                document.getElementById('myBookingsModal')?.classList.remove('visible');
+            }
+        };
     </script>
 </body>
 </html>
