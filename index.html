@@ -3,249 +3,2050 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Booking Calendar</title>
+    <title>Guest House Snow Station - Near Meiho Ski Resort</title>
     
-    <!-- Styles -->
-    <link rel="stylesheet" href="styles/calendar.css">
-    
-    <!-- FullCalendar -->
+    <!-- FullCalendar CSS -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-    
-    <!-- SheetJS for Excel -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* GLOBAL STYLES */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* NAVIGATION */
+        .main-header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            text-decoration: none;
+            padding: 1rem 0;
+        }
+
+        .logo span {
+            color: #3498db;
+        }
+
+        .main-nav {
+            display: flex;
+        }
+
+        .nav-list {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-left: 1.5rem;
+        }
+
+        .nav-link {
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 1.5rem 0;
+            display: block;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #3498db;
+        }
+
+        .nav-link.active {
+            color: #3498db;
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #3498db;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #2c3e50;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        /* HERO SECTION */
+        .hero-section {
+            background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.95)), 
+                        url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            padding: 5rem 1rem 3rem;
+            text-align: center;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            font-weight: 300;
+            margin-bottom: 1.5rem;
+            letter-spacing: 1px;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero-content h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero-content p {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 2rem;
+        }
+
+        .highlight {
+            background-color: #e3f2fd;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            color: #1565c0;
+            font-weight: 600;
+        }
+
+        /* MAIN CONTENT */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            color: #2c3e50;
+            margin: 3rem 0 2rem;
+            position: relative;
+        }
+
+        .section-title:after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 3px;
+            background-color: #3498db;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* STAY PLANS */
+        .stay-plans {
+            margin: 3rem 0;
+        }
+
+        .plans-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .plan-card {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .plan-card.popular {
+            border: 2px solid #3498db;
+            transform: scale(1.03);
+        }
+
+        .plan-card.popular:hover {
+            transform: scale(1.03) translateY(-10px);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: 15px;
+            right: -30px;
+            background-color: #3498db;
+            color: white;
+            padding: 0.5rem 3rem;
+            transform: rotate(45deg);
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 1;
+        }
+
+        .plan-header {
+            padding: 2rem;
+            text-align: center;
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            color: white;
+        }
+
+        .plan-card:nth-child(2) .plan-header {
+            background: linear-gradient(135deg, #3498db, #2c3e50);
+        }
+
+        .plan-card:nth-child(3) .plan-header {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .plan-price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 1rem 0;
+        }
+
+        .plan-price span {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        .plan-duration {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .plan-features {
+            padding: 2rem;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .feature-list li {
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list i {
+            color: #27ae60;
+            margin-right: 0.8rem;
+            font-size: 1.1rem;
+        }
+
+        .feature-list i.fa-times {
+            color: #e74c3c;
+        }
+
+        .plan-note {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 1rem;
+            border-left: 3px solid #3498db;
+        }
+
+        .select-plan-btn {
+            background-color: #27ae60 !important;
+        }
+
+        /* CALENDAR SECTION */
+        .calendar-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .calendar-title {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .calendar-title i {
+            font-size: 1.8rem;
+            color: #3498db;
+        }
+
+        .calendar-title h2 {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        /* CALENDAR CONTAINER */
+        #calendar {
+            height: 600px;
+            margin-bottom: 1.5rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            padding: 1rem;
+        }
+
+        /* LEGEND */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .legend-color.available { background: rgba(52, 199, 89, 0.2); border: 1px solid #34C759; }
+        .legend-color.limited { background: rgba(255, 159, 10, 0.2); border: 1px solid #FF9F0A; }
+        .legend-color.booked { background: rgba(255, 59, 48, 0.2); border: 1px solid #FF3B30; }
+        .legend-color.selected { background: rgba(66, 133, 244, 0.2); border: 1px solid #4285F4; }
+        .legend-color.past { background: rgba(142, 142, 147, 0.1); border: 1px dashed #8E8E93; }
+
+        /* CALENDAR DAY STYLES */
+        .fc-day-selected {
+            background-color: rgba(66, 133, 244, 0.2) !important;
+            border: 2px solid #4285F4 !important;
+        }
+        
+        .fc-daygrid-day {
+            cursor: pointer !important;
+        }
+        
+        .fc-day-available {
+            background-color: rgba(52, 199, 89, 0.1);
+        }
+        
+        .fc-day-limited {
+            background-color: rgba(255, 159, 10, 0.1);
+        }
+        
+        .fc-day-booked {
+            background-color: rgba(255, 59, 48, 0.1);
+            cursor: not-allowed !important;
+            opacity: 0.7;
+        }
+        
+        .fc-day-past {
+            background-color: rgba(142, 142, 147, 0.05);
+            cursor: not-allowed !important;
+            opacity: 0.6;
+        }
+        
+        .day-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 5;
+        }
+
+        /* BOOKING SUMMARY BAR - NO CLEAR BUTTON */
+        .booking-summary {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            padding: 1.5rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .booking-summary.visible {
+            transform: translateY(0);
+        }
+        
+        .summary-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .summary-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .summary-info i {
+            font-size: 1.5rem;
+            color: #3498db;
+        }
+        
+        .summary-price {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+        
+        .summary-price span:first-child {
+            color: #666;
+        }
+        
+        .summary-price span:last-child {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #3498db;
+        }
+
+        /* BOOKING CONTAINER */
+        .booking-container {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        @media (max-width: 1200px) {
+            .booking-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* FORM STYLES */
+        .booking-form, .payment-form {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .form-group label i {
+            color: #3498db;
+            margin-right: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            outline: none;
+        }
+
+        .form-group input[readonly] {
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* PAYMENT METHODS */
+        .payment-method {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .payment-method:hover {
+            border-color: #3498db;
+        }
+
+        .payment-method.selected {
+            border-color: #3498db;
+            background: #f0f8ff;
+        }
+
+        .payment-method input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 1rem;
+            cursor: pointer;
+        }
+
+        .payment-method label {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .payment-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            color: #666;
+        }
+
+        .payment-details {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .payment-details.active {
+            display: block;
+        }
+
+        .card-input-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1rem;
+        }
+
+        .total-summary {
+            background: #e8f4fd;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .total-row.final {
+            border-bottom: none;
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 2px solid #3498db;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        /* BUTTONS */
+        .cta-button {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            width: 100%;
+        }
+
+        .cta-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .pay-now-btn {
+            background: #e74c3c;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+
+        .pay-now-btn:hover {
+            background: #c0392b;
+        }
+
+        .success-btn {
+            background: #27ae60;
+        }
+
+        /* EMAIL MODAL */
+        .email-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .email-modal.active {
+            display: flex;
+        }
+
+        .email-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s ease;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .email-progress {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        .progress-step {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin: 0 5px;
+        }
+
+        .progress-step.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .progress-step.completed {
+            background: #27ae60;
+            color: white;
+        }
+
+        .progress-line {
+            width: 50px;
+            height: 3px;
+            background: #e0e0e0;
+            margin: 0 5px;
+        }
+
+        .progress-line.completed {
+            background: #27ae60;
+        }
+
+        .email-preview {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            border-left: 4px solid #3498db;
+        }
+
+        .email-address {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+        }
+
+        .email-address i {
+            color: #3498db;
+            margin-right: 1rem;
+        }
+
+        /* FOOTER */
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 3rem 1rem;
+            margin-top: 4rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .footer-logo span {
+            color: #3498db;
+        }
+
+        .copyright {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #bdc3c7;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .main-nav {
+                position: fixed;
+                top: 70px;
+                left: 0;
+                width: 100%;
+                background: white;
+                padding: 1rem;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                transform: translateY(-100%);
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s ease;
+            }
+
+            .main-nav.active {
+                transform: translateY(0);
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .nav-list {
+                flex-direction: column;
+            }
+
+            .nav-item {
+                margin: 0;
+            }
+
+            .nav-link {
+                padding: 1rem;
+                border-bottom: 1px solid #eee;
+            }
+
+            .hero-content h1 {
+                font-size: 2rem;
+            }
+
+            .plans-container {
+                grid-template-columns: 1fr;
+            }
+
+            .plan-card.popular {
+                transform: scale(1);
+            }
+
+            .card-input-group {
+                grid-template-columns: 1fr;
+            }
+
+            #calendar {
+                height: 500px;
+            }
+
+            .booking-container {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .legend {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="calendar-container">
-        <!-- Header -->
-        <div class="calendar-header">
-            <div class="header-left">
-                <i class="fas fa-calendar-alt calendar-icon"></i>
-                <div>
-                    <h1>Excel Booking Calendar</h1>
-                    <p>Powered by GitHub + Excel</p>
-                </div>
-            </div>
-            <div class="header-right">
-                <div id="githubStatus" class="github-status">
-                    <span class="status-dot"></span>
-                    <span>GitHub Sync</span>
-                </div>
-                <button id="refreshBtn" class="btn btn-primary">
-                    <i class="fas fa-sync-alt"></i> Sync
-                </button>
-                <a href="admin.html" class="btn btn-outline">
-                    <i class="fas fa-cog"></i> Admin
-                </a>
-            </div>
+    <!-- NAVIGATION -->
+    <header class="main-header">
+        <div class="nav-container">
+            <a href="#home" class="logo">Snow<span>Station</span></a>
+            
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <nav class="main-nav" id="mainNav">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="#home" class="nav-link active">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#stay-plans" class="nav-link">Stay Plans</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#calendar-section" class="nav-link">Availability</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#booking" class="nav-link">Booking</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#access" class="nav-link">Access</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
+    </header>
 
-        <!-- Legend -->
-        <div class="legend">
-            <div class="legend-item">
-                <span class="color-box available"></span>
-                <span>Available</span>
-            </div>
-            <div class="legend-item">
-                <span class="color-box limited"></span>
-                <span>Limited</span>
-            </div>
-            <div class="legend-item">
-                <span class="color-box booked"></span>
-                <span>Booked</span>
-            </div>
-            <div class="legend-item">
-                <span class="color-box closed"></span>
-                <span>Closed</span>
-            </div>
-            <div class="legend-item">
-                <span class="color-box selected"></span>
-                <span>Selected</span>
-            </div>
-            <div class="legend-item">
-                <span class="color-box past"></span>
-                <span>Past</span>
-            </div>
+    <!-- HERO SECTION -->
+    <section id="home" class="hero-section">
+        <p class="tagline">Serve Your Convenience</p>
+        
+        <div class="hero-content">
+            <h1>Welcome to the Guest House</h1>
+            <h1><span class="highlight">Snow Station</span></h1>
+            <p>Located nearby Meiho Ski Resort, we provide exclusive booking for your convenience. Enjoy comfortable accommodations just minutes from the slopes, perfect for ski enthusiasts and winter vacationers.</p>
+            <a href="#stay-plans" class="cta-button">View Our Stay Plans</a>
         </div>
+    </section>
 
-        <!-- Stats Dashboard -->
-        <div id="statsDashboard" class="stats-grid"></div>
-
-        <!-- Calendar -->
-        <div class="calendar-wrapper">
-            <div id="calendar"></div>
-        </div>
-
-        <!-- Booking Summary Bar - FIXED: Added booking button -->
-        <div id="bookingSummary" class="booking-summary hidden">
-            <div class="summary-content">
-                <div class="summary-info">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span id="selectedDatesText">No dates selected</span>
-                </div>
-                <div class="summary-actions">
-                    <div class="summary-price">
-                        <span>Total:</span>
-                        <span id="totalPrice">$0</span>
+    <main>
+        <!-- STAY PLANS SECTION -->
+        <section id="stay-plans">
+            <h2 class="section-title">Stay Plans & Packages</h2>
+            <p style="text-align: center; max-width: 800px; margin: 0 auto 2rem; color: #666;">Choose from our specially curated stay plans designed for ski enthusiasts. All plans include breakfast and ski storage.</p>
+            
+            <div class="stay-plans">
+                <div class="plans-container">
+                    <!-- Weekend Getaway -->
+                    <div class="plan-card">
+                        <div class="plan-header">
+                            <h3 class="plan-name">Weekend Getaway</h3>
+                            <div class="plan-price">¥12,800<span> / night</span></div>
+                            <p class="plan-duration">2 Nights Minimum</p>
+                        </div>
+                        <div class="plan-features">
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i> Standard Double Room</li>
+                                <li><i class="fas fa-check"></i> Buffet Breakfast</li>
+                                <li><i class="fas fa-check"></i> Ski Equipment Storage</li>
+                                <li><i class="fas fa-check"></i> Hot Tub Access</li>
+                                <li><i class="fas fa-check"></i> Free WiFi</li>
+                                <li><i class="fas fa-check"></i> Parking</li>
+                                <li><i class="fas fa-times"></i> Ski Lift Discount</li>
+                                <li><i class="fas fa-times"></i> Dinner Package</li>
+                            </ul>
+                            <button class="cta-button select-plan-btn" data-plan="weekend-getaway" data-price="12800" data-plan-name="Weekend Getaway">Select This Plan</button>
+                        </div>
                     </div>
-                    <!-- FIXED: Added booking button with proper onclick handler -->
-                    <button id="bookNowBtn" class="btn btn-success" onclick="window.calendar?.openBookingModal()">
-                        <i class="fas fa-calendar-check"></i> Book Now
-                    </button>
-                    <!-- FIXED: Added clear selection button -->
-                    <button id="clearBtn" class="btn btn-outline" onclick="window.calendar?.clearDateSelection()">
-                        <i class="fas fa-times"></i> Clear
-                    </button>
+                    
+                    <!-- Ski Adventure (Popular) -->
+                    <div class="plan-card popular">
+                        <div class="popular-badge">MOST POPULAR</div>
+                        <div class="plan-header">
+                            <h3 class="plan-name">Ski Adventure</h3>
+                            <div class="plan-price">¥18,500<span> / night</span></div>
+                            <p class="plan-duration">3-5 Nights Recommended</p>
+                        </div>
+                        <div class="plan-features">
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i> Superior Mountain View Room</li>
+                                <li><i class="fas fa-check"></i> Buffet Breakfast</li>
+                                <li><i class="fas fa-check"></i> Ski Equipment Storage</li>
+                                <li><i class="fas fa-check"></i> Hot Tub & Sauna</li>
+                                <li><i class="fas fa-check"></i> 15% Ski Lift Discount</li>
+                                <li><i class="fas fa-check"></i> Free Shuttle</li>
+                                <li><i class="fas fa-check"></i> Welcome Drink</li>
+                                <li><i class="fas fa-times"></i> Dinner Package</li>
+                            </ul>
+                            <button class="cta-button select-plan-btn" data-plan="ski-adventure" data-price="18500" data-plan-name="Ski Adventure">Select This Plan</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Family Package -->
+                    <div class="plan-card">
+                        <div class="plan-header">
+                            <h3 class="plan-name">Family Ski Package</h3>
+                            <div class="plan-price">¥32,000<span> / night</span></div>
+                            <p class="plan-duration">Family of 4</p>
+                        </div>
+                        <div class="plan-features">
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i> Family Suite (2 Rooms)</li>
+                                <li><i class="fas fa-check"></i> Breakfast for 4</li>
+                                <li><i class="fas fa-check"></i> Ski Equipment Storage</li>
+                                <li><i class="fas fa-check"></i> All Facilities Access</li>
+                                <li><i class="fas fa-check"></i> 20% Ski Lift Discount</li>
+                                <li><i class="fas fa-check"></i> Free Shuttle</li>
+                                <li><i class="fas fa-check"></i> Kids' Ski Lesson</li>
+                                <li><i class="fas fa-check"></i> Dinner Option</li>
+                            </ul>
+                            <button class="cta-button select-plan-btn" data-plan="family-package" data-price="32000" data-plan-name="Family Ski Package">Select This Plan</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- Booking Modal -->
-    <div id="bookingModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-calendar-check"></i> Complete Your Booking</h2>
-                <button class="close-btn" onclick="window.calendar?.closeModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="modalSelectedDates" class="selected-dates-summary"></div>
+        <!-- CALENDAR & BOOKING SECTION -->
+        <section id="calendar-section">
+            <h2 class="section-title">Check Availability & Book</h2>
+            
+            <!-- CALENDAR SECTION -->
+            <div class="calendar-section">
+                <div class="calendar-header">
+                    <div class="calendar-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        <h2>Select Your Stay Dates</h2>
+                    </div>
+                </div>
                 
-                <form id="bookingForm" onsubmit="event.preventDefault(); window.calendar?.submitBooking();">
-                    <div class="form-group">
-                        <label><i class="fas fa-user"></i> Full Name *</label>
-                        <input type="text" id="customerName" required placeholder="Enter your full name">
+                <!-- LEGEND -->
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-color available"></span>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color limited"></span>
+                        <span>Limited (70%+ Booked)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color booked"></span>
+                        <span>Fully Booked</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color selected"></span>
+                        <span>Your Selection</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color past"></span>
+                        <span>Past Date</span>
+                    </div>
+                </div>
+                
+                <!-- CALENDAR CONTAINER -->
+                <div id="calendar"></div>
+            </div>
+            
+            <!-- BOOKING FORM SECTION -->
+            <div id="booking">
+                <div class="booking-container">
+                    <!-- GUEST INFORMATION -->
+                    <div class="booking-form">
+                        <h3 style="color: #2c3e50; margin-bottom: 1.5rem;">
+                            <i class="fas fa-user" style="color: #3498db; margin-right: 0.5rem;"></i>
+                            Guest Information
+                        </h3>
+                        
+                        <form id="guestForm">
+                            <div class="form-group">
+                                <label><i class="fas fa-user"></i> Full Name *</label>
+                                <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-envelope"></i> Email Address *</label>
+                                <input type="email" id="email" name="email" required placeholder="your.email@example.com">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-phone"></i> Phone Number *</label>
+                                <input type="tel" id="phone" name="phone" required placeholder="+81 123-456-7890">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-tag"></i> Stay Plan *</label>
+                                <select id="selected-plan" name="selected-plan" required>
+                                    <option value="">Select a stay plan</option>
+                                    <option value="weekend-getaway" data-price="12800">Weekend Getaway - ¥12,800/night</option>
+                                    <option value="ski-adventure" data-price="18500">Ski Adventure - ¥18,500/night</option>
+                                    <option value="family-package" data-price="32000">Family Ski Package - ¥32,000/night</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-calendar"></i> Check-in Date</label>
+                                <input type="date" id="checkin" name="checkin" readonly placeholder="Select dates from calendar">
+                                <small style="color: #666; display: block; margin-top: 0.3rem;">* Click on dates in the calendar above</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-calendar"></i> Check-out Date</label>
+                                <input type="date" id="checkout" name="checkout" readonly placeholder="Select dates from calendar">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-users"></i> Number of Guests *</label>
+                                <select id="guests" name="guests" required>
+                                    <option value="">Select number of guests</option>
+                                    <option value="1">1 Guest</option>
+                                    <option value="2">2 Guests</option>
+                                    <option value="3">3 Guests</option>
+                                    <option value="4">4 Guests</option>
+                                    <option value="5">5 Guests</option>
+                                    <option value="6">6+ Guests</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-comment"></i> Special Requests</label>
+                                <textarea id="message" name="message" placeholder="Any special requirements, dietary restrictions, or questions..."></textarea>
+                            </div>
+                        </form>
                     </div>
                     
-                    <div class="form-group">
-                        <label><i class="fas fa-envelope"></i> Email Address *</label>
-                        <input type="email" id="customerEmail" required placeholder="your@email.com">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-phone"></i> Phone Number</label>
-                        <input type="tel" id="customerPhone" placeholder="(555) 123-4567">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-users"></i> Number of Guests</label>
-                        <select id="guests">
-                            <option value="1">1 Guest</option>
-                            <option value="2" selected>2 Guests</option>
-                            <option value="3">3 Guests</option>
-                            <option value="4">4 Guests</option>
-                            <option value="5">5 Guests</option>
-                            <option value="6">6+ Guests</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-comment"></i> Special Requests</label>
-                        <textarea id="specialRequests" rows="3" placeholder="Any special requirements?"></textarea>
-                    </div>
-                    
-                    <div id="priceBreakdown" class="price-breakdown"></div>
-                    
-                    <!-- FIXED: Added modal footer inside form for better UX -->
-                    <div class="modal-footer" style="margin-top: 24px; padding: 0; border: none;">
-                        <button type="button" class="btn btn-outline" onclick="window.calendar?.closeModal()">Cancel</button>
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-check-circle"></i> Confirm Booking
+                    <!-- PAYMENT FORM -->
+                    <div class="payment-form">
+                        <h3 style="color: #2c3e50; margin-bottom: 1.5rem;">
+                            <i class="fas fa-credit-card" style="color: #3498db; margin-right: 0.5rem;"></i>
+                            Payment Information
+                        </h3>
+                        
+                        <!-- SELECTED PLAN DISPLAY -->
+                        <div id="selectedPlanInfo" style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; border-left: 3px solid #3498db;">
+                            <span style="color: #666;">No plan selected</span>
+                        </div>
+                        
+                        <!-- TOTAL SUMMARY -->
+                        <div class="total-summary">
+                            <div class="total-row">
+                                <span>Room Rate (<span id="nightCount">0</span> nights):</span>
+                                <span id="roomRate">¥0</span>
+                            </div>
+                            <div class="total-row">
+                                <span>Tax (10%):</span>
+                                <span id="taxAmount">¥0</span>
+                            </div>
+                            <div class="total-row">
+                                <span>Service Charge:</span>
+                                <span>¥1,000</span>
+                            </div>
+                            <div class="total-row final">
+                                <span>Total Amount:</span>
+                                <span id="totalAmount">¥0</span>
+                            </div>
+                        </div>
+                        
+                        <!-- PAYMENT METHODS -->
+                        <div class="payment-options">
+                            <h4 style="margin-bottom: 1rem; color: #2c3e50;">Select Payment Method</h4>
+                            
+                            <div class="payment-method" data-method="credit-card">
+                                <input type="radio" name="paymentMethod" id="creditCard" value="credit-card">
+                                <label for="creditCard">
+                                    <i class="fas fa-credit-card payment-icon"></i>
+                                    <div>
+                                        <div style="font-weight: 600;">Credit/Debit Card</div>
+                                        <div style="font-size: 0.85rem; color: #666;">Visa, MasterCard, AMEX, JCB</div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="payment-method" data-method="paypal">
+                                <input type="radio" name="paymentMethod" id="paypal" value="paypal">
+                                <label for="paypal">
+                                    <i class="fab fa-paypal payment-icon" style="color: #003087;"></i>
+                                    <div>
+                                        <div style="font-weight: 600;">PayPal</div>
+                                        <div style="font-size: 0.85rem; color: #666;">Secure online payment</div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="payment-method" data-method="bank-transfer">
+                                <input type="radio" name="paymentMethod" id="bankTransfer" value="bank-transfer">
+                                <label for="bankTransfer">
+                                    <i class="fas fa-university payment-icon"></i>
+                                    <div>
+                                        <div style="font-weight: 600;">Bank Transfer</div>
+                                        <div style="font-size: 0.85rem; color: #666;">Pay within 3 days</div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="payment-method" data-method="pay-at-hotel">
+                                <input type="radio" name="paymentMethod" id="payAtHotel" value="pay-at-hotel">
+                                <label for="payAtHotel">
+                                    <i class="fas fa-hotel payment-icon"></i>
+                                    <div>
+                                        <div style="font-weight: 600;">Pay at Hotel</div>
+                                        <div style="font-size: 0.85rem; color: #666;">Cash or card upon arrival</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- CREDIT CARD DETAILS -->
+                        <div class="payment-details" id="creditCardDetails">
+                            <h4 style="margin-bottom: 1rem;">Card Details</h4>
+                            
+                            <div class="form-group">
+                                <label>Card Number</label>
+                                <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Name on Card</label>
+                                <input type="text" id="cardName" placeholder="As shown on card">
+                            </div>
+                            
+                            <div class="card-input-group">
+                                <div class="form-group">
+                                    <label>Expiry Date</label>
+                                    <input type="text" id="expiryDate" placeholder="MM/YY" maxlength="5">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>CVV</label>
+                                    <input type="text" id="cvv" placeholder="123" maxlength="3">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- PAYPAL DETAILS -->
+                        <div class="payment-details" id="paypalDetails">
+                            <p style="color: #666;">You will be redirected to PayPal's secure payment page after submitting your booking.</p>
+                        </div>
+                        
+                        <!-- BANK TRANSFER DETAILS -->
+                        <div class="payment-details" id="bankTransferDetails">
+                            <h4 style="margin-bottom: 1rem;">Bank Transfer Information</h4>
+                            <div style="background: white; padding: 1rem; border-radius: 6px;">
+                                <p><strong>Bank:</strong> Snow Country Bank</p>
+                                <p><strong>Branch:</strong> Meiho Ski Resort Branch (123)</p>
+                                <p><strong>Account:</strong> 1234567</p>
+                                <p><strong>Name:</strong> Snow Station Guest House</p>
+                                <p style="color: #e74c3c; font-size: 0.85rem; margin-top: 0.5rem;">
+                                    <i class="fas fa-exclamation-circle"></i> Please include your booking reference number
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- PAY AT HOTEL DETAILS -->
+                        <div class="payment-details" id="payAtHotelDetails">
+                            <p style="color: #666;">Your reservation will be confirmed immediately. Payment upon check-in using cash or credit card.</p>
+                            <p style="color: #e74c3c; font-size: 0.85rem; margin-top: 0.5rem;">
+                                <i class="fas fa-exclamation-circle"></i> A credit card is required to secure your booking
+                            </p>
+                        </div>
+                        
+                        <!-- TERMS AND CONDITIONS -->
+                        <div class="form-group" style="margin-top: 2rem;">
+                            <div style="display: flex; align-items: flex-start;">
+                                <input type="checkbox" id="terms" style="margin-right: 0.8rem; margin-top: 0.2rem;">
+                                <label for="terms" style="font-size: 0.9rem;">
+                                    I agree to the <a href="#" style="color: #3498db;">Terms & Conditions</a> and 
+                                    <a href="#" style="color: #3498db;">Cancellation Policy</a>. I understand that a 30% deposit is required.
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- COMPLETE BOOKING BUTTON - THE ONLY BUTTON NEEDED -->
+                        <button type="button" class="cta-button pay-now-btn" id="completeBookingBtn">
+                            <i class="fas fa-lock"></i> Complete Booking & Pay Now
                         </button>
+                        
+                        <p style="text-align: center; margin-top: 1rem; color: #666; font-size: 0.85rem;">
+                            <i class="fas fa-shield-alt"></i> Secure payment • SSL encrypted
+                        </p>
                     </div>
-                </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- ACCESS SECTION -->
+        <section id="access">
+            <h2 class="section-title">Access</h2>
+            
+            <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 5px 20px rgba(0,0,0,0.08);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <h3 style="color: #2c3e50; margin-bottom: 1rem;">Location</h3>
+                        <p><i class="fas fa-map-marker-alt" style="color: #3498db; margin-right: 0.8rem;"></i> 123 Ski Hill Road, Meiho, Japan</p>
+                        <p><i class="fas fa-train" style="color: #3498db; margin-right: 0.8rem;"></i> 10 minutes from Meiho Station</p>
+                        <p><i class="fas fa-bus" style="color: #3498db; margin-right: 0.8rem;"></i> Free shuttle to Meiho Ski Resort</p>
+                        <p><i class="fas fa-car" style="color: #3498db; margin-right: 0.8rem;"></i> Free parking available</p>
+                    </div>
+                    <div>
+                        <h3 style="color: #2c3e50; margin-bottom: 1rem;">Contact</h3>
+                        <p><i class="fas fa-phone" style="color: #3498db; margin-right: 0.8rem;"></i> +81 123-456-7890</p>
+                        <p><i class="fas fa-envelope" style="color: #3498db; margin-right: 0.8rem;"></i> info@snowstation.com</p>
+                        <p><i class="fas fa-clock" style="color: #3498db; margin-right: 0.8rem;"></i> Check-in: 15:00 - 22:00</p>
+                        <p><i class="fas fa-clock" style="color: #3498db; margin-right: 0.8rem;"></i> Check-out: 10:00</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- BOOKING SUMMARY BAR - NO CLEAR BUTTON, NO POP-UP -->
+    <div id="bookingSummary" class="booking-summary">
+        <div class="summary-content">
+            <div class="summary-info">
+                <i class="fas fa-calendar-alt"></i>
+                <div>
+                    <div style="font-size: 0.9rem; color: #666;">Selected Dates</div>
+                    <div id="selectedDatesText" style="font-size: 1.1rem; font-weight: 600;">No dates selected</div>
+                </div>
+            </div>
+            <div class="summary-price">
+                <span>Total:</span>
+                <span id="totalPrice">¥0</span>
             </div>
         </div>
     </div>
 
-    <!-- Confirmation Modal -->
-    <div id="confirmationModal" class="modal hidden">
-        <div class="modal-content confirmation-content">
-            <div class="confirmation-icon">
-                <i class="fas fa-check-circle"></i>
+    <!-- EMAIL MODAL -->
+    <div class="email-modal" id="emailModal">
+        <div class="email-modal-content">
+            <button class="close-modal" id="closeEmailModal">&times;</button>
+            
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <i class="fas fa-envelope-circle-check" style="font-size: 3rem; color: #27ae60;"></i>
+                <h2 style="color: #2c3e50; margin-top: 1rem;">Sending Confirmation Emails</h2>
+                <p style="color: #666;">We're sending booking confirmation emails to you and our team.</p>
             </div>
-            <h2>Booking Confirmed!</h2>
-            <div id="confirmationDetails"></div>
-            <div id="confirmationBookingId" class="booking-id"></div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" onclick="window.calendar?.closeConfirmation()">Done</button>
-                <button class="btn btn-outline" onclick="window.calendar?.viewBookings()">View Bookings</button>
+            
+            <!-- PROGRESS -->
+            <div class="email-progress">
+                <div class="progress-step completed">1</div>
+                <div class="progress-line completed"></div>
+                <div class="progress-step active" id="step2">2</div>
+                <div class="progress-line" id="line2"></div>
+                <div class="progress-step" id="step3">3</div>
+            </div>
+            
+            <div style="text-align: center; margin: 2rem 0;">
+                <p id="progressText">Processing your booking...</p>
+            </div>
+            
+            <!-- EMAIL PREVIEW -->
+            <div class="email-preview">
+                <h4 style="margin-bottom: 1rem;">Emails Being Sent:</h4>
+                
+                <div class="email-address">
+                    <i class="fas fa-user"></i>
+                    <div>
+                        <div style="font-weight: 600;" id="customerEmail">customer@example.com</div>
+                        <div style="font-size: 0.85rem; color: #666;">Booking confirmation & receipt</div>
+                    </div>
+                </div>
+                
+                <div class="email-address">
+                    <i class="fas fa-building"></i>
+                    <div>
+                        <div style="font-weight: 600;">reservations@snowstation.com</div>
+                        <div style="font-size: 0.85rem; color: #666;">New booking notification</div>
+                    </div>
+                </div>
+                
+                <div class="email-address">
+                    <i class="fas fa-bell"></i>
+                    <div>
+                        <div style="font-weight: 600;">owner@snowstation.com</div>
+                        <div style="font-size: 0.85rem; color: #666;">Owner notification</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SUCCESS MESSAGE -->
+            <div id="successMessage" style="text-align: center; margin-top: 2rem; display: none;">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #27ae60;"></i>
+                <h3 style="color: #2c3e50; margin: 1rem 0;">Booking Confirmed!</h3>
+                <p style="color: #666; margin-bottom: 1.5rem;">Confirmation emails have been sent successfully.</p>
+                <button class="cta-button success-btn" id="finishBookingBtn">Return to Homepage</button>
             </div>
         </div>
     </div>
 
-    <!-- My Bookings Modal -->
-    <div id="myBookingsModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-bookmark"></i> My Bookings</h2>
-                <button class="close-btn" onclick="window.calendar?.closeMyBookings()">&times;</button>
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">Snow<span>Station</span></div>
+            <p>Near Meiho Ski Resort • Serving your convenience since 2020</p>
+            
+            <div style="margin: 2rem 0;">
+                <a href="#" style="color: white; margin: 0 1rem;"><i class="fas fa-envelope"></i> info@snowstation.com</a>
+                <span style="color: rgba(255,255,255,0.3);">|</span>
+                <a href="#" style="color: white; margin: 0 1rem;"><i class="fas fa-phone"></i> +81 123-456-7890</a>
             </div>
-            <div class="modal-body">
-                <div id="bookingsList"></div>
+            
+            <div class="copyright">
+                &copy; 2024 Guest House Snow Station. All rights reserved.
             </div>
         </div>
-    </div>
+    </footer>
 
-    <!-- Scripts -->
-    <script src="scripts/excel-handler.js"></script>
-    <script src="scripts/github-sync.js"></script>
-    <script src="scripts/booking-system.js"></script>
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
     <script>
-        // FIXED: Initialize the calendar application with proper error handling
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                window.calendar = new BookingSystem();
-                console.log('Calendar initialized successfully');
-            } catch (error) {
-                console.error('Failed to initialize calendar:', error);
-                // Show error message to user
-                const container = document.querySelector('.calendar-container');
-                if (container) {
-                    container.innerHTML += `
-                        <div style="background: #FF3B30; color: white; padding: 16px; border-radius: 8px; margin-top: 16px;">
-                            <i class="fas fa-exclamation-circle"></i>
-                            Failed to load calendar. Please refresh the page.
+        // COMPLETE BOOKING SYSTEM WITH WORKING DATE SELECTION
+        class SnowStationBooking {
+            constructor() {
+                this.calendar = null;
+                this.selectedDates = [];
+                this.selectedPlan = null;
+                this.planPrice = 0;
+                this.planName = '';
+                
+                this.init();
+            }
+            
+            init() {
+                this.initCalendar();
+                this.setupEventListeners();
+                this.loadSavedData();
+                console.log('✅ Booking system initialized');
+            }
+            
+            initCalendar() {
+                const calendarEl = document.getElementById('calendar');
+                
+                if (!calendarEl) {
+                    console.error('❌ Calendar element not found');
+                    return;
+                }
+                
+                this.calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth'
+                    },
+                    height: 'auto',
+                    aspectRatio: 1.6,
+                    firstDay: 0,
+                    selectable: true,
+                    select: (info) => this.handleDateSelect(info),
+                    dateClick: (info) => this.handleDateClick(info),
+                    selectAllow: (info) => this.isDateSelectable(info),
+                    unselectAuto: false,
+                    dayCellDidMount: (info) => this.styleDateCell(info),
+                    buttonText: {
+                        today: 'Today',
+                        month: 'Month'
+                    }
+                });
+                
+                this.calendar.render();
+                console.log('✅ Calendar rendered');
+            }
+            
+            styleDateCell(info) {
+                const dateStr = info.date.toISOString().split('T')[0];
+                const today = new Date().toISOString().split('T')[0];
+                const isPast = info.date < new Date(today);
+                
+                // Add status classes
+                if (isPast) {
+                    info.el.classList.add('fc-day-past');
+                } else {
+                    // For demo, mark some dates as limited/booked
+                    const dayOfMonth = info.date.getDate();
+                    if (dayOfMonth === 15 || dayOfMonth === 16) {
+                        info.el.classList.add('fc-day-booked');
+                    } else if (dayOfMonth === 20 || dayOfMonth === 21) {
+                        info.el.classList.add('fc-day-limited');
+                    } else {
+                        info.el.classList.add('fc-day-available');
+                    }
+                }
+                
+                // Add badge
+                if (!isPast) {
+                    const badge = document.createElement('div');
+                    badge.className = 'day-badge';
+                    
+                    const dayOfMonth = info.date.getDate();
+                    if (dayOfMonth === 15 || dayOfMonth === 16) {
+                        badge.textContent = 'Full';
+                        badge.style.color = '#FF3B30';
+                    } else if (dayOfMonth === 20 || dayOfMonth === 21) {
+                        badge.textContent = '2 left';
+                        badge.style.color = '#FF9F0A';
+                    } else {
+                        badge.textContent = '10 left';
+                        badge.style.color = '#34C759';
+                    }
+                    
+                    info.el.appendChild(badge);
+                }
+                
+                // Highlight selected dates
+                if (this.selectedDates && this.selectedDates.includes(dateStr)) {
+                    info.el.classList.add('fc-day-selected');
+                }
+            }
+            
+            isDateSelectable(info) {
+                const dateStr = info.startStr.split('T')[0];
+                const today = new Date().toISOString().split('T')[0];
+                
+                // Can't select past dates
+                if (dateStr < today) return false;
+                
+                // Can't select booked dates (for demo, 15th and 16th are booked)
+                const dayOfMonth = new Date(dateStr).getDate();
+                return dayOfMonth !== 15 && dayOfMonth !== 16;
+            }
+            
+            handleDateClick(info) {
+                if (!this.isDateSelectable(info)) {
+                    this.showNotification('This date is not available for booking', 'error');
+                    return;
+                }
+                
+                const dateStr = info.dateStr;
+                const index = this.selectedDates.indexOf(dateStr);
+                
+                if (index === -1) {
+                    // Add date
+                    this.selectedDates.push(dateStr);
+                    info.el.classList.add('fc-day-selected');
+                } else {
+                    // Remove date
+                    this.selectedDates.splice(index, 1);
+                    info.el.classList.remove('fc-day-selected');
+                }
+                
+                this.selectedDates.sort();
+                this.updateBookingSummary();
+                this.autoFillDates();
+            }
+            
+            handleDateSelect(info) {
+                const start = info.startStr.split('T')[0];
+                const end = info.endStr.split('T')[0];
+                
+                // Clear existing selection
+                this.selectedDates = [];
+                document.querySelectorAll('.fc-day-selected').forEach(el => {
+                    el.classList.remove('fc-day-selected');
+                });
+                
+                // Add all dates in range
+                let current = new Date(start);
+                while (current.toISOString().split('T')[0] < end) {
+                    const dateStr = current.toISOString().split('T')[0];
+                    
+                    if (this.isDateSelectable({ startStr: dateStr })) {
+                        this.selectedDates.push(dateStr);
+                        
+                        const dayCell = document.querySelector(`[data-date="${dateStr}"]`);
+                        if (dayCell) {
+                            dayCell.classList.add('fc-day-selected');
+                        }
+                    }
+                    
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                this.selectedDates.sort();
+                this.updateBookingSummary();
+                this.autoFillDates();
+            }
+            
+            autoFillDates() {
+                // Automatically fill check-in and check-out fields when dates are selected
+                const checkinInput = document.getElementById('checkin');
+                const checkoutInput = document.getElementById('checkout');
+                
+                if (this.selectedDates.length > 0) {
+                    // Set check-in date (first selected date)
+                    if (checkinInput) {
+                        checkinInput.value = this.selectedDates[0];
+                    }
+                    
+                    // Set check-out date (day after last selected date)
+                    if (checkoutInput && this.selectedDates.length > 0) {
+                        const lastDate = new Date(this.selectedDates[this.selectedDates.length - 1]);
+                        lastDate.setDate(lastDate.getDate() + 1);
+                        checkoutInput.value = lastDate.toISOString().split('T')[0];
+                    }
+                } else {
+                    // Clear dates if no selection
+                    if (checkinInput) checkinInput.value = '';
+                    if (checkoutInput) checkoutInput.value = '';
+                }
+            }
+            
+            updateBookingSummary() {
+                const summaryEl = document.getElementById('bookingSummary');
+                const selectedDatesText = document.getElementById('selectedDatesText');
+                const totalPriceEl = document.getElementById('totalPrice');
+                
+                if (!summaryEl || !selectedDatesText || !totalPriceEl) return;
+                
+                if (this.selectedDates.length === 0) {
+                    summaryEl.classList.remove('visible');
+                    selectedDatesText.textContent = 'No dates selected';
+                    totalPriceEl.textContent = '¥0';
+                    return;
+                }
+                
+                // Update selected dates text
+                if (this.selectedDates.length === 1) {
+                    selectedDatesText.textContent = this.formatDate(this.selectedDates[0]);
+                } else {
+                    const first = this.formatDate(this.selectedDates[0]);
+                    const last = this.formatDate(this.selectedDates[this.selectedDates.length - 1]);
+                    selectedDatesText.textContent = `${first} - ${last} (${this.selectedDates.length} days)`;
+                }
+                
+                // Update price
+                const nights = this.selectedDates.length;
+                const pricePerNight = this.planPrice || 12800;
+                const roomRate = pricePerNight * nights;
+                const tax = Math.round(roomRate * 0.1);
+                const serviceCharge = 1000;
+                const total = roomRate + tax + serviceCharge;
+                
+                totalPriceEl.textContent = `¥${total.toLocaleString()}`;
+                
+                // Update payment summary
+                this.updatePaymentSummary(nights, roomRate, tax, total);
+                
+                // Show summary
+                summaryEl.classList.add('visible');
+            }
+            
+            updatePaymentSummary(nights, roomRate, tax, total) {
+                const nightCountEl = document.getElementById('nightCount');
+                const roomRateEl = document.getElementById('roomRate');
+                const taxAmountEl = document.getElementById('taxAmount');
+                const totalAmountEl = document.getElementById('totalAmount');
+                
+                if (nightCountEl) nightCountEl.textContent = nights;
+                if (roomRateEl) roomRateEl.textContent = `¥${roomRate.toLocaleString()}`;
+                if (taxAmountEl) taxAmountEl.textContent = `¥${tax.toLocaleString()}`;
+                if (totalAmountEl) totalAmountEl.textContent = `¥${total.toLocaleString()}`;
+            }
+            
+            formatDate(dateStr) {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric'
+                });
+            }
+            
+            loadSavedData() {
+                // Load plan from localStorage if exists
+                const savedPlan = localStorage.getItem('selectedPlan');
+                const savedPrice = localStorage.getItem('planPrice');
+                
+                if (savedPlan && savedPrice) {
+                    this.selectedPlan = savedPlan;
+                    this.planPrice = parseInt(savedPrice);
+                    this.planName = this.getPlanName(savedPlan);
+                    this.updatePlanDisplay();
+                    
+                    // Update dropdown
+                    const planSelect = document.getElementById('selected-plan');
+                    if (planSelect) {
+                        planSelect.value = savedPlan;
+                    }
+                }
+            }
+            
+            getPlanName(planValue) {
+                const plans = {
+                    'weekend-getaway': 'Weekend Getaway',
+                    'ski-adventure': 'Ski Adventure',
+                    'family-package': 'Family Ski Package'
+                };
+                return plans[planValue] || 'Selected Plan';
+            }
+            
+            updatePlanDisplay() {
+                const planInfo = document.getElementById('selectedPlanInfo');
+                if (planInfo && this.selectedPlan) {
+                    planInfo.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="display: block; margin-bottom: 0.3rem; color: #666;">Selected Plan:</span>
+                                <span style="font-size: 1.1rem; font-weight: 600; color: #2c3e50;">${this.planName}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="display: block; color: #666; font-size: 0.9rem;">Rate per night</span>
+                                <span style="font-size: 1.2rem; font-weight: 700; color: #27ae60;">¥${this.planPrice.toLocaleString()}</span>
+                            </div>
                         </div>
                     `;
                 }
             }
+            
+            async handleBookingSubmission() {
+                // Validate form
+                const name = document.getElementById('name')?.value;
+                const email = document.getElementById('email')?.value;
+                const phone = document.getElementById('phone')?.value;
+                const guests = document.getElementById('guests')?.value;
+                const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
+                const terms = document.getElementById('terms')?.checked;
+                
+                if (!name || !email || !phone || !guests) {
+                    this.showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+                
+                if (this.selectedDates.length === 0) {
+                    this.showNotification('Please select dates from the calendar', 'error');
+                    return;
+                }
+                
+                if (!this.selectedPlan) {
+                    this.showNotification('Please select a stay plan', 'error');
+                    return;
+                }
+                
+                if (!paymentMethod) {
+                    this.showNotification('Please select a payment method', 'error');
+                    return;
+                }
+                
+                if (!terms) {
+                    this.showNotification('Please agree to the Terms & Conditions', 'error');
+                    return;
+                }
+                
+                // Validate credit card if selected
+                if (paymentMethod.value === 'credit-card') {
+                    const cardNumber = document.getElementById('cardNumber')?.value.replace(/\s+/g, '');
+                    const cardName = document.getElementById('cardName')?.value;
+                    const expiryDate = document.getElementById('expiryDate')?.value;
+                    const cvv = document.getElementById('cvv')?.value;
+                    
+                    if (!cardNumber || cardNumber.length < 16) {
+                        this.showNotification('Please enter a valid 16-digit card number', 'error');
+                        return;
+                    }
+                    
+                    if (!cardName) {
+                        this.showNotification('Please enter the name on card', 'error');
+                        return;
+                    }
+                    
+                    if (!expiryDate || expiryDate.length < 5) {
+                        this.showNotification('Please enter a valid expiry date (MM/YY)', 'error');
+                        return;
+                    }
+                    
+                    if (!cvv || cvv.length < 3) {
+                        this.showNotification('Please enter a valid CVV code', 'error');
+                        return;
+                    }
+                }
+                
+                // Show confirmation modal
+                this.showEmailModal(name, email);
+            }
+            
+            showEmailModal(name, email) {
+                const modal = document.getElementById('emailModal');
+                const customerEmailEl = document.getElementById('customerEmail');
+                const progressText = document.getElementById('progressText');
+                const step2 = document.getElementById('step2');
+                const line2 = document.getElementById('line2');
+                const step3 = document.getElementById('step3');
+                const successMessage = document.getElementById('successMessage');
+                
+                if (customerEmailEl) customerEmailEl.textContent = email;
+                
+                // Reset progress
+                if (step2) {
+                    step2.classList.remove('completed');
+                    step2.classList.add('active');
+                }
+                if (line2) line2.classList.remove('completed');
+                if (step3) step3.classList.remove('completed', 'active');
+                if (successMessage) successMessage.style.display = 'none';
+                if (progressText) progressText.textContent = 'Processing your booking...';
+                
+                // Show modal
+                if (modal) modal.classList.add('active');
+                
+                // Simulate email sending
+                setTimeout(() => {
+                    if (progressText) progressText.textContent = 'Sending confirmation emails...';
+                    if (step2) {
+                        step2.classList.remove('active');
+                        step2.classList.add('completed');
+                    }
+                    if (line2) line2.classList.add('completed');
+                    if (step3) step3.classList.add('active');
+                }, 1500);
+                
+                setTimeout(() => {
+                    if (progressText) progressText.textContent = 'Emails sent successfully!';
+                    if (step3) {
+                        step3.classList.remove('active');
+                        step3.classList.add('completed');
+                    }
+                    
+                    setTimeout(() => {
+                        if (successMessage) successMessage.style.display = 'block';
+                    }, 500);
+                }, 3000);
+            }
+            
+            setupEventListeners() {
+                // Plan selection buttons
+                document.querySelectorAll('.select-plan-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const plan = e.currentTarget.getAttribute('data-plan');
+                        const price = e.currentTarget.getAttribute('data-price');
+                        const name = e.currentTarget.getAttribute('data-plan-name');
+                        
+                        this.selectedPlan = plan;
+                        this.planPrice = parseInt(price);
+                        this.planName = name;
+                        
+                        // Save to localStorage
+                        localStorage.setItem('selectedPlan', plan);
+                        localStorage.setItem('planPrice', price);
+                        
+                        // Update dropdown
+                        const planSelect = document.getElementById('selected-plan');
+                        if (planSelect) {
+                            planSelect.value = plan;
+                        }
+                        
+                        this.updatePlanDisplay();
+                        this.updateBookingSummary();
+                        
+                        this.showNotification(`Selected: ${name}`, 'success');
+                        
+                        // Scroll to calendar
+                        document.getElementById('calendar-section').scrollIntoView({ 
+                            behavior: 'smooth' 
+                        });
+                    });
+                });
+                
+                // Plan dropdown change
+                const planSelect = document.getElementById('selected-plan');
+                if (planSelect) {
+                    planSelect.addEventListener('change', (e) => {
+                        const selectedOption = e.target.options[e.target.selectedIndex];
+                        const price = selectedOption.getAttribute('data-price');
+                        const name = selectedOption.text.split(' - ')[0];
+                        
+                        this.selectedPlan = e.target.value;
+                        this.planPrice = parseInt(price);
+                        this.planName = name;
+                        
+                        localStorage.setItem('selectedPlan', this.selectedPlan);
+                        localStorage.setItem('planPrice', price);
+                        
+                        this.updatePlanDisplay();
+                        this.updateBookingSummary();
+                    });
+                }
+                
+                // Complete booking button - THE ONLY BUTTON NEEDED
+                const completeBtn = document.getElementById('completeBookingBtn');
+                if (completeBtn) {
+                    completeBtn.addEventListener('click', () => this.handleBookingSubmission());
+                }
+                
+                // Payment method selection
+                document.querySelectorAll('.payment-method').forEach(method => {
+                    method.addEventListener('click', function() {
+                        document.querySelectorAll('.payment-method').forEach(m => {
+                            m.classList.remove('selected');
+                        });
+                        this.classList.add('selected');
+                        
+                        const radio = this.querySelector('input[type="radio"]');
+                        if (radio) radio.checked = true;
+                        
+                        const methodType = this.getAttribute('data-method');
+                        document.querySelectorAll('.payment-details').forEach(d => {
+                            d.classList.remove('active');
+                        });
+                        
+                        const detailsMap = {
+                            'credit-card': 'creditCardDetails',
+                            'paypal': 'paypalDetails',
+                            'bank-transfer': 'bankTransferDetails',
+                            'pay-at-hotel': 'payAtHotelDetails'
+                        };
+                        
+                        const detailsId = detailsMap[methodType];
+                        if (detailsId) {
+                            const detailsEl = document.getElementById(detailsId);
+                            if (detailsEl) detailsEl.classList.add('active');
+                        }
+                    });
+                });
+                
+                // Close modal buttons
+                const closeModalBtn = document.getElementById('closeEmailModal');
+                if (closeModalBtn) {
+                    closeModalBtn.addEventListener('click', () => {
+                        document.getElementById('emailModal')?.classList.remove('active');
+                    });
+                }
+                
+                const finishBtn = document.getElementById('finishBookingBtn');
+                if (finishBtn) {
+                    finishBtn.addEventListener('click', () => {
+                        document.getElementById('emailModal')?.classList.remove('active');
+                        // Clear selection
+                        this.selectedDates = [];
+                        document.querySelectorAll('.fc-day-selected').forEach(el => {
+                            el.classList.remove('fc-day-selected');
+                        });
+                        this.updateBookingSummary();
+                        this.autoFillDates();
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    });
+                }
+                
+                // Format card inputs
+                const cardNumber = document.getElementById('cardNumber');
+                if (cardNumber) {
+                    cardNumber.addEventListener('input', function(e) {
+                        let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                        let formatted = value.replace(/(\d{4})/g, '$1 ').trim();
+                        e.target.value = formatted.substring(0, 19);
+                    });
+                }
+                
+                const expiryDate = document.getElementById('expiryDate');
+                if (expiryDate) {
+                    expiryDate.addEventListener('input', function(e) {
+                        let value = e.target.value.replace(/[^0-9]/g, '');
+                        if (value.length >= 2) {
+                            value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                        }
+                        e.target.value = value.substring(0, 5);
+                    });
+                }
+                
+                const cvv = document.getElementById('cvv');
+                if (cvv) {
+                    cvv.addEventListener('input', function(e) {
+                        e.target.value = e.target.value.replace(/[^0-9]/g, '').substring(0, 3);
+                    });
+                }
+            }
+            
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 1rem 1.5rem;
+                    background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#3498db'};
+                    color: white;
+                    border-radius: 6px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 9999;
+                    animation: slideIn 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.8rem;
+                `;
+                
+                notification.innerHTML = `
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                    <span>${message}</span>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+        }
+
+        // Initialize the booking system
+        document.addEventListener('DOMContentLoaded', function() {
+            window.bookingSystem = new SnowStationBooking();
         });
     </script>
     
-    <!-- FIXED: Added fallback for when calendar is not initialized -->
+    <!-- MOBILE MENU SCRIPT -->
     <script>
-        // Ensure calendar object exists for button clicks
-        window.calendar = window.calendar || {
-            openBookingModal: function() { 
-                alert('Please select some dates first'); 
-            },
-            closeModal: function() { 
-                document.getElementById('bookingModal')?.classList.remove('visible'); 
-            },
-            submitBooking: function() { 
-                alert('Booking system is initializing. Please try again.'); 
-            },
-            clearDateSelection: function() { 
-                // Clear selected dates from UI
-                document.querySelectorAll('.fc-day-selected').forEach(el => {
-                    el.classList.remove('fc-day-selected');
-                });
-                document.getElementById('bookingSummary')?.classList.remove('visible');
-            },
-            closeConfirmation: function() {
-                document.getElementById('confirmationModal')?.classList.remove('visible');
-            },
-            viewBookings: function() {
-                document.getElementById('myBookingsModal')?.classList.add('visible');
-            },
-            closeMyBookings: function() {
-                document.getElementById('myBookingsModal')?.classList.remove('visible');
-            }
-        };
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mainNav = document.getElementById('mainNav');
+        
+        if (mobileMenuBtn && mainNav) {
+            mobileMenuBtn.addEventListener('click', function() {
+                mainNav.classList.toggle('active');
+                this.innerHTML = mainNav.classList.contains('active') 
+                    ? '<i class="fas fa-times"></i>' 
+                    : '<i class="fas fa-bars"></i>';
+            });
+        }
+        
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Close mobile menu when clicking links
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (mainNav) mainNav.classList.remove('active');
+                if (mobileMenuBtn) mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            });
+        });
     </script>
 </body>
 </html>

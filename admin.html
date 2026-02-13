@@ -3,201 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Excel Booking Calendar</title>
+    <title>Snow Station - Admin Dashboard</title>
     
-    <!-- Styles -->
-    <link rel="stylesheet" href="styles/calendar.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <style>
-        .admin-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 24px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
+        body {
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
         .admin-header {
             background: white;
             border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .admin-title {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 1rem;
         }
-        
+
         .admin-title i {
-            font-size: 32px;
-            color: #4285F4;
+            font-size: 2rem;
+            color: #3498db;
         }
-        
+
         .admin-title h1 {
-            font-size: 24px;
-            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.8rem;
         }
-        
+
         .admin-title p {
             color: #666;
-            margin-top: 4px;
+            margin-top: 0.3rem;
         }
-        
+
         .admin-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
         }
-        
+
         .admin-card {
             background: white;
             border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
         }
-        
+
         .admin-card h2 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
+            color: #2c3e50;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 0.8rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 2px solid #f0f0f0;
         }
-        
+
         .admin-card h2 i {
-            color: #4285F4;
+            color: #3498db;
         }
-        
+
         .stats-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 1rem;
         }
-        
+
         .stat-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #f0f0f0;
         }
-        
+
         .stat-label {
             color: #666;
-            font-size: 14px;
+            font-size: 0.95rem;
         }
-        
+
         .stat-value {
-            font-weight: 600;
-            font-size: 18px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #2c3e50;
         }
-        
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219653;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid #ddd;
+            color: #666;
+        }
+
+        .btn-outline:hover {
+            background: #f8f9fa;
+            border-color: #999;
+        }
+
         .btn-group {
             display: flex;
-            gap: 12px;
-            margin-top: 16px;
+            gap: 1rem;
+            margin-top: 1.5rem;
         }
-        
+
         .file-list {
-            margin-top: 16px;
+            margin-top: 1rem;
         }
-        
+
         .file-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
-            background: #F5F5F5;
+            padding: 1rem;
+            background: #f8f9fa;
             border-radius: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 0.8rem;
         }
-        
+
         .file-info {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 1rem;
         }
-        
+
         .file-info i {
-            color: #34A853;
+            color: #27ae60;
+            font-size: 1.2rem;
         }
-        
+
         .file-actions {
             display: flex;
-            gap: 8px;
+            gap: 0.5rem;
         }
-        
+
         .table-container {
             background: white;
             border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
             overflow-x: auto;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         th {
             text-align: left;
-            padding: 12px;
-            background: #F5F5F5;
+            padding: 1rem;
+            background: #f8f9fa;
+            color: #2c3e50;
             font-weight: 600;
         }
-        
+
         td {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
         }
-        
+
         .badge {
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 12px;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
             font-weight: 600;
         }
-        
+
         .badge-success {
-            background: rgba(52, 199, 89, 0.1);
-            color: #34C759;
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
         }
-        
+
         .badge-warning {
-            background: rgba(255, 159, 10, 0.1);
-            color: #FF9F0A;
+            background: rgba(243, 156, 18, 0.1);
+            color: #f39c12;
         }
-        
+
         .badge-danger {
-            background: rgba(255, 59, 48, 0.1);
-            color: #FF3B30;
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
         }
-        
-        .availability-control {
-            display: flex;
-            gap: 16px;
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
             align-items: center;
-            margin-bottom: 16px;
+            justify-content: center;
         }
-        
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
         .github-config {
-            background: #F5F5F5;
+            background: #f8f9fa;
+            padding: 1rem;
             border-radius: 8px;
-            padding: 16px;
-            margin-top: 16px;
+            margin-top: 1rem;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #666;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            background: #f0f0f0;
+            color: #333;
         }
     </style>
 </head>
@@ -206,17 +345,15 @@
         <!-- Header -->
         <div class="admin-header">
             <div class="admin-title">
-                <i class="fas fa-cog"></i>
+                <i class="fas fa-snowflake"></i>
                 <div>
-                    <h1>Admin Dashboard</h1>
-                    <p>Manage your booking calendar and GitHub sync</p>
+                    <h1>Snow Station Admin</h1>
+                    <p>Manage your guest house bookings and availability</p>
                 </div>
             </div>
-            <div>
-                <a href="index.html" class="btn btn-outline">
-                    <i class="fas fa-arrow-left"></i> Back to Calendar
-                </a>
-            </div>
+            <a href="index.html" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Website
+            </a>
         </div>
         
         <!-- Stats Grid -->
@@ -230,7 +367,7 @@
                     </div>
                     <div class="stat-row">
                         <span class="stat-label">Total Revenue</span>
-                        <span class="stat-value" id="totalRevenue">$0</span>
+                        <span class="stat-value" id="totalRevenue">¥0</span>
                     </div>
                     <div class="stat-row">
                         <span class="stat-label">Unique Customers</span>
@@ -271,66 +408,20 @@
             </div>
             
             <div class="admin-card">
-                <h2><i class="fas fa-github"></i> GitHub Sync</h2>
-                <div class="stats-list">
-                    <div class="stat-row">
-                        <span class="stat-label">Repository</span>
-                        <span class="stat-value" id="repoName">ZeroDegreeStation/Calendar</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Branch</span>
-                        <span class="stat-value" id="branchName">main</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Last Sync</span>
-                        <span class="stat-value" id="lastSync">Never</span>
-                    </div>
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-success" onclick="syncToGitHub()">
-                        <i class="fas fa-sync-alt"></i> Push Changes
-                    </button>
-                    <button class="btn btn-primary" onclick="pullFromGitHub()">
-                        <i class="fas fa-download"></i> Pull Updates
-                    </button>
-                </div>
-                
-                <div class="github-config">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">
-                        GitHub Token
-                    </label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="password" id="githubToken" class="form-control" 
-                               placeholder="Enter personal access token" style="flex: 1;">
-                        <button class="btn btn-outline" onclick="saveToken()">Save</button>
-                    </div>
-                    <p style="font-size: 12px; color: #666; margin-top: 8px;">
-                        Token requires 'repo' scope for write access
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- File Management -->
-        <div class="admin-grid">
-            <div class="admin-card">
                 <h2><i class="fas fa-file-excel"></i> Excel Files</h2>
                 <div class="file-list">
                     <div class="file-item">
                         <div class="file-info">
                             <i class="fas fa-file-excel"></i>
                             <div>
-                                <div style="font-weight: 500;">calendar-availability.xlsx</div>
-                                <div style="font-size: 12px; color: #666;">Override unavailable dates</div>
+                                <div style="font-weight: 600;">calendar-availability.xlsx</div>
+                                <div style="font-size: 0.85rem; color: #666;">Override unavailable dates</div>
                             </div>
                         </div>
                         <div class="file-actions">
                             <button class="btn btn-outline" onclick="downloadFile('availability')">
                                 <i class="fas fa-download"></i>
                             </button>
-                            <button class="btn btn-outline" onclick="uploadFile('availability')">
-                                <i class="fas fa-upload"></i>
-                            </button>
                         </div>
                     </div>
                     
@@ -338,89 +429,32 @@
                         <div class="file-info">
                             <i class="fas fa-file-excel"></i>
                             <div>
-                                <div style="font-weight: 500;">calendar-bookings.xlsx</div>
-                                <div style="font-size: 12px; color: #666;">All booking records</div>
+                                <div style="font-weight: 600;">calendar-bookings.xlsx</div>
+                                <div style="font-size: 0.85rem; color: #666;">All booking records</div>
                             </div>
                         </div>
                         <div class="file-actions">
                             <button class="btn btn-outline" onclick="downloadFile('bookings')">
                                 <i class="fas fa-download"></i>
                             </button>
-                            <button class="btn btn-outline" onclick="exportBookingsCSV()">
+                            <button class="btn btn-outline" onclick="exportCSV()">
                                 <i class="fas fa-file-csv"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="file-item">
-                        <div class="file-info">
-                            <i class="fas fa-file-excel"></i>
-                            <div>
-                                <div style="font-weight: 500;">calendar-time-slots.xlsx</div>
-                                <div style="font-size: 12px; color: #666;">Time slot configuration</div>
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <button class="btn btn-outline" onclick="downloadFile('timeSlots')">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <button class="btn btn-outline" onclick="resetTimeSlots()">
-                                <i class="fas fa-undo"></i>
                             </button>
                         </div>
                     </div>
                 </div>
                 
-                <div class="btn-group" style="margin-top: 16px;">
-                    <button class="btn btn-primary" onclick="generateTemplates()">
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="generateTemplates()">
                         <i class="fas fa-file-export"></i> Generate Templates
-                    </button>
-                    <button class="btn btn-outline" onclick="backupAll()">
-                        <i class="fas fa-archive"></i> Backup All
-                    </button>
-                </div>
-            </div>
-            
-            <div class="admin-card">
-                <h2><i class="fas fa-clock"></i> Default Settings</h2>
-                <div style="padding: 8px 0;">
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
-                            Default Price ($)
-                        </label>
-                        <input type="number" id="defaultPrice" value="100" min="0" step="5" 
-                               class="form-control" style="width: 120px;">
-                    </div>
-                    
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
-                            Max Bookings Per Day
-                        </label>
-                        <input type="number" id="defaultMaxBookings" value="10" min="1" 
-                               class="form-control" style="width: 120px;">
-                    </div>
-                    
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
-                            Default Time Slots
-                        </label>
-                        <select id="defaultTimeSlots" class="form-control" style="width: 100%;">
-                            <option value="9-17">9:00 AM - 5:00 PM (1 hour slots)</option>
-                            <option value="8-20">8:00 AM - 8:00 PM (1 hour slots)</option>
-                            <option value="24">24/7 (Hourly slots)</option>
-                        </select>
-                    </div>
-                    
-                    <button class="btn btn-primary" onclick="saveSettings()">
-                        <i class="fas fa-save"></i> Save Settings
                     </button>
                 </div>
             </div>
         </div>
         
-        <!-- Recent Bookings Table -->
+        <!-- Recent Bookings -->
         <div class="table-container">
-            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <h2 style="color: #2c3e50; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.8rem;">
                 <i class="fas fa-list"></i> Recent Bookings
             </h2>
             <table id="bookingsTable">
@@ -434,12 +468,11 @@
                         <th>Total</th>
                         <th>Status</th>
                         <th>Booked On</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="bookingsTableBody">
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 48px; color: #666;">
+                        <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">
                             Loading bookings...
                         </td>
                     </tr>
@@ -449,38 +482,36 @@
     </div>
     
     <!-- Availability Modal -->
-    <div id="availabilityModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 800px;">
+    <div id="availabilityModal" class="modal">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2><i class="fas fa-calendar-alt"></i> Manage Availability</h2>
                 <button class="close-btn" onclick="closeAvailabilityModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <div style="margin-bottom: 20px;">
-                    <div style="display: flex; gap: 16px; align-items: flex-end;">
-                        <div style="flex: 1;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Date</label>
-                            <input type="date" id="overrideDate" class="form-control" style="width: 100%;">
+                <div style="margin-bottom: 2rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="overrideDate">
                         </div>
-                        <div style="flex: 1;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Status</label>
-                            <select id="overrideStatus" class="form-control" style="width: 100%;">
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="overrideStatus">
                                 <option value="Available">Available</option>
                                 <option value="Limited">Limited</option>
                                 <option value="Booked">Fully Booked</option>
                                 <option value="Closed">Closed</option>
                             </select>
                         </div>
-                        <div style="width: 120px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Price</label>
-                            <input type="number" id="overridePrice" class="form-control" placeholder="Default">
-                        </div>
-                        <div>
-                            <button class="btn btn-primary" onclick="addAvailabilityOverride()">
-                                <i class="fas fa-plus"></i> Add
-                            </button>
+                        <div class="form-group">
+                            <label>Price (¥)</label>
+                            <input type="number" id="overridePrice" placeholder="Default">
                         </div>
                     </div>
+                    <button class="btn btn-primary" onclick="addOverride()" style="width: 100%;">
+                        <i class="fas fa-plus"></i> Add Override
+                    </button>
                 </div>
                 
                 <div style="max-height: 400px; overflow-y: auto;">
@@ -490,19 +521,23 @@
                                 <th>Date</th>
                                 <th>Status</th>
                                 <th>Price</th>
-                                <th>Max Bookings</th>
+                                <th>Max</th>
                                 <th>Booked</th>
-                                <th>Actions</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="availabilityTableBody">
-                            <!-- Populated dynamically -->
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
+                                    No overrides. All days available by default.
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeAvailabilityModal()">Close</button>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-outline" onclick="closeAvailabilityModal()">Cancel</button>
                 <button class="btn btn-success" onclick="saveAvailability()">
                     <i class="fas fa-save"></i> Save Changes
                 </button>
@@ -511,11 +546,10 @@
     </div>
     
     <script>
-        // Initialize admin panel
+        // Admin Panel Logic
         class AdminPanel {
             constructor() {
                 this.excelHandler = new ExcelHandler();
-                this.githubSync = new GitHubSync();
                 this.availabilityOverrides = [];
                 this.bookings = [];
                 
@@ -527,7 +561,6 @@
                 this.updateStats();
                 this.renderBookingsTable();
                 this.renderAvailabilityTable();
-                this.setupEventListeners();
             }
             
             async loadData() {
@@ -551,7 +584,7 @@
                 document.getElementById('totalBookings').textContent = this.bookings.length;
                 
                 const totalRevenue = this.bookings.reduce((sum, b) => sum + (parseInt(b['Total Price']) || 0), 0);
-                document.getElementById('totalRevenue').textContent = `$${totalRevenue}`;
+                document.getElementById('totalRevenue').textContent = `¥${totalRevenue.toLocaleString()}`;
                 
                 const uniqueCustomers = [...new Set(this.bookings.map(b => b.Email))].length;
                 document.getElementById('uniqueCustomers').textContent = uniqueCustomers;
@@ -560,17 +593,14 @@
                 document.getElementById('todayBookings').textContent = todayBookings;
                 
                 // Availability stats
-                const next30Days = [];
+                let available = 0, limited = 0, booked = 0, closed = 0;
+                
                 for (let i = 0; i < 30; i++) {
                     const date = new Date();
                     date.setDate(date.getDate() + i);
-                    next30Days.push(date.toISOString().split('T')[0]);
-                }
-                
-                let available = 0, limited = 0, booked = 0, closed = 0;
-                
-                next30Days.forEach(date => {
-                    const override = this.availabilityOverrides.find(o => o.Date === date);
+                    const dateStr = date.toISOString().split('T')[0];
+                    
+                    const override = this.availabilityOverrides.find(o => o.Date === dateStr);
                     
                     if (override) {
                         if (override.Status === 'Closed') closed++;
@@ -578,23 +608,17 @@
                         else if (override.Status === 'Limited') limited++;
                         else available++;
                     } else {
-                        // Check booking count
-                        const bookingCount = this.bookings.filter(b => b.Date === date).length;
+                        const bookingCount = this.bookings.filter(b => b.Date === dateStr).length;
                         if (bookingCount >= 10) booked++;
                         else if (bookingCount >= 7) limited++;
                         else available++;
                     }
-                });
+                }
                 
                 document.getElementById('availableDays').textContent = available;
                 document.getElementById('limitedDays').textContent = limited;
                 document.getElementById('bookedDays').textContent = booked;
                 document.getElementById('closedDays').textContent = closed;
-                
-                // GitHub info
-                document.getElementById('repoName').textContent = 'ZeroDegreeStation/Calendar';
-                document.getElementById('branchName').textContent = 'main';
-                document.getElementById('lastSync').textContent = new Date().toLocaleString();
             }
             
             renderBookingsTable() {
@@ -603,7 +627,7 @@
                 if (this.bookings.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 48px; color: #666;">
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">
                                 No bookings found
                             </td>
                         </tr>
@@ -611,29 +635,20 @@
                     return;
                 }
                 
-                // Sort by booking date (newest first)
                 const sorted = [...this.bookings].sort((a, b) => 
                     new Date(b['Booking Date']) - new Date(a['Booking Date'])
                 ).slice(0, 20);
                 
                 tbody.innerHTML = sorted.map(booking => `
                     <tr>
-                        <td style="font-family: monospace; font-size: 12px;">${booking['Booking ID']}</td>
-                        <td>${booking.Date}</td>
-                        <td>${booking['Customer Name']}</td>
-                        <td>${booking.Email}</td>
+                        <td style="font-family: monospace;">${booking['Booking ID'] || 'N/A'}</td>
+                        <td>${booking.Date || ''}</td>
+                        <td>${booking['Customer Name'] || ''}</td>
+                        <td>${booking.Email || ''}</td>
                         <td>${booking.Guests || 1}</td>
-                        <td style="font-weight: 600; color: #34C759;">$${booking['Total Price']}</td>
-                        <td>
-                            <span class="badge badge-success">${booking.Status || 'Confirmed'}</span>
-                        </td>
-                        <td>${booking['Booking Date']}</td>
-                        <td>
-                            <button class="btn btn-outline" style="padding: 4px 8px;" 
-                                    onclick="viewBooking('${booking['Booking ID']}')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </td>
+                        <td style="font-weight: 600; color: #27ae60;">¥${(booking['Total Price'] || 0).toLocaleString()}</td>
+                        <td><span class="badge badge-success">Confirmed</span></td>
+                        <td>${booking['Booking Date'] || ''}</td>
                     </tr>
                 `).join('');
             }
@@ -644,15 +659,14 @@
                 if (this.availabilityOverrides.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 24px; color: #666;">
-                                No availability overrides. All days are available by default.
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
+                                No availability overrides. All days are available.
                             </td>
                         </tr>
                     `;
                     return;
                 }
                 
-                // Sort by date
                 const sorted = [...this.availabilityOverrides].sort((a, b) => 
                     new Date(a.Date) - new Date(b.Date)
                 );
@@ -661,16 +675,17 @@
                     <tr>
                         <td>${override.Date}</td>
                         <td>
-                            <span class="badge ${this.getStatusBadgeClass(override.Status)}">
+                            <span class="badge ${override.Status === 'Closed' ? 'badge-danger' : 
+                                              override.Status === 'Limited' ? 'badge-warning' : 
+                                              override.Status === 'Booked' ? 'badge-danger' : 'badge-success'}">
                                 ${override.Status || 'Available'}
                             </span>
                         </td>
-                        <td>${override.Price ? `$${override.Price}` : 'Default'}</td>
+                        <td>${override.Price ? `¥${override.Price}` : 'Default'}</td>
                         <td>${override.MaxBookings || 10}</td>
                         <td>${override.Booked || 0}</td>
                         <td>
-                            <button class="btn btn-outline" style="padding: 4px 8px; color: #FF3B30;" 
-                                    onclick="removeOverride('${override.Date}')">
+                            <button class="btn btn-outline" onclick="removeOverride('${override.Date}')" style="padding: 0.3rem 0.8rem;">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -678,16 +693,7 @@
                 `).join('');
             }
             
-            getStatusBadgeClass(status) {
-                switch(status) {
-                    case 'Closed': return 'badge-danger';
-                    case 'Booked': return 'badge-danger';
-                    case 'Limited': return 'badge-warning';
-                    default: return 'badge-success';
-                }
-            }
-            
-            async addAvailabilityOverride() {
+            async addOverride() {
                 const date = document.getElementById('overrideDate').value;
                 const status = document.getElementById('overrideStatus').value;
                 const price = document.getElementById('overridePrice').value;
@@ -700,30 +706,24 @@
                 const override = {
                     'Date': date,
                     'Status': status,
-                    'Price': price || null,
+                    'Price': price ? parseInt(price) : null,
                     'MaxBookings': status === 'Closed' ? 0 : 10,
                     'Booked': 0,
-                    'Available': status === 'Closed' ? 0 : 10,
-                    'Notes': ''
+                    'Available': status === 'Closed' ? 0 : 10
                 };
                 
-                // Remove existing override if any
                 this.availabilityOverrides = this.availabilityOverrides.filter(o => o.Date !== date);
-                
-                // Add new override
                 this.availabilityOverrides.push(override);
-                
-                // Sort and re-render
                 this.availabilityOverrides.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+                
                 this.renderAvailabilityTable();
                 
-                // Clear form
                 document.getElementById('overrideDate').value = '';
                 document.getElementById('overridePrice').value = '';
             }
             
-            async removeOverride(date) {
-                if (confirm(`Remove availability override for ${date}?`)) {
+            removeOverride(date) {
+                if (confirm(`Remove override for ${date}?`)) {
                     this.availabilityOverrides = this.availabilityOverrides.filter(o => o.Date !== date);
                     this.renderAvailabilityTable();
                 }
@@ -731,100 +731,72 @@
             
             async saveAvailability() {
                 try {
-                    await this.githubSync.pushAvailability(this.availabilityOverrides);
+                    const worksheet = XLSX.utils.json_to_sheet(this.availabilityOverrides);
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, worksheet, 'Availability');
+                    XLSX.writeFile(workbook, 'calendar-availability.xlsx');
+                    
                     alert('Availability saved successfully!');
                     closeAvailabilityModal();
                 } catch (error) {
-                    console.error('Error saving availability:', error);
-                    alert('Failed to save availability. Check GitHub token.');
-                }
-            }
-            
-            setupEventListeners() {
-                // Load saved token
-                const savedToken = localStorage.getItem('github_token');
-                if (savedToken) {
-                    document.getElementById('githubToken').value = savedToken;
-                    this.githubSync.setToken(savedToken);
+                    console.error('Error saving:', error);
+                    alert('Error saving availability');
                 }
             }
         }
         
-        // Functions for global access
-        const admin = new AdminPanel();
-        window.admin = admin;
+        // Global functions
+        let adminPanel;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            adminPanel = new AdminPanel();
+            window.adminPanel = adminPanel;
+        });
         
         function openAvailabilityModal() {
-            document.getElementById('availabilityModal').classList.add('visible');
-            admin.renderAvailabilityTable();
+            document.getElementById('availabilityModal').classList.add('active');
+            if (adminPanel) adminPanel.renderAvailabilityTable();
         }
         
         function closeAvailabilityModal() {
-            document.getElementById('availabilityModal').classList.remove('visible');
+            document.getElementById('availabilityModal').classList.remove('active');
         }
         
-        function addAvailabilityOverride() {
-            admin.addAvailabilityOverride();
+        function addOverride() {
+            if (adminPanel) adminPanel.addOverride();
         }
         
         function removeOverride(date) {
-            admin.removeOverride(date);
+            if (adminPanel) adminPanel.removeOverride(date);
         }
         
         function saveAvailability() {
-            admin.saveAvailability();
+            if (adminPanel) adminPanel.saveAvailability();
         }
         
-        async function syncToGitHub() {
-            try {
-                await admin.githubSync.pushBookings(admin.bookings);
-                await admin.githubSync.pushAvailability(admin.availabilityOverrides);
-                alert('Successfully synced to GitHub!');
-            } catch (error) {
-                console.error('Sync failed:', error);
-                alert('Failed to sync to GitHub. Check your token.');
-            }
-        }
-        
-        function pullFromGitHub() {
-            admin.loadData();
-            admin.updateStats();
-            admin.renderBookingsTable();
-            alert('Data refreshed from GitHub!');
-        }
-        
-        function saveToken() {
-            const token = document.getElementById('githubToken').value;
-            if (token) {
-                localStorage.setItem('github_token', token);
-                admin.githubSync.setToken(token);
-                alert('Token saved successfully!');
-            }
-        }
-        
-        function downloadFile(type) {
+        async function downloadFile(type) {
+            if (!adminPanel) return;
+            
             let data, filename;
             
-            switch(type) {
-                case 'availability':
-                    data = admin.availabilityOverrides;
-                    filename = 'calendar-availability.xlsx';
-                    break;
-                case 'bookings':
-                    data = admin.bookings;
-                    filename = 'calendar-bookings.xlsx';
-                    break;
-                case 'timeSlots':
-                    data = admin.excelHandler.getDefaultTimeSlots();
-                    filename = 'calendar-time-slots.xlsx';
-                    break;
+            if (type === 'availability') {
+                data = adminPanel.availabilityOverrides;
+                filename = 'calendar-availability.xlsx';
+            } else {
+                data = adminPanel.bookings;
+                filename = 'calendar-bookings.xlsx';
             }
             
-            admin.excelHandler.exportToExcel(data, filename);
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+            XLSX.writeFile(workbook, filename);
         }
         
-        function exportBookingsCSV() {
-            const worksheet = XLSX.utils.json_to_sheet(admin.bookings);
+        function exportCSV() {
+            if (!adminPanel) return;
+            
+            const worksheet = XLSX.utils.json_to_sheet(adminPanel.bookings);
             const csv = XLSX.utils.sheet_to_csv(worksheet);
             
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -837,51 +809,27 @@
         }
         
         function generateTemplates() {
-            const templates = admin.excelHandler.generateTemplates();
+            const availabilityTemplate = [
+                { 'Date': '2024-12-25', 'Status': 'Closed', 'Price': '', 'Notes': 'Christmas Day', 'MaxBookings': 0, 'Booked': 0, 'Available': 0 },
+                { 'Date': '2024-12-31', 'Status': 'Limited', 'Price': 22000, 'Notes': 'New Year\'s Eve', 'MaxBookings': 10, 'Booked': 8, 'Available': 2 }
+            ];
             
-            // Generate template files
-            admin.excelHandler.exportToExcel(templates.availability, 'calendar-availability-template.xlsx');
-            admin.excelHandler.exportToExcel(templates.bookings, 'calendar-bookings-template.xlsx');
-            admin.excelHandler.exportToExcel(templates.timeSlots, 'calendar-time-slots-template.xlsx');
+            const bookingsTemplate = [
+                { 'Booking ID': 'SNOW-001', 'Date': '2024-03-20', 'Customer Name': 'John Smith', 'Email': 'john@example.com', 'Guests': 2, 'Total Price': 12800, 'Status': 'Confirmed', 'Booking Date': '2024-03-01' }
+            ];
+            
+            const wb1 = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb1, XLSX.utils.json_to_sheet(availabilityTemplate), 'Availability');
+            XLSX.writeFile(wb1, 'calendar-availability-template.xlsx');
+            
+            const wb2 = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb2, XLSX.utils.json_to_sheet(bookingsTemplate), 'Bookings');
+            XLSX.writeFile(wb2, 'calendar-bookings-template.xlsx');
             
             alert('Template files generated successfully!');
         }
-        
-        function backupAll() {
-            const backup = {
-                availability: admin.availabilityOverrides,
-                bookings: admin.bookings,
-                timestamp: new Date().toISOString()
-            };
-            
-            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `calendar-backup-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
-        
-        function saveSettings() {
-            const defaultPrice = document.getElementById('defaultPrice').value;
-            const defaultMaxBookings = document.getElementById('defaultMaxBookings').value;
-            const defaultTimeSlots = document.getElementById('defaultTimeSlots').value;
-            
-            localStorage.setItem('default_price', defaultPrice);
-            localStorage.setItem('default_max_bookings', defaultMaxBookings);
-            localStorage.setItem('default_time_slots', defaultTimeSlots);
-            
-            alert('Settings saved successfully!');
-        }
-        
-        function viewBooking(bookingId) {
-            // Find booking details
-            const booking = admin.bookings.find(b => b['Booking ID'] === bookingId);
-            if (booking) {
-                alert(JSON.stringify(booking, null, 2));
-            }
-        }
     </script>
+    
+    <script src="scripts/excel-handler.js"></script>
 </body>
 </html>
