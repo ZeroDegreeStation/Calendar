@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* GLOBAL STYLES - Keep all existing styles */
         * {
             margin: 0;
             padding: 0;
@@ -1425,7 +1424,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <script>
-        // COMPLETE EXCEL BOOKING SYSTEM WITH PROPER DATA LOADING
+        // COMPLETE EXCEL BOOKING SYSTEM WITH PROPER DATE HANDLING
         class SnowStationBooking {
             constructor() {
                 this.calendar = null;
@@ -1442,11 +1441,11 @@
                 this.defaultMaxBookings = 10;
                 this.defaultPrice = 12800;
                 
-                // GitHub configuration - UPDATE THESE WITH YOUR REPO
+                // GitHub configuration
                 this.githubConfig = {
-                    owner: 'ZeroDegreeStation', // YOUR GITHUB USERNAME
-                    repo: 'Calendar',            // YOUR REPO NAME
-                    branch: 'main',              // YOUR BRANCH
+                    owner: 'ZeroDegreeStation',
+                    repo: 'Calendar',
+                    branch: 'main',
                     availabilityFile: 'data/calendar-availability.xlsx',
                     bookingsFile: 'data/calendar-bookings.xlsx'
                 };
@@ -1463,41 +1462,45 @@
                 console.log('✅ Excel Booking System initialized');
             }
             
-            // ============= EXCEL DATA MANAGEMENT - FIXED =============
+            // ============= EXCEL DATA MANAGEMENT =============
             
             async loadExcelData() {
                 try {
                     const statusEl = document.getElementById('calendarLastUpdated');
                     if (statusEl) statusEl.textContent = 'Loading availability from Excel...';
                     
-                    // Load both files
-                    await this.loadAvailabilityFromExcel();
-                    await this.loadBookingsFromExcel();
+                    const availabilityLoaded = await this.loadAvailabilityFromExcel();
+                    const bookingsLoaded = await this.loadBookingsFromExcel();
                     
-                    // Log what we loaded
-                    console.log('📊 Availability data loaded:', this.availabilityData);
-                    console.log('📊 Bookings data loaded:', this.bookingsData);
-                    
-                    const now = new Date();
-                    const statusEl2 = document.getElementById('calendarLastUpdated');
-                    if (statusEl2) {
-                        statusEl2.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (${this.availabilityData.length} overrides, ${this.bookingsData.length} bookings)`;
-                        statusEl2.style.color = '#27ae60';
+                    if (!availabilityLoaded && !bookingsLoaded) {
+                        console.warn('No Excel files found, using demo data');
+                        this.loadDemoData();
+                        if (statusEl) {
+                            statusEl.textContent = 'Using demo data (Excel files not found)';
+                            statusEl.style.color = '#e74c3c';
+                        }
+                    } else {
+                        const now = new Date();
+                        if (statusEl) {
+                            statusEl.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (${this.availabilityData.length} overrides, ${this.bookingsData.length} bookings)`;
+                            statusEl.style.color = '#27ae60';
+                        }
                     }
+                    
+                    console.log('📊 Final data state:', {
+                        availability: this.availabilityData.length,
+                        bookings: this.bookingsData.length
+                    });
                     
                     return true;
                 } catch (error) {
                     console.error('❌ Failed to load Excel data:', error);
-                    
-                    // Load demo data as fallback
                     this.loadDemoData();
-                    
                     const statusEl = document.getElementById('calendarLastUpdated');
                     if (statusEl) {
-                        statusEl.textContent = 'Using demo data (Excel files not found)';
+                        statusEl.textContent = 'Error loading Excel files, using demo data';
                         statusEl.style.color = '#e74c3c';
                     }
-                    
                     return false;
                 }
             }
@@ -1509,9 +1512,9 @@
                     
                     const response = await fetch(url);
                     if (!response.ok) {
-                        console.warn(`HTTP ${response.status} - using empty availability`);
+                        console.warn(`Availability Excel not found (${response.status}) - using empty availability`);
                         this.availabilityData = [];
-                        return [];
+                        return false;
                     }
                     
                     const arrayBuffer = await response.arrayBuffer();
@@ -1520,7 +1523,7 @@
                     if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
                         console.warn('No sheets in availability Excel');
                         this.availabilityData = [];
-                        return [];
+                        return false;
                     }
                     
                     const sheetName = workbook.SheetNames[0];
@@ -1529,21 +1532,58 @@
                     const data = XLSX.utils.sheet_to_json(worksheet);
                     console.log(`✅ Loaded ${data.length} availability records from Excel`);
                     
-                    this.availabilityData = data.map(row => ({
-                        Date: row.Date || this.formatExcelDate(row['Date']),
-                        Status: row.Status || 'Available',
-                        Price: row.Price ? parseInt(row.Price) : null,
-                        MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : this.defaultMaxBookings,
-                        Booked: row.Booked ? parseInt(row.Booked) : 0,
-                        Available: row.Available ? parseInt(row.Available) : this.defaultMaxBookings,
-                        Notes: row.Notes || ''
-                    }));
+                    this.availabilityData = data.map(row => {
+                        // Parse the date - handle MM/DD/YYYY format
+                        let dateStr = row.Date || row['Date'];
+                        let formattedDate = null;
+                        
+                        if (dateStr) {
+                            if (typeof dateStr === 'number') {
+                                // Excel serial number
+                                const date = new Date((dateStr - 25569) * 86400 * 1000);
+                                formattedDate = date.toISOString().split('T')[0];
+                            } else if (typeof dateStr === 'string') {
+                                // Check if it's in MM/DD/YYYY format
+                                const parts = dateStr.split('/');
+                                if (parts.length === 3) {
+                                    // Convert MM/DD/YYYY to YYYY-MM-DD
+                                    const month = parts[0].padStart(2, '0');
+                                    const day = parts[1].padStart(2, '0');
+                                    let year = parts[2];
+                                    
+                                    // Handle 2-digit years
+                                    if (year.length === 2) {
+                                        year = '20' + year;
+                                    }
+                                    
+                                    formattedDate = `${year}-${month}-${day}`;
+                                } else {
+                                    // Try ISO format
+                                    formattedDate = dateStr.split('T')[0];
+                                }
+                            }
+                        }
+                        
+                        return {
+                            Date: formattedDate,
+                            Status: row.Status || 'Available',
+                            Price: row.Price ? parseInt(row.Price) : null,
+                            MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : this.defaultMaxBookings,
+                            Booked: row.Booked ? parseInt(row.Booked) : 0,
+                            Available: row.Available ? parseInt(row.Available) : this.defaultMaxBookings,
+                            Notes: row.Notes || ''
+                        };
+                    });
                     
-                    return this.availabilityData;
+                    // Filter out entries with invalid dates
+                    this.availabilityData = this.availabilityData.filter(item => item.Date);
+                    
+                    console.log('✅ Processed availability data:', this.availabilityData);
+                    return true;
                 } catch (error) {
-                    console.warn('Could not load availability Excel:', error);
+                    console.error('❌ Could not load availability Excel:', error);
                     this.availabilityData = [];
-                    return [];
+                    return false;
                 }
             }
             
@@ -1554,9 +1594,9 @@
                     
                     const response = await fetch(url);
                     if (!response.ok) {
-                        console.warn(`HTTP ${response.status} - using empty bookings`);
+                        console.warn(`Bookings Excel not found (${response.status}) - using empty bookings`);
                         this.bookingsData = [];
-                        return [];
+                        return false;
                     }
                     
                     const arrayBuffer = await response.arrayBuffer();
@@ -1565,7 +1605,7 @@
                     if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
                         console.warn('No sheets in bookings Excel');
                         this.bookingsData = [];
-                        return [];
+                        return false;
                     }
                     
                     const sheetName = workbook.SheetNames[0];
@@ -1574,74 +1614,52 @@
                     const data = XLSX.utils.sheet_to_json(worksheet);
                     console.log(`✅ Loaded ${data.length} booking records from Excel`);
                     
-                    this.bookingsData = data.map(row => ({
-                        'Booking ID': row['Booking ID'] || row.BookingID || this.generateBookingId(),
-                        'Date': row.Date || this.formatExcelDate(row['Date']),
-                        'Customer Name': row['Customer Name'] || row.CustomerName || '',
-                        'Email': row.Email || '',
-                        'Phone': row.Phone || '',
-                        'Guests': row.Guests ? parseInt(row.Guests) : 2,
-                        'Plan': row.Plan || '',
-                        'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
-                        'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
-                        'Status': row.Status || 'Confirmed',
-                        'Booking Date': row['Booking Date'] || new Date().toISOString().split('T')[0],
-                        'Special Requests': row['Special Requests'] || ''
-                    }));
+                    this.bookingsData = data.map(row => {
+                        // Parse the date - handle MM/DD/YYYY format
+                        let dateStr = row.Date || row['Date'];
+                        let formattedDate = null;
+                        
+                        if (dateStr) {
+                            if (typeof dateStr === 'number') {
+                                const date = new Date((dateStr - 25569) * 86400 * 1000);
+                                formattedDate = date.toISOString().split('T')[0];
+                            } else if (typeof dateStr === 'string') {
+                                const parts = dateStr.split('/');
+                                if (parts.length === 3) {
+                                    const month = parts[0].padStart(2, '0');
+                                    const day = parts[1].padStart(2, '0');
+                                    let year = parts[2];
+                                    if (year.length === 2) year = '20' + year;
+                                    formattedDate = `${year}-${month}-${day}`;
+                                } else {
+                                    formattedDate = dateStr.split('T')[0];
+                                }
+                            }
+                        }
+                        
+                        return {
+                            'Booking ID': row['Booking ID'] || row.BookingID || this.generateBookingId(),
+                            'Date': formattedDate,
+                            'Customer Name': row['Customer Name'] || row.CustomerName || '',
+                            'Email': row.Email || '',
+                            'Phone': row.Phone || '',
+                            'Guests': row.Guests ? parseInt(row.Guests) : 2,
+                            'Plan': row.Plan || '',
+                            'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
+                            'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
+                            'Status': row.Status || 'Confirmed',
+                            'Booking Date': row['Booking Date'] || new Date().toISOString().split('T')[0],
+                            'Special Requests': row['Special Requests'] || ''
+                        };
+                    }).filter(item => item.Date);
                     
-                    return this.bookingsData;
+                    console.log('✅ Processed bookings data:', this.bookingsData);
+                    return true;
                 } catch (error) {
                     console.warn('Could not load bookings Excel:', error);
                     this.bookingsData = [];
-                    return [];
-                }
-            }
-            
-            async reloadExcelData() {
-                try {
-                    this.showNotification('Reloading availability from Excel...', 'info');
-                    
-                    await this.loadAvailabilityFromExcel();
-                    await this.loadBookingsFromExcel();
-                    
-                    console.log('✅ Excel data reloaded:', {
-                        availability: this.availabilityData.length,
-                        bookings: this.bookingsData.length
-                    });
-                    
-                    const now = new Date();
-                    const statusEl = document.getElementById('calendarLastUpdated');
-                    if (statusEl) {
-                        statusEl.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (reloaded)`;
-                    }
-                    
-                    return true;
-                } catch (error) {
-                    console.error('❌ Failed to reload Excel data:', error);
-                    this.showNotification('Could not reload Excel data', 'warning');
                     return false;
                 }
-            }
-            
-            getGitHubRawUrl(filePath) {
-                return `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${filePath}`;
-            }
-            
-            formatExcelDate(excelDate) {
-                if (!excelDate) return null;
-                
-                if (typeof excelDate === 'number') {
-                    // Excel serial number
-                    const date = new Date((excelDate - 25569) * 86400 * 1000);
-                    return date.toISOString().split('T')[0];
-                }
-                
-                if (typeof excelDate === 'string') {
-                    // Try to parse string date
-                    return excelDate.split('T')[0];
-                }
-                
-                return String(excelDate);
             }
             
             loadDemoData() {
@@ -1669,7 +1687,11 @@
                 ];
             }
             
-            // ============= CALENDAR METHODS - FIXED TO USE EXCEL DATA =============
+            getGitHubRawUrl(filePath) {
+                return `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${filePath}`;
+            }
+            
+            // ============= CALENDAR METHODS =============
             
             initCalendar() {
                 const calendarEl = document.getElementById('calendar');
@@ -1703,109 +1725,6 @@
                 
                 this.calendar.render();
                 console.log('✅ Calendar rendered with Excel data');
-            }
-            
-            forceCalendarRefresh() {
-                console.log('🔄 Force refreshing calendar...');
-                
-                if (!this.calendar) {
-                    console.error('❌ Calendar not initialized');
-                    return;
-                }
-                
-                try {
-                    const calendarEl = document.getElementById('calendar');
-                    
-                    this.calendar.destroy();
-                    
-                    this.calendar = new FullCalendar.Calendar(calendarEl, {
-                        initialView: 'dayGridMonth',
-                        headerToolbar: {
-                            left: 'prev,next today',
-                            center: 'title',
-                            right: 'dayGridMonth'
-                        },
-                        height: 'auto',
-                        aspectRatio: 1.6,
-                        firstDay: 0,
-                        selectable: true,
-                        select: (info) => this.handleDateSelect(info),
-                        dateClick: (info) => this.handleDateClick(info),
-                        selectAllow: (info) => this.isDateSelectable(info),
-                        unselectAuto: false,
-                        dayCellDidMount: (info) => this.styleDateCell(info),
-                        buttonText: {
-                            today: 'Today',
-                            month: 'Month'
-                        }
-                    });
-                    
-                    this.calendar.render();
-                    console.log('✅ Calendar re-rendered successfully');
-                    
-                    if (this.selectedDates.length > 0) {
-                        setTimeout(() => {
-                            this.selectedDates.forEach(dateStr => {
-                                const dayCell = document.querySelector(`[data-date="${dateStr}"]`);
-                                if (dayCell) {
-                                    dayCell.classList.add('fc-day-selected');
-                                }
-                            });
-                        }, 100);
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Failed to refresh calendar:', error);
-                    this.fallbackRefreshCalendar();
-                }
-            }
-            
-            fallbackRefreshCalendar() {
-                console.log('🔄 Using fallback calendar refresh...');
-                
-                const dayCells = document.querySelectorAll('.fc-daygrid-day');
-                dayCells.forEach(cell => {
-                    const dataDate = cell.getAttribute('data-date');
-                    if (dataDate) {
-                        const availability = this.getDateAvailability(dataDate);
-                        const today = new Date().toISOString().split('T')[0];
-                        const isPast = dataDate < today;
-                        
-                        cell.classList.remove('fc-day-available', 'fc-day-limited', 'fc-day-booked', 'fc-day-past');
-                        
-                        if (isPast) {
-                            cell.classList.add('fc-day-past');
-                        } else {
-                            cell.classList.add(`fc-day-${availability.statusClass}`);
-                        }
-                        
-                        const existingBadge = cell.querySelector('.day-badge');
-                        if (existingBadge) existingBadge.remove();
-                        
-                        if (!isPast) {
-                            const badge = document.createElement('div');
-                            badge.className = 'day-badge';
-                            
-                            if (availability.statusClass === 'booked') {
-                                badge.textContent = 'Full';
-                                badge.style.color = '#FF3B30';
-                            } else if (availability.statusClass === 'limited') {
-                                badge.textContent = `${availability.available} left`;
-                                badge.style.color = '#FF9F0A';
-                            } else if (availability.statusClass === 'available') {
-                                badge.textContent = `${availability.available} left`;
-                                badge.style.color = '#34C759';
-                            } else if (availability.statusClass === 'closed') {
-                                badge.textContent = 'Closed';
-                                badge.style.color = '#8E8E93';
-                            }
-                            
-                            cell.appendChild(badge);
-                        }
-                    }
-                });
-                
-                console.log('✅ Fallback calendar refresh complete');
             }
             
             styleDateCell(info) {
@@ -2289,7 +2208,7 @@
                 }
             }
             
-            // ============= BOOKING SUBMISSION WITH EXCEL UPDATE =============
+            // ============= BOOKING SUBMISSION WITH REFRESH =============
             
             async handleBookingSubmission() {
                 const name = document.getElementById('name')?.value;
@@ -2352,12 +2271,6 @@
                 }
                 
                 const bookingId = 'SNOW-' + Math.floor(100000 + Math.random() * 900000);
-                
-                const nights = this.selectedDates.length;
-                const totalPrice = nights * this.planPrice;
-                const tax = Math.round(totalPrice * 0.1);
-                const serviceCharge = 1000;
-                const grandTotal = totalPrice + tax + serviceCharge;
                 
                 this.showNotification('Saving your booking...', 'info');
                 
@@ -2436,9 +2349,99 @@
                     statusEl.style.color = '#27ae60';
                 }
                 
-                // Log current state for debugging
                 console.log('📊 Current availability after booking:', this.availabilityData);
-                console.log('📊 Current bookings after booking:', this.bookingsData);
+            }
+            
+            forceCalendarRefresh() {
+                console.log('🔄 Force refreshing calendar...');
+                
+                if (!this.calendar) {
+                    console.error('❌ Calendar not initialized');
+                    return;
+                }
+                
+                try {
+                    const calendarEl = document.getElementById('calendar');
+                    
+                    this.calendar.destroy();
+                    
+                    this.calendar = new FullCalendar.Calendar(calendarEl, {
+                        initialView: 'dayGridMonth',
+                        headerToolbar: {
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'dayGridMonth'
+                        },
+                        height: 'auto',
+                        aspectRatio: 1.6,
+                        firstDay: 0,
+                        selectable: true,
+                        select: (info) => this.handleDateSelect(info),
+                        dateClick: (info) => this.handleDateClick(info),
+                        selectAllow: (info) => this.isDateSelectable(info),
+                        unselectAuto: false,
+                        dayCellDidMount: (info) => this.styleDateCell(info),
+                        buttonText: {
+                            today: 'Today',
+                            month: 'Month'
+                        }
+                    });
+                    
+                    this.calendar.render();
+                    console.log('✅ Calendar re-rendered successfully');
+                    
+                } catch (error) {
+                    console.error('❌ Failed to refresh calendar:', error);
+                    this.fallbackRefreshCalendar();
+                }
+            }
+            
+            fallbackRefreshCalendar() {
+                console.log('🔄 Using fallback calendar refresh...');
+                
+                const dayCells = document.querySelectorAll('.fc-daygrid-day');
+                dayCells.forEach(cell => {
+                    const dataDate = cell.getAttribute('data-date');
+                    if (dataDate) {
+                        const availability = this.getDateAvailability(dataDate);
+                        const today = new Date().toISOString().split('T')[0];
+                        const isPast = dataDate < today;
+                        
+                        cell.classList.remove('fc-day-available', 'fc-day-limited', 'fc-day-booked', 'fc-day-past');
+                        
+                        if (isPast) {
+                            cell.classList.add('fc-day-past');
+                        } else {
+                            cell.classList.add(`fc-day-${availability.statusClass}`);
+                        }
+                        
+                        const existingBadge = cell.querySelector('.day-badge');
+                        if (existingBadge) existingBadge.remove();
+                        
+                        if (!isPast) {
+                            const badge = document.createElement('div');
+                            badge.className = 'day-badge';
+                            
+                            if (availability.statusClass === 'booked') {
+                                badge.textContent = 'Full';
+                                badge.style.color = '#FF3B30';
+                            } else if (availability.statusClass === 'limited') {
+                                badge.textContent = `${availability.available} left`;
+                                badge.style.color = '#FF9F0A';
+                            } else if (availability.statusClass === 'available') {
+                                badge.textContent = `${availability.available} left`;
+                                badge.style.color = '#34C759';
+                            } else if (availability.statusClass === 'closed') {
+                                badge.textContent = 'Closed';
+                                badge.style.color = '#8E8E93';
+                            }
+                            
+                            cell.appendChild(badge);
+                        }
+                    }
+                });
+                
+                console.log('✅ Fallback calendar refresh complete');
             }
             
             // ============= EXPORT METHODS =============
@@ -2465,34 +2468,6 @@
                     this.showNotification('Failed to download Excel files', 'error');
                     return false;
                 }
-            }
-            
-            exportBookingsToExcel() {
-                const worksheet = XLSX.utils.json_to_sheet(this.bookingsData);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
-                
-                const date = new Date().toISOString().split('T')[0];
-                const filename = `snow-station-bookings-${date}.xlsx`;
-                
-                XLSX.writeFile(workbook, filename);
-                
-                console.log(`📥 Bookings exported to ${filename}`);
-                return filename;
-            }
-            
-            exportAvailabilityToExcel() {
-                const worksheet = XLSX.utils.json_to_sheet(this.availabilityData);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, 'Availability');
-                
-                const date = new Date().toISOString().split('T')[0];
-                const filename = `snow-station-availability-${date}.xlsx`;
-                
-                XLSX.writeFile(workbook, filename);
-                
-                console.log(`📥 Availability exported to ${filename}`);
-                return filename;
             }
             
             // ============= UTILITIES =============
@@ -2603,9 +2578,6 @@
                 }
                 
                 window.downloadExcel = () => this.downloadUpdatedExcel();
-                window.exportBookings = () => this.exportBookingsToExcel();
-                window.exportAvailability = () => this.exportAvailabilityToExcel();
-                window.refreshCalendar = () => this.forceCalendarRefresh();
                 
                 document.querySelectorAll('.payment-method').forEach(method => {
                     method.addEventListener('click', function() {
