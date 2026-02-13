@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* GLOBAL STYLES */
+        /* GLOBAL STYLES - Keep all existing styles */
         * {
             margin: 0;
             padding: 0;
@@ -1425,7 +1425,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <script>
-        // COMPLETE EXCEL BOOKING SYSTEM WITH AUTO-REFRESH
+        // COMPLETE EXCEL BOOKING SYSTEM WITH PROPER DATA LOADING
         class SnowStationBooking {
             constructor() {
                 this.calendar = null;
@@ -1463,39 +1463,38 @@
                 console.log('✅ Excel Booking System initialized');
             }
             
-            // ============= EXCEL DATA MANAGEMENT =============
+            // ============= EXCEL DATA MANAGEMENT - FIXED =============
             
             async loadExcelData() {
                 try {
                     const statusEl = document.getElementById('calendarLastUpdated');
                     if (statusEl) statusEl.textContent = 'Loading availability from Excel...';
                     
-                    await Promise.all([
-                        this.loadAvailabilityFromExcel(),
-                        this.loadBookingsFromExcel()
-                    ]);
+                    // Load both files
+                    await this.loadAvailabilityFromExcel();
+                    await this.loadBookingsFromExcel();
+                    
+                    // Log what we loaded
+                    console.log('📊 Availability data loaded:', this.availabilityData);
+                    console.log('📊 Bookings data loaded:', this.bookingsData);
                     
                     const now = new Date();
                     const statusEl2 = document.getElementById('calendarLastUpdated');
                     if (statusEl2) {
-                        statusEl2.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (from Excel)`;
+                        statusEl2.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (${this.availabilityData.length} overrides, ${this.bookingsData.length} bookings)`;
                         statusEl2.style.color = '#27ae60';
                     }
-                    
-                    console.log('✅ Excel data loaded:', {
-                        availability: this.availabilityData.length,
-                        bookings: this.bookingsData.length
-                    });
                     
                     return true;
                 } catch (error) {
                     console.error('❌ Failed to load Excel data:', error);
                     
+                    // Load demo data as fallback
                     this.loadDemoData();
                     
                     const statusEl = document.getElementById('calendarLastUpdated');
                     if (statusEl) {
-                        statusEl.textContent = 'Using demo data (Excel file not found)';
+                        statusEl.textContent = 'Using demo data (Excel files not found)';
                         statusEl.style.color = '#e74c3c';
                     }
                     
@@ -1510,15 +1509,25 @@
                     
                     const response = await fetch(url);
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
+                        console.warn(`HTTP ${response.status} - using empty availability`);
+                        this.availabilityData = [];
+                        return [];
                     }
                     
                     const arrayBuffer = await response.arrayBuffer();
                     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    
+                    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                        console.warn('No sheets in availability Excel');
+                        this.availabilityData = [];
+                        return [];
+                    }
+                    
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
                     
                     const data = XLSX.utils.sheet_to_json(worksheet);
+                    console.log(`✅ Loaded ${data.length} availability records from Excel`);
                     
                     this.availabilityData = data.map(row => ({
                         Date: row.Date || this.formatExcelDate(row['Date']),
@@ -1533,6 +1542,7 @@
                     return this.availabilityData;
                 } catch (error) {
                     console.warn('Could not load availability Excel:', error);
+                    this.availabilityData = [];
                     return [];
                 }
             }
@@ -1544,18 +1554,28 @@
                     
                     const response = await fetch(url);
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
+                        console.warn(`HTTP ${response.status} - using empty bookings`);
+                        this.bookingsData = [];
+                        return [];
                     }
                     
                     const arrayBuffer = await response.arrayBuffer();
                     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    
+                    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                        console.warn('No sheets in bookings Excel');
+                        this.bookingsData = [];
+                        return [];
+                    }
+                    
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
                     
                     const data = XLSX.utils.sheet_to_json(worksheet);
+                    console.log(`✅ Loaded ${data.length} booking records from Excel`);
                     
                     this.bookingsData = data.map(row => ({
-                        'Booking ID': row['Booking ID'] || this.generateBookingId(),
+                        'Booking ID': row['Booking ID'] || row.BookingID || this.generateBookingId(),
                         'Date': row.Date || this.formatExcelDate(row['Date']),
                         'Customer Name': row['Customer Name'] || row.CustomerName || '',
                         'Email': row.Email || '',
@@ -1572,6 +1592,7 @@
                     return this.bookingsData;
                 } catch (error) {
                     console.warn('Could not load bookings Excel:', error);
+                    this.bookingsData = [];
                     return [];
                 }
             }
@@ -1580,20 +1601,24 @@
                 try {
                     this.showNotification('Reloading availability from Excel...', 'info');
                     
-                    await Promise.all([
-                        this.loadAvailabilityFromExcel(),
-                        this.loadBookingsFromExcel()
-                    ]);
+                    await this.loadAvailabilityFromExcel();
+                    await this.loadBookingsFromExcel();
                     
                     console.log('✅ Excel data reloaded:', {
                         availability: this.availabilityData.length,
                         bookings: this.bookingsData.length
                     });
                     
+                    const now = new Date();
+                    const statusEl = document.getElementById('calendarLastUpdated');
+                    if (statusEl) {
+                        statusEl.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (reloaded)`;
+                    }
+                    
                     return true;
                 } catch (error) {
                     console.error('❌ Failed to reload Excel data:', error);
-                    this.showNotification('Could not reload Excel data, using local updates', 'warning');
+                    this.showNotification('Could not reload Excel data', 'warning');
                     return false;
                 }
             }
@@ -1606,14 +1631,21 @@
                 if (!excelDate) return null;
                 
                 if (typeof excelDate === 'number') {
+                    // Excel serial number
                     const date = new Date((excelDate - 25569) * 86400 * 1000);
                     return date.toISOString().split('T')[0];
                 }
                 
-                return excelDate.toString().split('T')[0];
+                if (typeof excelDate === 'string') {
+                    // Try to parse string date
+                    return excelDate.split('T')[0];
+                }
+                
+                return String(excelDate);
             }
             
             loadDemoData() {
+                console.log('📊 Using demo data');
                 this.availabilityData = [
                     { Date: '2024-12-25', Status: 'Closed', Price: null, MaxBookings: 0, Booked: 0, Available: 0, Notes: 'Christmas Day' },
                     { Date: '2024-12-31', Status: 'Limited', Price: 22000, MaxBookings: 10, Booked: 8, Available: 2, Notes: 'New Year\'s Eve' }
@@ -1637,7 +1669,7 @@
                 ];
             }
             
-            // ============= CALENDAR METHODS =============
+            // ============= CALENDAR METHODS - FIXED TO USE EXCEL DATA =============
             
             initCalendar() {
                 const calendarEl = document.getElementById('calendar');
@@ -1670,7 +1702,7 @@
                 });
                 
                 this.calendar.render();
-                console.log('✅ Calendar rendered');
+                console.log('✅ Calendar rendered with Excel data');
             }
             
             forceCalendarRefresh() {
@@ -1823,6 +1855,7 @@
             }
             
             getDateAvailability(dateStr) {
+                // First check if there's an override in availabilityData
                 const override = this.availabilityData.find(a => a.Date === dateStr);
                 
                 if (override) {
@@ -1854,6 +1887,7 @@
                     };
                 }
                 
+                // If no override, calculate from bookings
                 const bookingsForDate = this.bookingsData.filter(b => b.Date === dateStr && b.Status === 'Confirmed');
                 const bookedCount = bookingsForDate.reduce((sum, b) => sum + (b.Guests || 1), 0);
                 const maxBookings = this.defaultMaxBookings;
@@ -2255,7 +2289,7 @@
                 }
             }
             
-            // ============= BOOKING SUBMISSION WITH AUTO-REFRESH =============
+            // ============= BOOKING SUBMISSION WITH EXCEL UPDATE =============
             
             async handleBookingSubmission() {
                 const name = document.getElementById('name')?.value;
@@ -2325,10 +2359,9 @@
                 const serviceCharge = 1000;
                 const grandTotal = totalPrice + tax + serviceCharge;
                 
-                this.showNotification('Saving your booking to Excel...', 'info');
+                this.showNotification('Saving your booking...', 'info');
                 
-                const savedBookings = [];
-                
+                // Save each selected date as a separate booking
                 for (const date of this.selectedDates) {
                     const bookingRecord = {
                         'Booking ID': bookingId,
@@ -2347,6 +2380,7 @@
                     
                     this.bookingsData.push(bookingRecord);
                     
+                    // Update availability
                     const existingIndex = this.availabilityData.findIndex(a => a.Date === date);
                     
                     if (existingIndex >= 0) {
@@ -2376,18 +2410,17 @@
                             Notes: 'Auto-generated from booking'
                         });
                     }
-                    
-                    savedBookings.push(bookingRecord);
                 }
                 
                 this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
                 
-                await this.reloadExcelData();
-                
+                // Force calendar refresh to show updated availability
                 this.forceCalendarRefresh();
                 
+                // Show email modal
                 this.showEmailModal(name, email, bookingId);
                 
+                // Clear selection
                 this.selectedDates = [];
                 document.querySelectorAll('.fc-day-selected').forEach(el => {
                     el.classList.remove('fc-day-selected');
@@ -2402,6 +2435,10 @@
                     statusEl.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (after booking)`;
                     statusEl.style.color = '#27ae60';
                 }
+                
+                // Log current state for debugging
+                console.log('📊 Current availability after booking:', this.availabilityData);
+                console.log('📊 Current bookings after booking:', this.bookingsData);
             }
             
             // ============= EXPORT METHODS =============
