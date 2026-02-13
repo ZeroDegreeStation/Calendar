@@ -425,7 +425,7 @@
             z-index: 5;
         }
 
-        /* BOOKING SUMMARY BAR - NO CLEAR BUTTON */
+        /* BOOKING SUMMARY BAR */
         .booking-summary {
             position: fixed;
             bottom: 0;
@@ -544,9 +544,28 @@
             cursor: pointer;
         }
 
+        .form-group input.error {
+            border-color: #e74c3c;
+            background-color: rgba(231, 76, 60, 0.05);
+        }
+
         .form-group textarea {
             resize: vertical;
             min-height: 100px;
+        }
+
+        .date-hint {
+            display: block;
+            margin-top: 0.3rem;
+            font-size: 0.8rem;
+        }
+        
+        .date-hint.available {
+            color: #27ae60;
+        }
+        
+        .date-hint.error {
+            color: #e74c3c;
         }
 
         /* PAYMENT METHODS */
@@ -1099,14 +1118,15 @@
                             </div>
                             
                             <div class="form-group">
-                                <label><i class="fas fa-calendar"></i> Check-in Date</label>
-                                <input type="date" id="checkin" name="checkin" readonly placeholder="Select dates from calendar">
-                                <small style="color: #666; display: block; margin-top: 0.3rem;">* Click on dates in the calendar above</small>
+                                <label><i class="fas fa-calendar"></i> Check-in Date *</label>
+                                <input type="date" id="checkin" name="checkin" required placeholder="Select check-in date">
+                                <span id="checkin-hint" class="date-hint"></span>
                             </div>
                             
                             <div class="form-group">
-                                <label><i class="fas fa-calendar"></i> Check-out Date</label>
-                                <input type="date" id="checkout" name="checkout" readonly placeholder="Select dates from calendar">
+                                <label><i class="fas fa-calendar"></i> Check-out Date *</label>
+                                <input type="date" id="checkout" name="checkout" required placeholder="Select check-out date">
+                                <span id="checkout-hint" class="date-hint"></span>
                             </div>
                             
                             <div class="form-group">
@@ -1275,7 +1295,7 @@
                             </div>
                         </div>
                         
-                        <!-- COMPLETE BOOKING BUTTON - THE ONLY BUTTON NEEDED -->
+                        <!-- COMPLETE BOOKING BUTTON -->
                         <button type="button" class="cta-button pay-now-btn" id="completeBookingBtn">
                             <i class="fas fa-lock"></i> Complete Booking & Pay Now
                         </button>
@@ -1313,7 +1333,7 @@
         </section>
     </main>
 
-    <!-- BOOKING SUMMARY BAR - NO CLEAR BUTTON, NO POP-UP -->
+    <!-- BOOKING SUMMARY BAR -->
     <div id="bookingSummary" class="booking-summary">
         <div class="summary-content">
             <div class="summary-info">
@@ -1416,7 +1436,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <script>
-        // COMPLETE BOOKING SYSTEM WITH WORKING DATE SELECTION
+        // COMPLETE BOOKING SYSTEM WITH AVAILABILITY-AWARE DATE SYNC
         class SnowStationBooking {
             constructor() {
                 this.calendar = null;
@@ -1425,6 +1445,10 @@
                 this.planPrice = 0;
                 this.planName = '';
                 
+                // Availability rules (demo)
+                this.bookedDates = [15, 16]; // 15th and 16th are fully booked
+                this.limitedDates = [20, 21]; // 20th and 21st are limited
+                
                 this.init();
             }
             
@@ -1432,7 +1456,8 @@
                 this.initCalendar();
                 this.setupEventListeners();
                 this.loadSavedData();
-                console.log('✅ Booking system initialized');
+                this.setupDateInputConstraints();
+                console.log('✅ Booking system initialized with availability sync');
             }
             
             initCalendar() {
@@ -1473,32 +1498,35 @@
                 const dateStr = info.date.toISOString().split('T')[0];
                 const today = new Date().toISOString().split('T')[0];
                 const isPast = info.date < new Date(today);
+                const dayOfMonth = info.date.getDate();
                 
-                // Add status classes
+                // Remove any existing status classes
+                info.el.classList.remove('fc-day-available', 'fc-day-limited', 'fc-day-booked', 'fc-day-past');
+                
+                // Add status classes based on availability
                 if (isPast) {
                     info.el.classList.add('fc-day-past');
+                } else if (this.bookedDates.includes(dayOfMonth)) {
+                    info.el.classList.add('fc-day-booked');
+                } else if (this.limitedDates.includes(dayOfMonth)) {
+                    info.el.classList.add('fc-day-limited');
                 } else {
-                    // For demo, mark some dates as limited/booked
-                    const dayOfMonth = info.date.getDate();
-                    if (dayOfMonth === 15 || dayOfMonth === 16) {
-                        info.el.classList.add('fc-day-booked');
-                    } else if (dayOfMonth === 20 || dayOfMonth === 21) {
-                        info.el.classList.add('fc-day-limited');
-                    } else {
-                        info.el.classList.add('fc-day-available');
-                    }
+                    info.el.classList.add('fc-day-available');
                 }
                 
-                // Add badge
+                // Remove existing badge if any
+                const existingBadge = info.el.querySelector('.day-badge');
+                if (existingBadge) existingBadge.remove();
+                
+                // Add availability badge
                 if (!isPast) {
                     const badge = document.createElement('div');
                     badge.className = 'day-badge';
                     
-                    const dayOfMonth = info.date.getDate();
-                    if (dayOfMonth === 15 || dayOfMonth === 16) {
+                    if (this.bookedDates.includes(dayOfMonth)) {
                         badge.textContent = 'Full';
                         badge.style.color = '#FF3B30';
-                    } else if (dayOfMonth === 20 || dayOfMonth === 21) {
+                    } else if (this.limitedDates.includes(dayOfMonth)) {
                         badge.textContent = '2 left';
                         badge.style.color = '#FF9F0A';
                     } else {
@@ -1512,21 +1540,51 @@
                 // Highlight selected dates
                 if (this.selectedDates && this.selectedDates.includes(dateStr)) {
                     info.el.classList.add('fc-day-selected');
+                } else {
+                    info.el.classList.remove('fc-day-selected');
                 }
             }
             
             isDateSelectable(info) {
                 const dateStr = info.startStr.split('T')[0];
+                const date = new Date(dateStr);
                 const today = new Date().toISOString().split('T')[0];
+                const dayOfMonth = date.getDate();
                 
                 // Can't select past dates
                 if (dateStr < today) return false;
                 
-                // Can't select booked dates (for demo, 15th and 16th are booked)
-                const dayOfMonth = new Date(dateStr).getDate();
-                return dayOfMonth !== 15 && dayOfMonth !== 16;
+                // Can't select booked dates
+                if (this.bookedDates.includes(dayOfMonth)) return false;
+                
+                return true;
             }
             
+            isDateAvailable(dateStr) {
+                const date = new Date(dateStr);
+                const today = new Date().toISOString().split('T')[0];
+                const dayOfMonth = date.getDate();
+                
+                if (dateStr < today) return false;
+                if (this.bookedDates.includes(dayOfMonth)) return false;
+                
+                return true;
+            }
+            
+            getAvailabilityStatus(dateStr) {
+                const date = new Date(dateStr);
+                const dayOfMonth = date.getDate();
+                
+                if (this.bookedDates.includes(dayOfMonth)) {
+                    return { available: false, message: 'Fully booked', class: 'error' };
+                } else if (this.limitedDates.includes(dayOfMonth)) {
+                    return { available: true, message: 'Limited availability (2 spots left)', class: 'available' };
+                } else {
+                    return { available: true, message: 'Available', class: 'available' };
+                }
+            }
+            
+            // ============= CALENDAR -> FORM SYNC =============
             handleDateClick(info) {
                 if (!this.isDateSelectable(info)) {
                     this.showNotification('This date is not available for booking', 'error');
@@ -1547,8 +1605,9 @@
                 }
                 
                 this.selectedDates.sort();
+                this.updateFormDates();
                 this.updateBookingSummary();
-                this.autoFillDates();
+                this.updateDateHints();
             }
             
             handleDateSelect(info) {
@@ -1579,12 +1638,12 @@
                 }
                 
                 this.selectedDates.sort();
+                this.updateFormDates();
                 this.updateBookingSummary();
-                this.autoFillDates();
+                this.updateDateHints();
             }
             
-            autoFillDates() {
-                // Automatically fill check-in and check-out fields when dates are selected
+            updateFormDates() {
                 const checkinInput = document.getElementById('checkin');
                 const checkoutInput = document.getElementById('checkout');
                 
@@ -1607,6 +1666,174 @@
                 }
             }
             
+            // ============= FORM -> CALENDAR SYNC =============
+            syncCalendarFromForm() {
+                const checkin = document.getElementById('checkin')?.value;
+                const checkout = document.getElementById('checkout')?.value;
+                
+                if (!checkin || !checkout) {
+                    // Clear selection if dates are empty
+                    this.selectedDates = [];
+                    document.querySelectorAll('.fc-day-selected').forEach(el => {
+                        el.classList.remove('fc-day-selected');
+                    });
+                    this.updateBookingSummary();
+                    return;
+                }
+                
+                // Validate dates
+                if (checkin >= checkout) {
+                    this.showNotification('Check-out date must be after check-in date', 'error');
+                    return;
+                }
+                
+                // Validate check-in availability
+                if (!this.isDateAvailable(checkin)) {
+                    this.showNotification('Check-in date is not available', 'error');
+                    return;
+                }
+                
+                // Clear existing selection
+                this.selectedDates = [];
+                document.querySelectorAll('.fc-day-selected').forEach(el => {
+                    el.classList.remove('fc-day-selected');
+                });
+                
+                // Generate all dates between checkin and checkout-1
+                const dates = [];
+                let current = new Date(checkin);
+                const end = new Date(checkout);
+                let hasUnavailableDate = false;
+                
+                while (current < end) {
+                    const dateStr = current.toISOString().split('T')[0];
+                    
+                    if (!this.isDateAvailable(dateStr)) {
+                        hasUnavailableDate = true;
+                    } else {
+                        dates.push(dateStr);
+                        
+                        // Highlight the cell
+                        const dayCell = document.querySelector(`[data-date="${dateStr}"]`);
+                        if (dayCell) {
+                            dayCell.classList.add('fc-day-selected');
+                        }
+                    }
+                    
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                this.selectedDates = dates;
+                
+                if (hasUnavailableDate) {
+                    this.showNotification('Some dates in your range are not available and were excluded', 'warning');
+                }
+                
+                this.updateBookingSummary();
+                this.updateDateHints();
+            }
+            
+            // ============= DATE INPUT VALIDATION =============
+            setupDateInputConstraints() {
+                const checkinInput = document.getElementById('checkin');
+                const checkoutInput = document.getElementById('checkout');
+                const today = new Date().toISOString().split('T')[0];
+                
+                if (checkinInput) {
+                    // Set minimum date to today
+                    checkinInput.setAttribute('min', today);
+                    
+                    // Custom validation for availability
+                    checkinInput.addEventListener('change', (e) => {
+                        const selectedDate = e.target.value;
+                        
+                        if (selectedDate && !this.isDateAvailable(selectedDate)) {
+                            e.target.classList.add('error');
+                            this.showNotification('Selected check-in date is not available', 'error');
+                            e.target.value = '';
+                        } else {
+                            e.target.classList.remove('error');
+                            
+                            // Update checkout min date
+                            if (checkoutInput && selectedDate) {
+                                const nextDay = new Date(selectedDate);
+                                nextDay.setDate(nextDay.getDate() + 1);
+                                checkoutInput.setAttribute('min', nextDay.toISOString().split('T')[0]);
+                            }
+                            
+                            this.syncCalendarFromForm();
+                        }
+                        
+                        this.updateDateHints();
+                    });
+                    
+                    // Real-time validation on input
+                    checkinInput.addEventListener('input', () => {
+                        this.updateDateHints();
+                    });
+                }
+                
+                if (checkoutInput) {
+                    checkoutInput.addEventListener('change', (e) => {
+                        const selectedDate = e.target.value;
+                        
+                        if (selectedDate && !this.isDateAvailable(this.subtractOneDay(selectedDate))) {
+                            e.target.classList.add('error');
+                            this.showNotification('Check-out day must be after an available date', 'error');
+                            e.target.value = '';
+                        } else {
+                            e.target.classList.remove('error');
+                            this.syncCalendarFromForm();
+                        }
+                        
+                        this.updateDateHints();
+                    });
+                    
+                    checkoutInput.addEventListener('input', () => {
+                        this.updateDateHints();
+                    });
+                }
+            }
+            
+            updateDateHints() {
+                const checkinHint = document.getElementById('checkin-hint');
+                const checkoutHint = document.getElementById('checkout-hint');
+                const checkin = document.getElementById('checkin')?.value;
+                const checkout = document.getElementById('checkout')?.value;
+                
+                if (checkinHint) {
+                    if (checkin) {
+                        const status = this.getAvailabilityStatus(checkin);
+                        checkinHint.textContent = status.message;
+                        checkinHint.className = `date-hint ${status.class}`;
+                    } else {
+                        checkinHint.textContent = '';
+                    }
+                }
+                
+                if (checkoutHint) {
+                    if (checkout) {
+                        const dayBeforeCheckout = this.subtractOneDay(checkout);
+                        if (this.isDateAvailable(dayBeforeCheckout)) {
+                            checkoutHint.textContent = 'Available';
+                            checkoutHint.className = 'date-hint available';
+                        } else {
+                            checkoutHint.textContent = 'Last night is not available';
+                            checkoutHint.className = 'date-hint error';
+                        }
+                    } else {
+                        checkoutHint.textContent = '';
+                    }
+                }
+            }
+            
+            subtractOneDay(dateStr) {
+                const date = new Date(dateStr);
+                date.setDate(date.getDate() - 1);
+                return date.toISOString().split('T')[0];
+            }
+            
+            // ============= UTILITIES =============
             updateBookingSummary() {
                 const summaryEl = document.getElementById('bookingSummary');
                 const selectedDatesText = document.getElementById('selectedDatesText');
@@ -1881,7 +2108,7 @@
                     });
                 }
                 
-                // Complete booking button - THE ONLY BUTTON NEEDED
+                // Complete booking button
                 const completeBtn = document.getElementById('completeBookingBtn');
                 if (completeBtn) {
                     completeBtn.addEventListener('click', () => this.handleBookingSubmission());
@@ -1935,8 +2162,9 @@
                         document.querySelectorAll('.fc-day-selected').forEach(el => {
                             el.classList.remove('fc-day-selected');
                         });
+                        this.updateFormDates();
                         this.updateBookingSummary();
-                        this.autoFillDates();
+                        this.updateDateHints();
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     });
                 }
@@ -1977,7 +2205,7 @@
                     top: 20px;
                     right: 20px;
                     padding: 1rem 1.5rem;
-                    background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#3498db'};
+                    background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : '#3498db'};
                     color: white;
                     border-radius: 6px;
                     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -1989,7 +2217,7 @@
                 `;
                 
                 notification.innerHTML = `
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
                     <span>${message}</span>
                 `;
                 
