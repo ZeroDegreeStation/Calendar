@@ -26,13 +26,56 @@ jobs:
     - name: Install dependencies
       run: npm install -g xlsx-cli
     
+    - name: Debug - List files
+      run: |
+        echo "📁 Current directory:"
+        pwd
+        echo "📂 Files in repository:"
+        ls -la
+        echo "📂 Files in data directory:"
+        ls -la data/ || echo "data/ directory not found"
+    
     - name: Convert Excel to JSON (Backup)
       run: |
         mkdir -p backups
         for file in data/*.xlsx; do
           if [ -f "$file" ]; then
             filename=$(basename "$file" .xlsx)
-            npx xlsx-cli "$file" --sheet 1 > "backups/${filename}.json"
+            echo "🔄 Converting $file to JSON..."
+            
+            # Try multiple sheet name variations
+            if npx xlsx-cli "$file" --sheet 0 2>/dev/null; then
+              npx xlsx-cli "$file" --sheet 0 > "backups/${filename}.json"
+              echo "✅ Converted using sheet index 0"
+            elif npx xlsx-cli "$file" --sheet 1 2>/dev/null; then
+              npx xlsx-cli "$file" --sheet 1 > "backups/${filename}.json"
+              echo "✅ Converted using sheet index 1"
+            elif npx xlsx-cli "$file" --sheet "Sheet1" 2>/dev/null; then
+              npx xlsx-cli "$file" --sheet "Sheet1" > "backups/${filename}.json"
+              echo "✅ Converted using sheet name 'Sheet1'"
+            elif npx xlsx-cli "$file" --sheet "Availability" 2>/dev/null; then
+              npx xlsx-cli "$file" --sheet "Availability" > "backups/${filename}.json"
+              echo "✅ Converted using sheet name 'Availability'"
+            elif npx xlsx-cli "$file" --sheet "Bookings" 2>/dev/null; then
+              npx xlsx-cli "$file" --sheet "Bookings" > "backups/${filename}.json"
+              echo "✅ Converted using sheet name 'Bookings'"
+            else
+              # Last resort: try to get first sheet without specifying
+              npx xlsx-cli "$file" > "backups/${filename}.json" 2>/dev/null || {
+                echo "⚠️ Could not convert $file, creating empty JSON"
+                echo "[]" > "backups/${filename}.json"
+              }
+            fi
+            
+            # Verify file was created
+            if [ -f "backups/${filename}.json" ]; then
+              echo "✅ JSON file created: backups/${filename}.json"
+              wc -l "backups/${filename}.json"
+            else
+              echo "❌ Failed to create JSON for ${filename}"
+            fi
+          else
+            echo "⚠️ No Excel files found in data/ directory"
           fi
         done
     
@@ -42,12 +85,19 @@ jobs:
         echo "Generated: $(date -u)" >> statistics.md
         echo "" >> statistics.md
         
-        if [ -f "data/calendar-bookings.xlsx" ]; then
-          TOTAL_BOOKINGS=$(npx xlsx-cli data/calendar-bookings.xlsx --sheet 1 | jq 'length')
+        if [ -f "backups/calendar-bookings.json" ]; then
+          TOTAL_BOOKINGS=$(jq 'length' backups/calendar-bookings.json 2>/dev/null || echo 0)
           echo "## 📅 Total Bookings: ${TOTAL_BOOKINGS}" >> statistics.md
           
-          REVENUE=$(npx xlsx-cli data/calendar-bookings.xlsx --sheet 1 | jq '[.[]."Total Price" // 0] | add')
+          REVENUE=$(jq '[.[]."Total Price" // 0] | add' backups/calendar-bookings.json 2>/dev/null || echo 0)
           echo "## 💰 Total Revenue: ¥${REVENUE}" >> statistics.md
+        else
+          echo "## 📅 No booking data available" >> statistics.md
+        fi
+        
+        if [ -f "backups/calendar-availability.json" ]; then
+          TOTAL_OVERRIDES=$(jq 'length' backups/calendar-availability.json 2>/dev/null || echo 0)
+          echo "## 📆 Availability Overrides: ${TOTAL_OVERRIDES}" >> statistics.md
         fi
         
         echo "" >> statistics.md
@@ -58,6 +108,6 @@ jobs:
       run: |
         git config --local user.email "actions@github.com"
         git config --local user.name "GitHub Actions"
-        git add backups/*.json statistics.md
-        git commit -m "Auto-sync: Update Snow Station booking data [skip ci]" || exit 0
-        git push
+        git add backups/*.json statistics.md || echo "No files to add"
+        git diff --quiet && git diff --staged --quiet || git commit -m "Auto-sync: Update Snow Station booking data [skip ci]"
+        git push || echo "No changes to push"
