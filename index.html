@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* GLOBAL STYLES */
+        /* GLOBAL STYLES - Same as working version */
         * {
             margin: 0;
             padding: 0;
@@ -26,7 +26,6 @@
             line-height: 1.6;
         }
 
-        /* NAVIGATION */
         .main-header {
             background-color: white;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -108,7 +107,6 @@
             padding: 0.5rem;
         }
 
-        /* HERO SECTION */
         .hero-section {
             background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.95)), 
                         url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
@@ -153,7 +151,6 @@
             font-weight: 600;
         }
 
-        /* MAIN CONTENT */
         main {
             max-width: 1400px;
             margin: 0 auto;
@@ -179,7 +176,6 @@
             transform: translateX(-50%);
         }
 
-        /* STAY PLANS */
         .stay-plans {
             margin: 3rem 0;
         }
@@ -309,7 +305,6 @@
             background-color: #27ae60 !important;
         }
 
-        /* CALENDAR SECTION */
         .calendar-section {
             background: white;
             border-radius: 12px;
@@ -342,7 +337,6 @@
             margin: 0;
         }
 
-        /* CALENDAR CONTAINER */
         #calendar {
             height: 600px;
             margin-bottom: 1.5rem;
@@ -352,7 +346,6 @@
             padding: 1rem;
         }
 
-        /* LEGEND */
         .legend {
             display: flex;
             flex-wrap: wrap;
@@ -382,7 +375,6 @@
         .legend-color.selected { background: rgba(66, 133, 244, 0.2); border: 1px solid #4285F4; }
         .legend-color.past { background: rgba(142, 142, 147, 0.1); border: 1px dashed #8E8E93; }
 
-        /* CALENDAR DAY STYLES */
         .fc-day-selected {
             background-color: rgba(66, 133, 244, 0.2) !important;
             border: 2px solid #4285F4 !important;
@@ -425,7 +417,6 @@
             z-index: 5;
         }
 
-        /* BOOKING SUMMARY BAR */
         .booking-summary {
             position: fixed;
             bottom: 0;
@@ -481,7 +472,6 @@
             color: #3498db;
         }
 
-        /* BOOKING CONTAINER */
         .booking-container {
             display: grid;
             grid-template-columns: 1.2fr 0.8fr;
@@ -495,7 +485,6 @@
             }
         }
 
-        /* FORM STYLES */
         .booking-form, .payment-form {
             background: white;
             border-radius: 12px;
@@ -568,7 +557,6 @@
             color: #e74c3c;
         }
 
-        /* PAYMENT METHODS */
         .payment-method {
             display: flex;
             align-items: center;
@@ -653,7 +641,6 @@
             color: #2c3e50;
         }
 
-        /* BUTTONS */
         .cta-button {
             display: inline-block;
             background: #3498db;
@@ -690,7 +677,6 @@
             background: #27ae60;
         }
 
-        /* EMAIL MODAL */
         .email-modal {
             display: none;
             position: fixed;
@@ -810,7 +796,6 @@
             margin-right: 1rem;
         }
 
-        /* FOOTER */
         footer {
             background: #2c3e50;
             color: white;
@@ -841,7 +826,6 @@
             color: #bdc3c7;
         }
 
-        /* RESPONSIVE */
         @media (max-width: 768px) {
             .mobile-menu-btn {
                 display: block;
@@ -1079,6 +1063,11 @@
                 
                 <!-- CALENDAR CONTAINER -->
                 <div id="calendar"></div>
+                
+                <!-- LAST UPDATED TIMESTAMP -->
+                <div id="calendarLastUpdated" style="text-align: right; font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                    Loading availability...
+                </div>
             </div>
             
             <!-- BOOKING FORM SECTION -->
@@ -1436,7 +1425,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <script>
-        // COMPLETE BOOKING SYSTEM WITH AVAILABILITY-AWARE DATE SYNC
+        // EXCEL BOOKING SYSTEM - FULL INTEGRATION
         class SnowStationBooking {
             constructor() {
                 this.calendar = null;
@@ -1445,20 +1434,270 @@
                 this.planPrice = 0;
                 this.planName = '';
                 
-                // Availability rules (demo)
-                this.bookedDates = [15, 16]; // 15th and 16th are fully booked
-                this.limitedDates = [20, 21]; // 20th and 21st are limited
+                // Excel data
+                this.availabilityData = [];
+                this.bookingsData = [];
+                
+                // Default settings
+                this.defaultMaxBookings = 10;
+                this.defaultPrice = 12800;
+                
+                // GitHub configuration - CHANGE THESE TO YOUR REPO
+                this.githubConfig = {
+                    owner: 'ZeroDegreeStation', // YOUR GITHUB USERNAME
+                    repo: 'Calendar',            // YOUR REPO NAME
+                    branch: 'main',              // YOUR BRANCH
+                    availabilityFile: 'data/calendar-availability.xlsx',
+                    bookingsFile: 'data/calendar-bookings.xlsx'
+                };
                 
                 this.init();
             }
             
-            init() {
+            async init() {
+                await this.loadExcelData();
                 this.initCalendar();
                 this.setupEventListeners();
-                this.loadSavedData();
+                this.loadSavedPlan();
                 this.setupDateInputConstraints();
-                console.log('✅ Booking system initialized with availability sync');
+                console.log('✅ Excel Booking System initialized');
             }
+            
+            // ============= EXCEL DATA MANAGEMENT =============
+            
+            async loadExcelData() {
+                try {
+                    // Show loading message
+                    const statusEl = document.getElementById('calendarLastUpdated');
+                    if (statusEl) statusEl.textContent = 'Loading availability from Excel...';
+                    
+                    // Load both files in parallel
+                    await Promise.all([
+                        this.loadAvailabilityFromExcel(),
+                        this.loadBookingsFromExcel()
+                    ]);
+                    
+                    // Update timestamp
+                    const now = new Date();
+                    const statusEl2 = document.getElementById('calendarLastUpdated');
+                    if (statusEl2) {
+                        statusEl2.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (from Excel)`;
+                    }
+                    
+                    console.log('✅ Excel data loaded:', {
+                        availability: this.availabilityData.length,
+                        bookings: this.bookingsData.length
+                    });
+                } catch (error) {
+                    console.error('❌ Failed to load Excel data:', error);
+                    
+                    // Load demo data as fallback
+                    this.loadDemoData();
+                    
+                    const statusEl = document.getElementById('calendarLastUpdated');
+                    if (statusEl) {
+                        statusEl.textContent = 'Using demo data (Excel file not found)';
+                        statusEl.style.color = '#e74c3c';
+                    }
+                }
+            }
+            
+            async loadAvailabilityFromExcel() {
+                try {
+                    const url = this.getGitHubRawUrl(this.githubConfig.availabilityFile);
+                    console.log('Loading availability from:', url);
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    
+                    // Convert to JSON
+                    const data = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // Process and normalize data
+                    this.availabilityData = data.map(row => ({
+                        Date: row.Date || this.formatExcelDate(row['Date']),
+                        Status: row.Status || 'Available',
+                        Price: row.Price ? parseInt(row.Price) : null,
+                        MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : this.defaultMaxBookings,
+                        Booked: row.Booked ? parseInt(row.Booked) : 0,
+                        Available: row.Available ? parseInt(row.Available) : this.defaultMaxBookings,
+                        Notes: row.Notes || ''
+                    }));
+                    
+                    return this.availabilityData;
+                } catch (error) {
+                    console.warn('Could not load availability Excel:', error);
+                    return [];
+                }
+            }
+            
+            async loadBookingsFromExcel() {
+                try {
+                    const url = this.getGitHubRawUrl(this.githubConfig.bookingsFile);
+                    console.log('Loading bookings from:', url);
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    
+                    // Convert to JSON
+                    const data = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // Process and normalize data
+                    this.bookingsData = data.map(row => ({
+                        'Booking ID': row['Booking ID'] || this.generateBookingId(),
+                        'Date': row.Date || this.formatExcelDate(row['Date']),
+                        'Customer Name': row['Customer Name'] || row.CustomerName || '',
+                        'Email': row.Email || '',
+                        'Phone': row.Phone || '',
+                        'Guests': row.Guests ? parseInt(row.Guests) : 2,
+                        'Plan': row.Plan || '',
+                        'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
+                        'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
+                        'Status': row.Status || 'Confirmed',
+                        'Booking Date': row['Booking Date'] || new Date().toISOString().split('T')[0],
+                        'Special Requests': row['Special Requests'] || ''
+                    }));
+                    
+                    return this.bookingsData;
+                } catch (error) {
+                    console.warn('Could not load bookings Excel:', error);
+                    return [];
+                }
+            }
+            
+            async saveBookingToExcel(bookingData) {
+                try {
+                    // Add to local array
+                    this.bookingsData.push(bookingData);
+                    
+                    // In a real production environment, you would use GitHub API to push
+                    // For demo, we'll simulate saving and download the file
+                    console.log('✅ Booking saved to Excel (simulated):', bookingData['Booking ID']);
+                    
+                    // Optionally trigger download of updated Excel file
+                    // this.exportBookingsToExcel();
+                    
+                    return true;
+                } catch (error) {
+                    console.error('❌ Failed to save booking to Excel:', error);
+                    return false;
+                }
+            }
+            
+            async updateAvailabilityInExcel(date, guests) {
+                try {
+                    // Check if date exists in availability overrides
+                    const existingIndex = this.availabilityData.findIndex(a => a.Date === date);
+                    
+                    if (existingIndex >= 0) {
+                        // Update existing record
+                        this.availabilityData[existingIndex].Booked += guests;
+                        this.availabilityData[existingIndex].Available = 
+                            this.availabilityData[existingIndex].MaxBookings - this.availabilityData[existingIndex].Booked;
+                    }
+                    
+                    // In production, push to GitHub
+                    console.log(`✅ Availability updated for ${date}: +${guests} guests`);
+                    
+                    return true;
+                } catch (error) {
+                    console.error('❌ Failed to update availability:', error);
+                    return false;
+                }
+            }
+            
+            getGitHubRawUrl(filePath) {
+                return `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${filePath}`;
+            }
+            
+            formatExcelDate(excelDate) {
+                if (!excelDate) return null;
+                
+                // Handle Excel serial number
+                if (typeof excelDate === 'number') {
+                    const date = new Date((excelDate - 25569) * 86400 * 1000);
+                    return date.toISOString().split('T')[0];
+                }
+                
+                // Handle string date
+                return excelDate.toString().split('T')[0];
+            }
+            
+            loadDemoData() {
+                // Demo availability
+                this.availabilityData = [
+                    { Date: '2024-12-25', Status: 'Closed', Price: null, MaxBookings: 0, Booked: 0, Available: 0, Notes: 'Christmas Day' },
+                    { Date: '2024-12-31', Status: 'Limited', Price: 22000, MaxBookings: 10, Booked: 8, Available: 2, Notes: 'New Year\'s Eve' }
+                ];
+                
+                // Demo bookings
+                this.bookingsData = [
+                    {
+                        'Booking ID': 'SNOW-001',
+                        'Date': '2024-03-15',
+                        'Customer Name': 'John Smith',
+                        'Email': 'john@example.com',
+                        'Phone': '555-0101',
+                        'Guests': 2,
+                        'Plan': 'Weekend Getaway',
+                        'Plan Price': 12800,
+                        'Total Price': 25600,
+                        'Status': 'Confirmed',
+                        'Booking Date': '2024-03-01',
+                        'Special Requests': ''
+                    }
+                ];
+            }
+            
+            exportBookingsToExcel() {
+                // Create workbook from bookings data
+                const worksheet = XLSX.utils.json_to_sheet(this.bookingsData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
+                
+                // Generate filename with date
+                const date = new Date().toISOString().split('T')[0];
+                const filename = `snow-station-bookings-${date}.xlsx`;
+                
+                // Download file
+                XLSX.writeFile(workbook, filename);
+                
+                console.log(`📥 Bookings exported to ${filename}`);
+                return filename;
+            }
+            
+            exportAvailabilityToExcel() {
+                // Create workbook from availability data
+                const worksheet = XLSX.utils.json_to_sheet(this.availabilityData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Availability');
+                
+                // Generate filename with date
+                const date = new Date().toISOString().split('T')[0];
+                const filename = `snow-station-availability-${date}.xlsx`;
+                
+                // Download file
+                XLSX.writeFile(workbook, filename);
+                
+                console.log(`📥 Availability exported to ${filename}`);
+                return filename;
+            }
+            
+            // ============= CALENDAR METHODS =============
             
             initCalendar() {
                 const calendarEl = document.getElementById('calendar');
@@ -1498,23 +1737,21 @@
                 const dateStr = info.date.toISOString().split('T')[0];
                 const today = new Date().toISOString().split('T')[0];
                 const isPast = info.date < new Date(today);
-                const dayOfMonth = info.date.getDate();
                 
-                // Remove any existing status classes
+                // Get availability for this date
+                const availability = this.getDateAvailability(dateStr);
+                
+                // Remove existing classes
                 info.el.classList.remove('fc-day-available', 'fc-day-limited', 'fc-day-booked', 'fc-day-past');
                 
-                // Add status classes based on availability
+                // Add status class
                 if (isPast) {
                     info.el.classList.add('fc-day-past');
-                } else if (this.bookedDates.includes(dayOfMonth)) {
-                    info.el.classList.add('fc-day-booked');
-                } else if (this.limitedDates.includes(dayOfMonth)) {
-                    info.el.classList.add('fc-day-limited');
                 } else {
-                    info.el.classList.add('fc-day-available');
+                    info.el.classList.add(`fc-day-${availability.statusClass}`);
                 }
                 
-                // Remove existing badge if any
+                // Remove existing badge
                 const existingBadge = info.el.querySelector('.day-badge');
                 if (existingBadge) existingBadge.remove();
                 
@@ -1523,15 +1760,18 @@
                     const badge = document.createElement('div');
                     badge.className = 'day-badge';
                     
-                    if (this.bookedDates.includes(dayOfMonth)) {
+                    if (availability.statusClass === 'booked') {
                         badge.textContent = 'Full';
                         badge.style.color = '#FF3B30';
-                    } else if (this.limitedDates.includes(dayOfMonth)) {
-                        badge.textContent = '2 left';
+                    } else if (availability.statusClass === 'limited') {
+                        badge.textContent = `${availability.available} left`;
                         badge.style.color = '#FF9F0A';
-                    } else {
-                        badge.textContent = '10 left';
+                    } else if (availability.statusClass === 'available') {
+                        badge.textContent = `${availability.available} left`;
                         badge.style.color = '#34C759';
+                    } else if (availability.statusClass === 'closed') {
+                        badge.textContent = 'Closed';
+                        badge.style.color = '#8E8E93';
                     }
                     
                     info.el.appendChild(badge);
@@ -1545,46 +1785,108 @@
                 }
             }
             
+            getDateAvailability(dateStr) {
+                // Check if date exists in availability overrides
+                const override = this.availabilityData.find(a => a.Date === dateStr);
+                
+                if (override) {
+                    // Use override data
+                    const booked = override.Booked || 0;
+                    const maxBookings = override.MaxBookings || this.defaultMaxBookings;
+                    const available = Math.max(0, maxBookings - booked);
+                    
+                    let statusClass = 'available';
+                    let statusLabel = 'Available';
+                    
+                    if (override.Status === 'Closed') {
+                        statusClass = 'closed';
+                        statusLabel = 'Closed';
+                    } else if (override.Status === 'Booked' || available <= 0) {
+                        statusClass = 'booked';
+                        statusLabel = 'Fully Booked';
+                    } else if (override.Status === 'Limited' || available <= Math.floor(maxBookings * 0.3)) {
+                        statusClass = 'limited';
+                        statusLabel = 'Limited';
+                    }
+                    
+                    return {
+                        statusClass,
+                        statusLabel,
+                        available,
+                        maxBookings,
+                        booked,
+                        price: override.Price || this.defaultPrice
+                    };
+                }
+                
+                // No override - calculate from bookings
+                const bookingsForDate = this.bookingsData.filter(b => b.Date === dateStr && b.Status === 'Confirmed');
+                const bookedCount = bookingsForDate.reduce((sum, b) => sum + (b.Guests || 1), 0);
+                const maxBookings = this.defaultMaxBookings;
+                const available = Math.max(0, maxBookings - bookedCount);
+                
+                let statusClass = 'available';
+                let statusLabel = 'Available';
+                
+                if (available <= 0) {
+                    statusClass = 'booked';
+                    statusLabel = 'Fully Booked';
+                } else if (available <= Math.floor(maxBookings * 0.3)) {
+                    statusClass = 'limited';
+                    statusLabel = 'Limited';
+                }
+                
+                return {
+                    statusClass,
+                    statusLabel,
+                    available,
+                    maxBookings,
+                    booked: bookedCount,
+                    price: this.defaultPrice
+                };
+            }
+            
             isDateSelectable(info) {
                 const dateStr = info.startStr.split('T')[0];
-                const date = new Date(dateStr);
                 const today = new Date().toISOString().split('T')[0];
-                const dayOfMonth = date.getDate();
                 
                 // Can't select past dates
                 if (dateStr < today) return false;
                 
-                // Can't select booked dates
-                if (this.bookedDates.includes(dayOfMonth)) return false;
+                // Get availability
+                const availability = this.getDateAvailability(dateStr);
+                
+                // Can't select booked or closed dates
+                if (availability.statusClass === 'booked' || availability.statusClass === 'closed') {
+                    return false;
+                }
                 
                 return true;
             }
             
             isDateAvailable(dateStr) {
-                const date = new Date(dateStr);
-                const today = new Date().toISOString().split('T')[0];
-                const dayOfMonth = date.getDate();
-                
-                if (dateStr < today) return false;
-                if (this.bookedDates.includes(dayOfMonth)) return false;
-                
-                return true;
+                const availability = this.getDateAvailability(dateStr);
+                return availability.available > 0 && availability.statusClass !== 'closed';
             }
             
             getAvailabilityStatus(dateStr) {
-                const date = new Date(dateStr);
-                const dayOfMonth = date.getDate();
+                const availability = this.getDateAvailability(dateStr);
                 
-                if (this.bookedDates.includes(dayOfMonth)) {
-                    return { available: false, message: 'Fully booked', class: 'error' };
-                } else if (this.limitedDates.includes(dayOfMonth)) {
-                    return { available: true, message: 'Limited availability (2 spots left)', class: 'available' };
-                } else {
-                    return { available: true, message: 'Available', class: 'available' };
-                }
+                return {
+                    available: availability.available > 0 && availability.statusClass !== 'closed',
+                    message: availability.statusLabel + (availability.available > 0 ? ` (${availability.available} spots)` : ''),
+                    class: availability.statusClass === 'available' ? 'available' : 
+                           availability.statusClass === 'limited' ? 'available' : 'error'
+                };
             }
             
-            // ============= CALENDAR -> FORM SYNC =============
+            getPrice(dateStr) {
+                const availability = this.getDateAvailability(dateStr);
+                return availability.price;
+            }
+            
+            // ============= DATE SELECTION HANDLERS =============
+            
             handleDateClick(info) {
                 if (!this.isDateSelectable(info)) {
                     this.showNotification('This date is not available for booking', 'error');
@@ -1613,6 +1915,8 @@
             handleDateSelect(info) {
                 const start = info.startStr.split('T')[0];
                 const end = info.endStr.split('T')[0];
+                
+                console.log('Date range selected:', start, 'to', end);
                 
                 // Clear existing selection
                 this.selectedDates = [];
@@ -1666,7 +1970,6 @@
                 }
             }
             
-            // ============= FORM -> CALENDAR SYNC =============
             syncCalendarFromForm() {
                 const checkin = document.getElementById('checkin')?.value;
                 const checkout = document.getElementById('checkout')?.value;
@@ -1733,7 +2036,8 @@
                 this.updateDateHints();
             }
             
-            // ============= DATE INPUT VALIDATION =============
+            // ============= FORM VALIDATION =============
+            
             setupDateInputConstraints() {
                 const checkinInput = document.getElementById('checkin');
                 const checkoutInput = document.getElementById('checkout');
@@ -1767,7 +2071,6 @@
                         this.updateDateHints();
                     });
                     
-                    // Real-time validation on input
                     checkinInput.addEventListener('input', () => {
                         this.updateDateHints();
                     });
@@ -1815,7 +2118,7 @@
                     if (checkout) {
                         const dayBeforeCheckout = this.subtractOneDay(checkout);
                         if (this.isDateAvailable(dayBeforeCheckout)) {
-                            checkoutHint.textContent = 'Available';
+                            checkoutHint.textContent = 'Check-out date valid';
                             checkoutHint.className = 'date-hint available';
                         } else {
                             checkoutHint.textContent = 'Last night is not available';
@@ -1833,7 +2136,8 @@
                 return date.toISOString().split('T')[0];
             }
             
-            // ============= UTILITIES =============
+            // ============= BOOKING SUMMARY =============
+            
             updateBookingSummary() {
                 const summaryEl = document.getElementById('bookingSummary');
                 const selectedDatesText = document.getElementById('selectedDatesText');
@@ -1854,12 +2158,12 @@
                 } else {
                     const first = this.formatDate(this.selectedDates[0]);
                     const last = this.formatDate(this.selectedDates[this.selectedDates.length - 1]);
-                    selectedDatesText.textContent = `${first} - ${last} (${this.selectedDates.length} days)`;
+                    selectedDatesText.textContent = `${first} - ${last} (${this.selectedDates.length} nights)`;
                 }
                 
-                // Update price
+                // Calculate total price
                 const nights = this.selectedDates.length;
-                const pricePerNight = this.planPrice || 12800;
+                const pricePerNight = this.planPrice || this.defaultPrice;
                 const roomRate = pricePerNight * nights;
                 const tax = Math.round(roomRate * 0.1);
                 const serviceCharge = 1000;
@@ -1894,8 +2198,9 @@
                 });
             }
             
-            loadSavedData() {
-                // Load plan from localStorage if exists
+            // ============= PLAN MANAGEMENT =============
+            
+            loadSavedPlan() {
                 const savedPlan = localStorage.getItem('selectedPlan');
                 const savedPrice = localStorage.getItem('planPrice');
                 
@@ -1905,7 +2210,6 @@
                     this.planName = this.getPlanName(savedPlan);
                     this.updatePlanDisplay();
                     
-                    // Update dropdown
                     const planSelect = document.getElementById('selected-plan');
                     if (planSelect) {
                         planSelect.value = savedPlan;
@@ -1940,12 +2244,14 @@
                 }
             }
             
+            // ============= BOOKING SUBMISSION =============
+            
             async handleBookingSubmission() {
                 // Validate form
                 const name = document.getElementById('name')?.value;
                 const email = document.getElementById('email')?.value;
                 const phone = document.getElementById('phone')?.value;
-                const guests = document.getElementById('guests')?.value;
+                const guests = parseInt(document.getElementById('guests')?.value) || 2;
                 const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
                 const terms = document.getElementById('terms')?.checked;
                 
@@ -2002,11 +2308,120 @@
                     }
                 }
                 
-                // Show confirmation modal
-                this.showEmailModal(name, email);
+                // Generate booking ID
+                const bookingId = 'SNOW-' + Math.floor(100000 + Math.random() * 900000);
+                
+                // Calculate total price
+                const nights = this.selectedDates.length;
+                const totalPrice = nights * this.planPrice;
+                const tax = Math.round(totalPrice * 0.1);
+                const serviceCharge = 1000;
+                const grandTotal = totalPrice + tax + serviceCharge;
+                
+                // Save each selected date as a separate booking or a single booking with date range
+                // For Excel, it's easier to store each night separately
+                const savedBookings = [];
+                
+                for (const date of this.selectedDates) {
+                    const bookingRecord = {
+                        'Booking ID': bookingId,
+                        'Date': date,
+                        'Customer Name': name,
+                        'Email': email,
+                        'Phone': phone,
+                        'Guests': guests,
+                        'Plan': this.planName,
+                        'Plan Price': this.planPrice,
+                        'Total Price': this.planPrice, // per night
+                        'Status': 'Confirmed',
+                        'Booking Date': new Date().toISOString().split('T')[0],
+                        'Special Requests': document.getElementById('message')?.value || ''
+                    };
+                    
+                    // Save to Excel
+                    await this.saveBookingToExcel(bookingRecord);
+                    
+                    // Update availability
+                    await this.updateAvailabilityInExcel(date, guests);
+                    
+                    savedBookings.push(bookingRecord);
+                }
+                
+                // Show success message
+                this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
+                
+                // Refresh calendar to show updated availability
+                this.refreshCalendar();
+                
+                // Show email modal
+                this.showEmailModal(name, email, bookingId);
+                
+                // Clear selection
+                this.selectedDates = [];
+                document.querySelectorAll('.fc-day-selected').forEach(el => {
+                    el.classList.remove('fc-day-selected');
+                });
+                this.updateFormDates();
+                this.updateBookingSummary();
+                this.updateDateHints();
             }
             
-            showEmailModal(name, email) {
+            refreshCalendar() {
+                // Re-style all date cells to reflect updated availability
+                if (this.calendar) {
+                    this.calendar.refetchEvents();
+                    
+                    // Manually update cell styles
+                    const dayCells = document.querySelectorAll('.fc-daygrid-day');
+                    dayCells.forEach(cell => {
+                        const dataDate = cell.getAttribute('data-date');
+                        if (dataDate) {
+                            const availability = this.getDateAvailability(dataDate);
+                            
+                            // Remove existing classes
+                            cell.classList.remove('fc-day-available', 'fc-day-limited', 'fc-day-booked', 'fc-day-past');
+                            
+                            // Add new class
+                            cell.classList.add(`fc-day-${availability.statusClass}`);
+                            
+                            // Update badge
+                            const existingBadge = cell.querySelector('.day-badge');
+                            if (existingBadge) existingBadge.remove();
+                            
+                            const today = new Date().toISOString().split('T')[0];
+                            if (dataDate >= today) {
+                                const badge = document.createElement('div');
+                                badge.className = 'day-badge';
+                                
+                                if (availability.statusClass === 'booked') {
+                                    badge.textContent = 'Full';
+                                    badge.style.color = '#FF3B30';
+                                } else if (availability.statusClass === 'limited') {
+                                    badge.textContent = `${availability.available} left`;
+                                    badge.style.color = '#FF9F0A';
+                                } else if (availability.statusClass === 'available') {
+                                    badge.textContent = `${availability.available} left`;
+                                    badge.style.color = '#34C759';
+                                } else if (availability.statusClass === 'closed') {
+                                    badge.textContent = 'Closed';
+                                    badge.style.color = '#8E8E93';
+                                }
+                                
+                                cell.appendChild(badge);
+                            }
+                        }
+                    });
+                }
+                
+                // Update timestamp
+                const now = new Date();
+                const statusEl = document.getElementById('calendarLastUpdated');
+                if (statusEl) {
+                    statusEl.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (after booking)`;
+                }
+            }
+            
+            showEmailModal(name, email, bookingId) {
                 const modal = document.getElementById('emailModal');
                 const customerEmailEl = document.getElementById('customerEmail');
                 const progressText = document.getElementById('progressText');
@@ -2054,6 +2469,12 @@
                 }, 3000);
             }
             
+            generateBookingId() {
+                return 'SNOW-' + Math.floor(100000 + Math.random() * 900000);
+            }
+            
+            // ============= EVENT LISTENERS =============
+            
             setupEventListeners() {
                 // Plan selection buttons
                 document.querySelectorAll('.select-plan-btn').forEach(btn => {
@@ -2066,11 +2487,9 @@
                         this.planPrice = parseInt(price);
                         this.planName = name;
                         
-                        // Save to localStorage
                         localStorage.setItem('selectedPlan', plan);
                         localStorage.setItem('planPrice', price);
                         
-                        // Update dropdown
                         const planSelect = document.getElementById('selected-plan');
                         if (planSelect) {
                             planSelect.value = plan;
@@ -2081,7 +2500,6 @@
                         
                         this.showNotification(`Selected: ${name}`, 'success');
                         
-                        // Scroll to calendar
                         document.getElementById('calendar-section').scrollIntoView({ 
                             behavior: 'smooth' 
                         });
@@ -2113,6 +2531,11 @@
                 if (completeBtn) {
                     completeBtn.addEventListener('click', () => this.handleBookingSubmission());
                 }
+                
+                // Export buttons (optional)
+                // Add hidden export functionality - can be triggered from console
+                window.exportBookings = () => this.exportBookingsToExcel();
+                window.exportAvailability = () => this.exportAvailabilityToExcel();
                 
                 // Payment method selection
                 document.querySelectorAll('.payment-method').forEach(method => {
@@ -2157,14 +2580,6 @@
                 if (finishBtn) {
                     finishBtn.addEventListener('click', () => {
                         document.getElementById('emailModal')?.classList.remove('active');
-                        // Clear selection
-                        this.selectedDates = [];
-                        document.querySelectorAll('.fc-day-selected').forEach(el => {
-                            el.classList.remove('fc-day-selected');
-                        });
-                        this.updateFormDates();
-                        this.updateBookingSummary();
-                        this.updateDateHints();
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     });
                 }
