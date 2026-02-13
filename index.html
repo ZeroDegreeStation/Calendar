@@ -1424,7 +1424,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <script>
-        // COMPLETE EXCEL BOOKING SYSTEM WITH PROPER DATE HANDLING
+        // COMPLETE EXCEL BOOKING SYSTEM WITH CONFIGURABLE MAX BOOKINGS
         class SnowStationBooking {
             constructor() {
                 this.calendar = null;
@@ -1437,9 +1437,12 @@
                 this.availabilityData = [];
                 this.bookingsData = [];
                 
-                // Default settings
-                this.defaultMaxBookings = 10;
-                this.defaultPrice = 12800;
+                // ============= CONFIGURABLE SETTINGS =============
+                // Change these values to match your business rules
+                this.defaultMaxBookings = 1;        // Default max bookings per day (CHANGED TO 1)
+                this.defaultPrice = 12800;           // Default price per night
+                this.limitedThreshold = 0.3;          // When to show "Limited" (30% of max bookings)
+                // ================================================
                 
                 // GitHub configuration
                 this.githubConfig = {
@@ -1459,7 +1462,7 @@
                 this.setupEventListeners();
                 this.loadSavedPlan();
                 this.setupDateInputConstraints();
-                console.log('✅ Excel Booking System initialized');
+                console.log('✅ Excel Booking System initialized with max bookings:', this.defaultMaxBookings);
             }
             
             // ============= EXCEL DATA MANAGEMENT =============
@@ -1564,9 +1567,12 @@
                             }
                         }
                         
+                        // Ensure Status is properly read
+                        const status = row.Status || row.status || 'Available';
+                        
                         return {
                             Date: formattedDate,
-                            Status: row.Status || 'Available',
+                            Status: status,
                             Price: row.Price ? parseInt(row.Price) : null,
                             MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : this.defaultMaxBookings,
                             Booked: row.Booked ? parseInt(row.Booked) : 0,
@@ -1643,7 +1649,7 @@
                             'Customer Name': row['Customer Name'] || row.CustomerName || '',
                             'Email': row.Email || '',
                             'Phone': row.Phone || '',
-                            'Guests': row.Guests ? parseInt(row.Guests) : 2,
+                            'Guests': row.Guests ? parseInt(row.Guests) : 1,
                             'Plan': row.Plan || '',
                             'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
                             'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
@@ -1664,34 +1670,61 @@
             
             loadDemoData() {
                 console.log('📊 Using demo data');
-                this.availabilityData = [
-                    { Date: '2024-12-25', Status: 'Closed', Price: null, MaxBookings: 0, Booked: 0, Available: 0, Notes: 'Christmas Day' },
-                    { Date: '2024-12-31', Status: 'Limited', Price: 22000, MaxBookings: 10, Booked: 8, Available: 2, Notes: 'New Year\'s Eve' }
+                
+                // Get current date for reference
+                const today = new Date();
+                const currentYear = today.getFullYear();
+                const currentMonth = today.getMonth();
+                
+                // Create future dates for testing
+                const futureDates = [
+                    new Date(currentYear, currentMonth + 1, 15),
+                    new Date(currentYear, currentMonth + 1, 16),
+                    new Date(currentYear, currentMonth + 1, 20),
+                    new Date(currentYear, currentMonth + 1, 21),
+                    new Date(currentYear, currentMonth + 1, 25),
+                    new Date(currentYear, currentMonth + 2, 1),
+                    new Date(currentYear, currentMonth + 2, 2)
                 ];
                 
-                this.bookingsData = [
+                this.availabilityData = [
                     {
-                        'Booking ID': 'SNOW-001',
-                        'Date': '2024-03-15',
-                        'Customer Name': 'John Smith',
-                        'Email': 'john@example.com',
-                        'Phone': '555-0101',
-                        'Guests': 2,
-                        'Plan': 'Weekend Getaway',
-                        'Plan Price': 12800,
-                        'Total Price': 12800,
-                        'Status': 'Confirmed',
-                        'Booking Date': '2024-03-01',
-                        'Special Requests': ''
+                        Date: futureDates[0].toISOString().split('T')[0],
+                        Status: 'Limited',
+                        Price: 18500,
+                        MaxBookings: this.defaultMaxBookings,
+                        Booked: Math.floor(this.defaultMaxBookings * 0.7),
+                        Available: Math.ceil(this.defaultMaxBookings * 0.3),
+                        Notes: 'Limited availability'
+                    },
+                    {
+                        Date: futureDates[1].toISOString().split('T')[0],
+                        Status: 'Closed',
+                        Price: null,
+                        MaxBookings: 0,
+                        Booked: 0,
+                        Available: 0,
+                        Notes: 'Closed'
+                    },
+                    {
+                        Date: futureDates[2].toISOString().split('T')[0],
+                        Status: 'Limited',
+                        Price: 22000,
+                        MaxBookings: this.defaultMaxBookings,
+                        Booked: Math.floor(this.defaultMaxBookings * 0.8),
+                        Available: Math.ceil(this.defaultMaxBookings * 0.2),
+                        Notes: 'Peak pricing'
                     }
                 ];
+                
+                this.bookingsData = [];
             }
             
             getGitHubRawUrl(filePath) {
                 return `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${filePath}`;
             }
             
-            // ============= CALENDAR METHODS =============
+            // ============= FIXED CALENDAR METHODS =============
             
             initCalendar() {
                 const calendarEl = document.getElementById('calendar');
@@ -1778,22 +1811,39 @@
                 const override = this.availabilityData.find(a => a.Date === dateStr);
                 
                 if (override) {
+                    // Use the Status field from Excel as the primary source
+                    const statusFromExcel = override.Status || 'Available';
                     const booked = override.Booked || 0;
                     const maxBookings = override.MaxBookings || this.defaultMaxBookings;
                     const available = Math.max(0, maxBookings - booked);
+                    const price = override.Price || this.defaultPrice;
                     
+                    // Map Excel status to calendar class
                     let statusClass = 'available';
                     let statusLabel = 'Available';
                     
-                    if (override.Status === 'Closed') {
-                        statusClass = 'closed';
-                        statusLabel = 'Closed';
-                    } else if (override.Status === 'Booked' || available <= 0) {
-                        statusClass = 'booked';
-                        statusLabel = 'Fully Booked';
-                    } else if (override.Status === 'Limited' || available <= Math.floor(maxBookings * 0.3)) {
-                        statusClass = 'limited';
-                        statusLabel = 'Limited';
+                    switch(statusFromExcel) {
+                        case 'Closed':
+                            statusClass = 'closed';
+                            statusLabel = 'Closed';
+                            break;
+                        case 'Booked':
+                            statusClass = 'booked';
+                            statusLabel = 'Fully Booked';
+                            break;
+                        case 'Limited':
+                            statusClass = 'limited';
+                            statusLabel = 'Limited';
+                            break;
+                        default:
+                            // If status is Available or not set, calculate based on availability
+                            if (available <= 0) {
+                                statusClass = 'booked';
+                                statusLabel = 'Fully Booked';
+                            } else if (available <= Math.floor(maxBookings * this.limitedThreshold)) {
+                                statusClass = 'limited';
+                                statusLabel = 'Limited';
+                            }
                     }
                     
                     return {
@@ -1802,7 +1852,7 @@
                         available,
                         maxBookings,
                         booked,
-                        price: override.Price || this.defaultPrice
+                        price
                     };
                 }
                 
@@ -1818,7 +1868,7 @@
                 if (available <= 0) {
                     statusClass = 'booked';
                     statusLabel = 'Fully Booked';
-                } else if (available <= Math.floor(maxBookings * 0.3)) {
+                } else if (available <= Math.floor(maxBookings * this.limitedThreshold)) {
                     statusClass = 'limited';
                     statusLabel = 'Limited';
                 }
@@ -2214,7 +2264,7 @@
                 const name = document.getElementById('name')?.value;
                 const email = document.getElementById('email')?.value;
                 const phone = document.getElementById('phone')?.value;
-                const guests = parseInt(document.getElementById('guests')?.value) || 2;
+                const guests = parseInt(document.getElementById('guests')?.value) || 1;
                 const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
                 const terms = document.getElementById('terms')?.checked;
                 
@@ -2306,7 +2356,7 @@
                         
                         if (available <= 0) {
                             this.availabilityData[existingIndex].Status = 'Booked';
-                        } else if (available <= Math.floor(maxBookings * 0.3)) {
+                        } else if (available <= Math.floor(maxBookings * this.limitedThreshold)) {
                             this.availabilityData[existingIndex].Status = 'Limited';
                         } else {
                             this.availabilityData[existingIndex].Status = 'Available';
@@ -2315,7 +2365,7 @@
                         const newAvailable = this.defaultMaxBookings - guests;
                         this.availabilityData.push({
                             Date: date,
-                            Status: newAvailable <= 0 ? 'Booked' : (newAvailable <= 3 ? 'Limited' : 'Available'),
+                            Status: newAvailable <= 0 ? 'Booked' : (newAvailable <= 1 ? 'Limited' : 'Available'),
                             Price: this.defaultPrice,
                             MaxBookings: this.defaultMaxBookings,
                             Booked: guests,
