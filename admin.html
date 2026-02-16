@@ -160,6 +160,16 @@
             border-color: #999;
         }
 
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
         .btn-group {
             display: flex;
             gap: 1rem;
@@ -244,6 +254,11 @@
             color: #e74c3c;
         }
 
+        .badge-info {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -318,9 +333,37 @@
 
         .github-config {
             background: #f8f9fa;
-            padding: 1rem;
+            padding: 1.5rem;
             border-radius: 8px;
             margin-top: 1rem;
+        }
+
+        .github-status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-connected {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+        }
+
+        .status-disconnected {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+
+        .token-input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .token-input-group input {
+            flex: 1;
         }
 
         .back-link {
@@ -408,6 +451,55 @@
             </div>
             
             <div class="admin-card">
+                <h2><i class="fab fa-github"></i> GitHub Sync</h2>
+                <div class="stats-list">
+                    <div class="stat-row">
+                        <span class="stat-label">Repository</span>
+                        <span class="stat-value">ZeroDegreeStation/Calendar</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Branch</span>
+                        <span class="stat-value">main</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Status</span>
+                        <span class="stat-value" id="githubStatus">Checking...</span>
+                    </div>
+                </div>
+                
+                <div class="github-config">
+                    <h4 style="margin-bottom: 1rem; color: #2c3e50;">GitHub Personal Access Token</h4>
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i> 
+                        Token needs <code>repo</code> scope (full control of repositories).
+                        <a href="#" onclick="window.open(githubSync?.getTokenUrl(), '_blank')">Create token</a>
+                    </p>
+                    
+                    <div class="token-input-group">
+                        <input type="password" id="githubToken" class="form-control" 
+                               placeholder="ghp_xxxxxxxxxxxx" value="">
+                        <button class="btn btn-success" onclick="saveGitHubToken()">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="testGitHubConnection()" style="flex: 1;">
+                            <i class="fas fa-plug"></i> Test Connection
+                        </button>
+                        <button class="btn btn-outline" onclick="clearGitHubToken()" style="flex: 1;">
+                            <i class="fas fa-trash"></i> Clear Token
+                        </button>
+                    </div>
+                    
+                    <div id="connectionResult" style="margin-top: 1rem; font-size: 0.9rem; display: none;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- File Management -->
+        <div class="admin-grid">
+            <div class="admin-card">
                 <h2><i class="fas fa-file-excel"></i> Excel Files</h2>
                 <div class="file-list">
                     <div class="file-item">
@@ -421,6 +513,9 @@
                         <div class="file-actions">
                             <button class="btn btn-outline" onclick="downloadFile('availability')">
                                 <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-outline" onclick="forcePushAvailability()">
+                                <i class="fab fa-github"></i>
                             </button>
                         </div>
                     </div>
@@ -440,6 +535,9 @@
                             <button class="btn btn-outline" onclick="exportCSV()">
                                 <i class="fas fa-file-csv"></i>
                             </button>
+                            <button class="btn btn-outline" onclick="forcePushBookings()">
+                                <i class="fab fa-github"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -447,6 +545,9 @@
                 <div class="btn-group">
                     <button class="btn btn-success" onclick="generateTemplates()">
                         <i class="fas fa-file-export"></i> Generate Templates
+                    </button>
+                    <button class="btn btn-primary" onclick="forcePushAll()">
+                        <i class="fab fa-github"></i> Push All to GitHub
                     </button>
                 </div>
             </div>
@@ -545,11 +646,15 @@
         </div>
     </div>
     
+    <script src="scripts/excel-handler.js"></script>
+    <script src="scripts/github-sync.js"></script>
+    
     <script>
         // Admin Panel Logic
         class AdminPanel {
             constructor() {
                 this.excelHandler = new ExcelHandler();
+                this.githubSync = new GitHubSync();
                 this.availabilityOverrides = [];
                 this.bookings = [];
                 
@@ -561,6 +666,7 @@
                 this.updateStats();
                 this.renderBookingsTable();
                 this.renderAvailabilityTable();
+                this.updateGitHubUI();
             }
             
             async loadData() {
@@ -693,6 +799,32 @@
                 `).join('');
             }
             
+            async updateGitHubUI() {
+                const statusEl = document.getElementById('githubStatus');
+                const tokenInput = document.getElementById('githubToken');
+                
+                // Load saved token
+                const savedToken = this.githubSync.getToken();
+                if (savedToken) {
+                    tokenInput.value = savedToken;
+                }
+                
+                // Check connection
+                const connected = await this.githubSync.checkConnection();
+                
+                if (connected) {
+                    statusEl.innerHTML = '<span class="github-status-badge status-connected">✓ Connected</span>';
+                    
+                    // Get user info
+                    const user = await this.githubSync.getUserInfo();
+                    if (user) {
+                        statusEl.innerHTML += ` <span style="color: #666; font-size: 0.9rem;">as @${user.login}</span>`;
+                    }
+                } else {
+                    statusEl.innerHTML = '<span class="github-status-badge status-disconnected">✗ Disconnected</span>';
+                }
+            }
+            
             async addOverride() {
                 const date = document.getElementById('overrideDate').value;
                 const status = document.getElementById('overrideStatus').value;
@@ -707,9 +839,9 @@
                     'Date': date,
                     'Status': status,
                     'Price': price ? parseInt(price) : null,
-                    'MaxBookings': status === 'Closed' ? 0 : 10,
+                    'MaxBookings': status === 'Closed' ? 0 : 2,
                     'Booked': 0,
-                    'Available': status === 'Closed' ? 0 : 10
+                    'Available': status === 'Closed' ? 0 : 2
                 };
                 
                 this.availabilityOverrides = this.availabilityOverrides.filter(o => o.Date !== date);
@@ -731,12 +863,19 @@
             
             async saveAvailability() {
                 try {
-                    const worksheet = XLSX.utils.json_to_sheet(this.availabilityOverrides);
-                    const workbook = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(workbook, worksheet, 'Availability');
-                    XLSX.writeFile(workbook, 'calendar-availability.xlsx');
+                    // Push to GitHub if token exists
+                    if (this.githubSync.hasToken()) {
+                        await this.githubSync.pushAvailability(this.availabilityOverrides);
+                        alert('Availability saved and pushed to GitHub!');
+                    } else {
+                        // Just download locally
+                        const worksheet = XLSX.utils.json_to_sheet(this.availabilityOverrides);
+                        const workbook = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(workbook, worksheet, 'Availability');
+                        XLSX.writeFile(workbook, 'calendar-availability.xlsx');
+                        alert('Availability saved locally! Add GitHub token to auto-push.');
+                    }
                     
-                    alert('Availability saved successfully!');
                     closeAvailabilityModal();
                 } catch (error) {
                     console.error('Error saving:', error);
@@ -751,6 +890,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             adminPanel = new AdminPanel();
             window.adminPanel = adminPanel;
+            window.githubSync = adminPanel.githubSync;
         });
         
         function openAvailabilityModal() {
@@ -828,8 +968,95 @@
             
             alert('Template files generated successfully!');
         }
+        
+        // GitHub functions
+        function saveGitHubToken() {
+            const token = document.getElementById('githubToken').value;
+            if (token) {
+                githubSync.setToken(token);
+                alert('GitHub token saved successfully!');
+                adminPanel.updateGitHubUI();
+                testGitHubConnection();
+            } else {
+                alert('Please enter a token');
+            }
+        }
+        
+        function clearGitHubToken() {
+            if (confirm('Clear GitHub token?')) {
+                githubSync.clearToken();
+                document.getElementById('githubToken').value = '';
+                adminPanel.updateGitHubUI();
+                alert('Token cleared');
+            }
+        }
+        
+        async function testGitHubConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing connection...';
+            resultDiv.style.color = '#666';
+            
+            const connected = await githubSync.checkConnection();
+            
+            if (connected) {
+                const user = await githubSync.getUserInfo();
+                resultDiv.innerHTML = `✓ Connected to GitHub as <strong>@${user.login}</strong>`;
+                resultDiv.style.color = '#27ae60';
+                adminPanel.updateGitHubUI();
+            } else {
+                resultDiv.innerHTML = '✗ Failed to connect. Check your token.';
+                resultDiv.style.color = '#e74c3c';
+            }
+        }
+        
+        async function forcePushBookings() {
+            if (!adminPanel) return;
+            
+            if (!githubSync.hasToken()) {
+                alert('Please add GitHub token first');
+                return;
+            }
+            
+            const result = await githubSync.pushBookings(adminPanel.bookings);
+            if (result) {
+                alert('Bookings pushed to GitHub successfully!');
+            } else {
+                alert('Failed to push bookings');
+            }
+        }
+        
+        async function forcePushAvailability() {
+            if (!adminPanel) return;
+            
+            if (!githubSync.hasToken()) {
+                alert('Please add GitHub token first');
+                return;
+            }
+            
+            const result = await githubSync.pushAvailability(adminPanel.availabilityOverrides);
+            if (result) {
+                alert('Availability pushed to GitHub successfully!');
+            } else {
+                alert('Failed to push availability');
+            }
+        }
+        
+        async function forcePushAll() {
+            if (!adminPanel) return;
+            
+            if (!githubSync.hasToken()) {
+                alert('Please add GitHub token first');
+                return;
+            }
+            
+            const result = await githubSync.pushAll(adminPanel.bookings, adminPanel.availabilityOverrides);
+            if (result) {
+                alert('All data pushed to GitHub successfully!');
+            } else {
+                alert('Failed to push data');
+            }
+        }
     </script>
-    
-    <script src="scripts/excel-handler.js"></script>
 </body>
 </html>
