@@ -371,6 +371,7 @@
         .legend-color.available { background: rgba(52, 199, 89, 0.2); border: 1px solid #34C759; }
         .legend-color.limited { background: rgba(255, 159, 10, 0.2); border: 1px solid #FF9F0A; }
         .legend-color.booked { background: rgba(255, 59, 48, 0.2); border: 1px solid #FF3B30; }
+        .legend-color.closed { background: rgba(142, 142, 147, 0.2); border: 1px solid #8E8E93; }
         .legend-color.selected { background: rgba(66, 133, 244, 0.2); border: 1px solid #4285F4; }
         .legend-color.past { background: rgba(142, 142, 147, 0.1); border: 1px dashed #8E8E93; }
 
@@ -393,6 +394,12 @@
         
         .fc-day-booked {
             background-color: rgba(255, 59, 48, 0.1);
+            cursor: not-allowed !important;
+            opacity: 0.7;
+        }
+        
+        .fc-day-closed {
+            background-color: rgba(142, 142, 147, 0.1);
             cursor: not-allowed !important;
             opacity: 0.7;
         }
@@ -1044,11 +1051,15 @@
                     </div>
                     <div class="legend-item">
                         <span class="legend-color limited"></span>
-                        <span>Limited (70%+ Booked)</span>
+                        <span>Limited (Only 1 spot left)</span>
                     </div>
                     <div class="legend-item">
                         <span class="legend-color booked"></span>
                         <span>Fully Booked</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color closed"></span>
+                        <span>Closed</span>
                     </div>
                     <div class="legend-item">
                         <span class="legend-color selected"></span>
@@ -1424,7 +1435,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <script>
-        // COMPLETE EXCEL BOOKING SYSTEM WITH FIXED COLOR LOGIC
+        // COMPLETE EXCEL BOOKING SYSTEM WITH FIXED DATE PARSING
         class SnowStationBooking {
             constructor() {
                 this.calendar = null;
@@ -1438,9 +1449,8 @@
                 this.bookingsData = [];
                 
                 // ============= CONFIGURABLE SETTINGS =============
-                this.defaultMaxBookings = 1;        // Default max bookings per day
+                this.defaultMaxBookings = 2;        // Default max bookings per day
                 this.defaultPrice = 12800;           // Default price per night
-                this.limitedThreshold = 0.3;          // When to show "Limited" (30% of max bookings)
                 // ================================================
                 
                 // GitHub configuration
@@ -1464,7 +1474,7 @@
                 console.log('✅ Excel Booking System initialized with max bookings:', this.defaultMaxBookings);
             }
             
-            // ============= EXCEL DATA MANAGEMENT =============
+            // ============= EXCEL DATA MANAGEMENT WITH FIXED DATE PARSING =============
             
             async loadExcelData() {
                 try {
@@ -1535,20 +1545,28 @@
                     console.log(`✅ Loaded ${data.length} availability records from Excel`);
                     
                     this.availabilityData = data.map(row => {
-                        // Parse the date - handle MM/DD/YYYY format
+                        // FIXED: Parse the date correctly - handle MM/DD/YYYY format without timezone issues
                         let dateStr = row.Date || row['Date'];
                         let formattedDate = null;
                         
                         if (dateStr) {
                             if (typeof dateStr === 'number') {
-                                // Excel serial number
-                                const date = new Date((dateStr - 25569) * 86400 * 1000);
-                                formattedDate = date.toISOString().split('T')[0];
+                                // Excel serial number - fix timezone issue
+                                // Excel's date system uses 1900-01-01 as day 1
+                                // JavaScript's Date uses milliseconds since 1970
+                                const excelEpoch = new Date(1899, 11, 30); // Dec 30, 1899
+                                const msPerDay = 86400000;
+                                const date = new Date(excelEpoch.getTime() + (dateStr * msPerDay));
+                                
+                                // Format as YYYY-MM-DD without timezone shift
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                formattedDate = `${year}-${month}-${day}`;
                             } else if (typeof dateStr === 'string') {
-                                // Check if it's in MM/DD/YYYY format
+                                // Handle string dates - assume MM/DD/YYYY
                                 const parts = dateStr.split('/');
                                 if (parts.length === 3) {
-                                    // Convert MM/DD/YYYY to YYYY-MM-DD
                                     const month = parts[0].padStart(2, '0');
                                     const day = parts[1].padStart(2, '0');
                                     let year = parts[2];
@@ -1559,14 +1577,13 @@
                                     }
                                     
                                     formattedDate = `${year}-${month}-${day}`;
+                                    console.log(`Parsed date: ${dateStr} -> ${formattedDate}`);
                                 } else {
-                                    // Try ISO format
                                     formattedDate = dateStr.split('T')[0];
                                 }
                             }
                         }
                         
-                        // Ensure Status is properly read
                         const status = row.Status || row.status || 'Available';
                         
                         return {
@@ -1575,7 +1592,7 @@
                             Price: row.Price ? parseInt(row.Price) : null,
                             MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : this.defaultMaxBookings,
                             Booked: row.Booked ? parseInt(row.Booked) : 0,
-                            Available: row.Available ? parseInt(row.Available) : this.defaultMaxBookings,
+                            Available: row.Available ? parseInt(row.Available) : (row.MaxBookings ? row.MaxBookings - (row.Booked || 0) : this.defaultMaxBookings),
                             Notes: row.Notes || ''
                         };
                     });
@@ -1620,14 +1637,19 @@
                     console.log(`✅ Loaded ${data.length} booking records from Excel`);
                     
                     this.bookingsData = data.map(row => {
-                        // Parse the date - handle MM/DD/YYYY format
+                        // FIXED: Parse the date correctly
                         let dateStr = row.Date || row['Date'];
                         let formattedDate = null;
                         
                         if (dateStr) {
                             if (typeof dateStr === 'number') {
-                                const date = new Date((dateStr - 25569) * 86400 * 1000);
-                                formattedDate = date.toISOString().split('T')[0];
+                                const excelEpoch = new Date(1899, 11, 30);
+                                const msPerDay = 86400000;
+                                const date = new Date(excelEpoch.getTime() + (dateStr * msPerDay));
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                formattedDate = `${year}-${month}-${day}`;
                             } else if (typeof dateStr === 'string') {
                                 const parts = dateStr.split('/');
                                 if (parts.length === 3) {
@@ -1691,10 +1713,10 @@
                         Date: futureDates[0].toISOString().split('T')[0],
                         Status: 'Limited',
                         Price: 18500,
-                        MaxBookings: this.defaultMaxBookings,
-                        Booked: Math.floor(this.defaultMaxBookings * 0.7),
-                        Available: Math.ceil(this.defaultMaxBookings * 0.3),
-                        Notes: 'Limited availability'
+                        MaxBookings: 2,
+                        Booked: 1,
+                        Available: 1,
+                        Notes: 'Limited availability (1 spot left)'
                     },
                     {
                         Date: futureDates[1].toISOString().split('T')[0],
@@ -1709,10 +1731,10 @@
                         Date: futureDates[2].toISOString().split('T')[0],
                         Status: 'Limited',
                         Price: 22000,
-                        MaxBookings: this.defaultMaxBookings,
-                        Booked: Math.floor(this.defaultMaxBookings * 0.8),
-                        Available: Math.ceil(this.defaultMaxBookings * 0.2),
-                        Notes: 'Peak pricing'
+                        MaxBookings: 2,
+                        Booked: 1,
+                        Available: 1,
+                        Notes: 'Limited availability (1 spot left)'
                     }
                 ];
                 
@@ -1723,7 +1745,7 @@
                 return `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${filePath}`;
             }
             
-            // ============= FIXED CALENDAR METHODS =============
+            // ============= CALENDAR METHODS =============
             
             initCalendar() {
                 const calendarEl = document.getElementById('calendar');
@@ -1766,7 +1788,7 @@
                 
                 const availability = this.getDateAvailability(dateStr);
                 
-                info.el.classList.remove('fc-day-available', 'fc-day-limited', 'fc-day-booked', 'fc-day-past');
+                info.el.classList.remove('fc-day-available', 'fc-day-limited', 'fc-day-booked', 'fc-day-past', 'fc-day-closed');
                 
                 if (isPast) {
                     info.el.classList.add('fc-day-past');
@@ -1777,7 +1799,7 @@
                 const existingBadge = info.el.querySelector('.day-badge');
                 if (existingBadge) existingBadge.remove();
                 
-                if (!isPast && availability.statusClass !== 'closed') {
+                if (!isPast) {
                     const badge = document.createElement('div');
                     badge.className = 'day-badge';
                     
@@ -1790,14 +1812,11 @@
                     } else if (availability.statusClass === 'available') {
                         badge.textContent = `${availability.available} left`;
                         badge.style.color = '#34C759';
+                    } else if (availability.statusClass === 'closed') {
+                        badge.textContent = 'Closed';
+                        badge.style.color = '#8E8E93';
                     }
                     
-                    info.el.appendChild(badge);
-                } else if (!isPast && availability.statusClass === 'closed') {
-                    const badge = document.createElement('div');
-                    badge.className = 'day-badge';
-                    badge.textContent = 'Closed';
-                    badge.style.color = '#8E8E93';
                     info.el.appendChild(badge);
                 }
                 
@@ -1814,13 +1833,13 @@
                 
                 if (override) {
                     // Use the Status field from Excel as the primary source
-                    const statusFromExcel = override.Status || 'Available';
+                    const statusFromExcel = override.Status;
                     const booked = override.Booked || 0;
                     const maxBookings = override.MaxBookings || this.defaultMaxBookings;
-                    const available = Math.max(0, maxBookings - booked);
+                    const available = override.Available !== undefined ? override.Available : Math.max(0, maxBookings - booked);
                     const price = override.Price || this.defaultPrice;
                     
-                    // Map Excel status to calendar class
+                    // Map Excel status directly - no recalculation
                     let statusClass = 'available';
                     let statusLabel = 'Available';
                     
@@ -1838,14 +1857,8 @@
                             statusLabel = 'Limited';
                             break;
                         default:
-                            // If status is Available or not set, calculate based on availability
-                            if (available <= 0) {
-                                statusClass = 'booked';
-                                statusLabel = 'Fully Booked';
-                            } else if (available <= Math.floor(maxBookings * this.limitedThreshold)) {
-                                statusClass = 'limited';
-                                statusLabel = 'Limited';
-                            }
+                            statusClass = 'available';
+                            statusLabel = 'Available';
                     }
                     
                     return {
@@ -1870,7 +1883,7 @@
                 if (available <= 0) {
                     statusClass = 'booked';
                     statusLabel = 'Fully Booked';
-                } else if (available <= Math.floor(maxBookings * this.limitedThreshold)) {
+                } else if (available === 1) {
                     statusClass = 'limited';
                     statusLabel = 'Limited';
                 }
@@ -2260,7 +2273,7 @@
                 }
             }
             
-            // ============= BOOKING SUBMISSION WITH REFRESH =============
+            // ============= BOOKING SUBMISSION =============
             
             async handleBookingSubmission() {
                 const name = document.getElementById('name')?.value;
@@ -2354,20 +2367,22 @@
                             this.availabilityData[existingIndex].MaxBookings - this.availabilityData[existingIndex].Booked;
                         
                         const available = this.availabilityData[existingIndex].Available;
-                        const maxBookings = this.availabilityData[existingIndex].MaxBookings;
                         
-                        if (available <= 0) {
-                            this.availabilityData[existingIndex].Status = 'Booked';
-                        } else if (available <= Math.floor(maxBookings * this.limitedThreshold)) {
-                            this.availabilityData[existingIndex].Status = 'Limited';
-                        } else {
-                            this.availabilityData[existingIndex].Status = 'Available';
+                        // Update status based on availability, but preserve Closed if it was Closed
+                        if (this.availabilityData[existingIndex].Status !== 'Closed') {
+                            if (available <= 0) {
+                                this.availabilityData[existingIndex].Status = 'Booked';
+                            } else if (available === 1) {
+                                this.availabilityData[existingIndex].Status = 'Limited';
+                            } else {
+                                this.availabilityData[existingIndex].Status = 'Available';
+                            }
                         }
                     } else {
                         const newAvailable = this.defaultMaxBookings - guests;
                         this.availabilityData.push({
                             Date: date,
-                            Status: newAvailable <= 0 ? 'Booked' : (newAvailable <= 1 ? 'Limited' : 'Available'),
+                            Status: newAvailable <= 0 ? 'Booked' : (newAvailable === 1 ? 'Limited' : 'Available'),
                             Price: this.defaultPrice,
                             MaxBookings: this.defaultMaxBookings,
                             Booked: guests,
@@ -2459,7 +2474,7 @@
                         const today = new Date().toISOString().split('T')[0];
                         const isPast = dataDate < today;
                         
-                        cell.classList.remove('fc-day-available', 'fc-day-limited', 'fc-day-booked', 'fc-day-past');
+                        cell.classList.remove('fc-day-available', 'fc-day-limited', 'fc-day-booked', 'fc-day-past', 'fc-day-closed');
                         
                         if (isPast) {
                             cell.classList.add('fc-day-past');
@@ -2470,7 +2485,7 @@
                         const existingBadge = cell.querySelector('.day-badge');
                         if (existingBadge) existingBadge.remove();
                         
-                        if (!isPast && availability.statusClass !== 'closed') {
+                        if (!isPast) {
                             const badge = document.createElement('div');
                             badge.className = 'day-badge';
                             
@@ -2483,14 +2498,11 @@
                             } else if (availability.statusClass === 'available') {
                                 badge.textContent = `${availability.available} left`;
                                 badge.style.color = '#34C759';
+                            } else if (availability.statusClass === 'closed') {
+                                badge.textContent = 'Closed';
+                                badge.style.color = '#8E8E93';
                             }
                             
-                            cell.appendChild(badge);
-                        } else if (!isPast && availability.statusClass === 'closed') {
-                            const badge = document.createElement('div');
-                            badge.className = 'day-badge';
-                            badge.textContent = 'Closed';
-                            badge.style.color = '#8E8E93';
                             cell.appendChild(badge);
                         }
                     }
