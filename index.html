@@ -1424,7 +1424,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <script>
-        // COMPLETE EXCEL BOOKING SYSTEM WITH CONFIGURABLE MAX BOOKINGS
+        // COMPLETE EXCEL BOOKING SYSTEM WITH FIXED COLOR LOGIC
         class SnowStationBooking {
             constructor() {
                 this.calendar = null;
@@ -1438,8 +1438,7 @@
                 this.bookingsData = [];
                 
                 // ============= CONFIGURABLE SETTINGS =============
-                // Change these values to match your business rules
-                this.defaultMaxBookings = 1;        // Default max bookings per day (CHANGED TO 1)
+                this.defaultMaxBookings = 1;        // Default max bookings per day
                 this.defaultPrice = 12800;           // Default price per night
                 this.limitedThreshold = 0.3;          // When to show "Limited" (30% of max bookings)
                 // ================================================
@@ -1778,7 +1777,7 @@
                 const existingBadge = info.el.querySelector('.day-badge');
                 if (existingBadge) existingBadge.remove();
                 
-                if (!isPast) {
+                if (!isPast && availability.statusClass !== 'closed') {
                     const badge = document.createElement('div');
                     badge.className = 'day-badge';
                     
@@ -1791,11 +1790,14 @@
                     } else if (availability.statusClass === 'available') {
                         badge.textContent = `${availability.available} left`;
                         badge.style.color = '#34C759';
-                    } else if (availability.statusClass === 'closed') {
-                        badge.textContent = 'Closed';
-                        badge.style.color = '#8E8E93';
                     }
                     
+                    info.el.appendChild(badge);
+                } else if (!isPast && availability.statusClass === 'closed') {
+                    const badge = document.createElement('div');
+                    badge.className = 'day-badge';
+                    badge.textContent = 'Closed';
+                    badge.style.color = '#8E8E93';
                     info.el.appendChild(badge);
                 }
                 
@@ -2468,7 +2470,7 @@
                         const existingBadge = cell.querySelector('.day-badge');
                         if (existingBadge) existingBadge.remove();
                         
-                        if (!isPast) {
+                        if (!isPast && availability.statusClass !== 'closed') {
                             const badge = document.createElement('div');
                             badge.className = 'day-badge';
                             
@@ -2481,11 +2483,14 @@
                             } else if (availability.statusClass === 'available') {
                                 badge.textContent = `${availability.available} left`;
                                 badge.style.color = '#34C759';
-                            } else if (availability.statusClass === 'closed') {
-                                badge.textContent = 'Closed';
-                                badge.style.color = '#8E8E93';
                             }
                             
+                            cell.appendChild(badge);
+                        } else if (!isPast && availability.statusClass === 'closed') {
+                            const badge = document.createElement('div');
+                            badge.className = 'day-badge';
+                            badge.textContent = 'Closed';
+                            badge.style.color = '#8E8E93';
                             cell.appendChild(badge);
                         }
                     }
