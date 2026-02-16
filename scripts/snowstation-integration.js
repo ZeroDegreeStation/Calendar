@@ -34,15 +34,18 @@ class SnowStationIntegration {
     async waitForBookingSystem() {
         return new Promise((resolve) => {
             const checkInterval = setInterval(() => {
-                if (window.calendar) {
-                    this.bookingSystem = window.calendar;
+                // FIXED: Check for window.bookingSystem instead of window.calendar
+                if (window.bookingSystem) {
+                    this.bookingSystem = window.bookingSystem;
                     clearInterval(checkInterval);
+                    console.log('✅ BookingSystem connected');
                     resolve();
                 }
             }, 100);
             
             setTimeout(() => {
                 clearInterval(checkInterval);
+                console.log('⚠️ BookingSystem not found after timeout');
                 resolve();
             }, 5000);
         });
@@ -60,6 +63,13 @@ class SnowStationIntegration {
             planSelect.addEventListener('change', () => {
                 this.updateSelectedPlanDisplay();
                 this.updatePricing();
+                if (this.bookingSystem) {
+                    const price = this.planPrices[planSelect.value] || 0;
+                    const name = this.planNames[planSelect.value] || '';
+                    this.bookingSystem.planPrice = price;
+                    this.bookingSystem.planName = name;
+                    this.bookingSystem.updateBookingSummary();
+                }
             });
         }
         
@@ -95,6 +105,18 @@ class SnowStationIntegration {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             });
         }
+        
+        // Date inputs
+        const checkinInput = document.getElementById('checkin');
+        const checkoutInput = document.getElementById('checkout');
+        
+        if (checkinInput) {
+            checkinInput.addEventListener('change', () => this.updatePricing());
+        }
+        
+        if (checkoutInput) {
+            checkoutInput.addEventListener('change', () => this.updatePricing());
+        }
     }
 
     setupPlanSelection() {
@@ -108,6 +130,13 @@ class SnowStationIntegration {
                 if (planSelect) {
                     planSelect.value = planValue;
                     planSelect.setAttribute('data-price', planPrice);
+                    
+                    if (this.bookingSystem) {
+                        this.bookingSystem.planPrice = parseInt(planPrice);
+                        this.bookingSystem.planName = planName;
+                        this.bookingSystem.updateBookingSummary();
+                    }
+                    
                     this.updateSelectedPlanDisplay();
                     this.updatePricing();
                 }
@@ -315,6 +344,7 @@ class SnowStationIntegration {
         const guests = document.getElementById('guests')?.value;
         const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
         const terms = document.getElementById('terms')?.checked;
+        const requests = document.getElementById('message')?.value;
         
         if (!name || !email || !phone || !plan || !checkin || !checkout || !guests) {
             this.showNotification('Please fill in all required fields', 'error');
@@ -359,26 +389,27 @@ class SnowStationIntegration {
             }
         }
         
-        // Show email modal
-        this.showEmailModal(name, email, plan, checkin, checkout, guests);
-        
-        // Save booking to calendar system
+        // Submit to booking system
         if (this.bookingSystem && this.bookingSystem.selectedDates.length > 0) {
-            // Set customer info in booking system
-            const customerNameInput = document.getElementById('customerName');
-            const customerEmailInput = document.getElementById('customerEmail');
-            const customerPhoneInput = document.getElementById('customerPhone');
-            const guestsSelect = document.getElementById('guests');
+            const result = await this.bookingSystem.submitBooking({
+                name,
+                email,
+                phone,
+                guests: parseInt(guests),
+                requests
+            });
             
-            if (customerNameInput) customerNameInput.value = name;
-            if (customerEmailInput) customerEmailInput.value = email;
-            if (customerPhoneInput) customerPhoneInput.value = phone;
-            
-            await this.bookingSystem.submitBooking(new Event('submit'));
+            if (result.success) {
+                this.showEmailModal(name, email, result.bookingId);
+            } else {
+                this.showNotification('Booking failed. Please try again.', 'error');
+            }
+        } else {
+            this.showNotification('Please select dates from the calendar', 'error');
         }
     }
 
-    showEmailModal(name, email, plan, checkin, checkout, guests) {
+    showEmailModal(name, email, bookingId) {
         const modal = document.getElementById('emailModal');
         const customerEmailEl = document.getElementById('customerEmail');
         const progressText = document.getElementById('progressText');
@@ -532,5 +563,9 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Initialize
-window.SnowStationIntegration = SnowStationIntegration;
+// Initialize - wait for DOM
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', function() {
+        window.snowStation = new SnowStationIntegration();
+    });
+}

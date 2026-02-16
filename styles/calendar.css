@@ -576,6 +576,30 @@ body {
     font-weight: 500;
 }
 
+/* Previous/Next month days - Add this section */
+.fc-day-other .fc-daygrid-day-frame {
+    background: rgba(0, 0, 0, 0.02) !important;
+    opacity: 0.6;
+}
+
+.fc-day-other.fc-day-available .fc-daygrid-day-frame,
+.fc-day-other.fc-day-limited .fc-daygrid-day-frame,
+.fc-day-other.fc-day-booked .fc-daygrid-day-frame,
+.fc-day-other.fc-day-closed .fc-daygrid-day-frame,
+.fc-day-other.fc-day-past .fc-daygrid-day-frame {
+    background: rgba(0, 0, 0, 0.02) !important;
+}
+
+.fc-day-other .day-badge {
+    display: none !important;
+}
+
+.fc-day-other.fc-day-selected .fc-daygrid-day-frame {
+    background: rgba(66, 133, 244, 0.15) !important;
+    border: 2px solid var(--primary-color) !important;
+    opacity: 1;
+}
+
 /* Price Breakdown */
 .price-breakdown {
     background: #F2F2F7;

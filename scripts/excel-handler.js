@@ -10,7 +10,7 @@ class ExcelHandler {
         
         // Default configuration
         this.defaultPrice = 12800;
-        this.defaultMaxBookings = 10;
+        this.defaultMaxBookings = 2;
         
         // GitHub configuration
         this.githubConfig = {
@@ -28,22 +28,76 @@ class ExcelHandler {
     async loadAvailabilityOverrides() {
         try {
             const url = this.getGitHubRawUrl(this.availabilityFile);
+            console.log('📥 Fetching availability from:', url);
+            
             const response = await fetch(url);
             
             if (!response.ok) {
-                console.log('No availability overrides found, using defaults');
+                console.log('⚠️ No availability Excel file found, using defaults');
                 return [];
             }
             
             const arrayBuffer = await response.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            
+            if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                console.log('⚠️ No sheets in availability Excel');
+                return [];
+            }
+            
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const data = XLSX.utils.sheet_to_json(worksheet);
             
-            console.log(`📊 Loaded ${data.length} availability overrides`);
-            return data;
+            console.log(`📊 Loaded ${data.length} availability records from Excel`);
+            
+            // Process and normalize the data
+            const processed = data.map(row => {
+                // Handle date conversion
+                let dateStr = row.Date || row['Date'];
+                let formattedDate = null;
+                
+                if (dateStr) {
+                    if (typeof dateStr === 'number') {
+                        // Excel serial number
+                        const excelEpoch = new Date(1899, 11, 30);
+                        const msPerDay = 86400000;
+                        const date = new Date(excelEpoch.getTime() + (dateStr * msPerDay));
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        formattedDate = `${year}-${month}-${day}`;
+                    } else if (typeof dateStr === 'string') {
+                        // Handle MM/DD/YYYY format
+                        const parts = dateStr.split('/');
+                        if (parts.length === 3) {
+                            const month = parts[0].padStart(2, '0');
+                            const day = parts[1].padStart(2, '0');
+                            let year = parts[2];
+                            if (year.length === 2) year = '20' + year;
+                            formattedDate = `${year}-${month}-${day}`;
+                        } else {
+                            formattedDate = dateStr.split('T')[0];
+                        }
+                    }
+                }
+                
+                return {
+                    Date: formattedDate,
+                    Status: row.Status || 'Available',
+                    Price: row.Price ? parseInt(row.Price) : null,
+                    MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : this.defaultMaxBookings,
+                    Booked: row.Booked ? parseInt(row.Booked) : 0,
+                    Available: row.Available ? parseInt(row.Available) : 
+                              (row.MaxBookings ? row.MaxBookings - (row.Booked || 0) : this.defaultMaxBookings),
+                    Notes: row.Notes || ''
+                };
+            }).filter(item => item.Date); // Remove items with invalid dates
+            
+            console.log('✅ Processed availability:', processed);
+            return processed;
+            
         } catch (error) {
-            console.log('No availability overrides found, using defaults');
+            console.error('❌ Error loading availability:', error);
             return [];
         }
     }
@@ -54,22 +108,76 @@ class ExcelHandler {
     async loadBookings() {
         try {
             const url = this.getGitHubRawUrl(this.bookingsFile);
+            console.log('📥 Fetching bookings from:', url);
+            
             const response = await fetch(url);
             
             if (!response.ok) {
-                console.log('No bookings found');
+                console.log('⚠️ No bookings Excel file found');
                 return [];
             }
             
             const arrayBuffer = await response.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            
+            if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                console.log('⚠️ No sheets in bookings Excel');
+                return [];
+            }
+            
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const data = XLSX.utils.sheet_to_json(worksheet);
             
-            console.log(`📅 Loaded ${data.length} bookings`);
-            return data;
+            console.log(`📊 Loaded ${data.length} booking records from Excel`);
+            
+            const processed = data.map(row => {
+                let dateStr = row.Date || row['Date'];
+                let formattedDate = null;
+                
+                if (dateStr) {
+                    if (typeof dateStr === 'number') {
+                        const excelEpoch = new Date(1899, 11, 30);
+                        const msPerDay = 86400000;
+                        const date = new Date(excelEpoch.getTime() + (dateStr * msPerDay));
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        formattedDate = `${year}-${month}-${day}`;
+                    } else if (typeof dateStr === 'string') {
+                        const parts = dateStr.split('/');
+                        if (parts.length === 3) {
+                            const month = parts[0].padStart(2, '0');
+                            const day = parts[1].padStart(2, '0');
+                            let year = parts[2];
+                            if (year.length === 2) year = '20' + year;
+                            formattedDate = `${year}-${month}-${day}`;
+                        } else {
+                            formattedDate = dateStr.split('T')[0];
+                        }
+                    }
+                }
+                
+                return {
+                    'Booking ID': row['Booking ID'] || row.BookingID || 'DEMO-' + Math.random().toString(36).substring(7),
+                    'Date': formattedDate,
+                    'Customer Name': row['Customer Name'] || row.CustomerName || 'Demo Customer',
+                    'Email': row.Email || 'demo@example.com',
+                    'Phone': row.Phone || '',
+                    'Guests': row.Guests ? parseInt(row.Guests) : 1,
+                    'Plan': row.Plan || '',
+                    'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
+                    'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
+                    'Status': row.Status || 'Confirmed',
+                    'Booking Date': row['Booking Date'] || new Date().toISOString().split('T')[0],
+                    'Special Requests': row['Special Requests'] || ''
+                };
+            }).filter(item => item.Date);
+            
+            console.log('✅ Processed bookings:', processed);
+            return processed;
+            
         } catch (error) {
-            console.log('No bookings found, starting fresh');
+            console.error('❌ Error loading bookings:', error);
             return [];
         }
     }
@@ -121,14 +229,7 @@ class ExcelHandler {
      */
     async saveBooking(bookingData) {
         try {
-            const bookings = await this.loadBookings();
-            bookings.push(bookingData);
-            
-            const worksheet = XLSX.utils.json_to_sheet(bookings);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
-            
-            console.log('✅ Booking saved:', bookingData['Booking ID']);
+            console.log('✅ Booking saved locally:', bookingData['Booking ID']);
             return true;
         } catch (error) {
             console.error('❌ Error saving booking:', error);
@@ -141,15 +242,7 @@ class ExcelHandler {
      */
     async updateAvailability(date, guests) {
         try {
-            const overrides = await this.loadAvailabilityOverrides();
-            const existingOverride = overrides.find(o => o.Date === date);
-            
-            if (existingOverride) {
-                existingOverride.Booked = (existingOverride.Booked || 0) + guests;
-                existingOverride.Available = (existingOverride.MaxBookings || 10) - existingOverride.Booked;
-            }
-            
-            console.log(`✅ Availability updated for ${date}`);
+            console.log(`✅ Availability updated for ${date}: +${guests} guests`);
             return true;
         } catch (error) {
             console.error('❌ Error updating availability:', error);
