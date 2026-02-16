@@ -12,59 +12,100 @@ class GitHubSync {
         
         this.apiBase = 'https://api.github.com';
         
+        // Load token from localStorage if exists
         this.loadToken();
+        
         console.log('✅ GitHubSync initialized');
     }
 
+    /**
+     * Load token from localStorage
+     */
     loadToken() {
-        try {
-            const savedToken = localStorage.getItem('github_token');
-            if (savedToken) {
-                this.config.token = savedToken;
-                console.log('🔑 GitHub token loaded from storage');
-            }
-        } catch (error) {
-            console.error('Failed to load token:', error);
+        const savedToken = localStorage.getItem('github_token');
+        if (savedToken) {
+            this.config.token = savedToken;
+            console.log('🔑 GitHub token loaded from storage');
         }
     }
 
+    /**
+     * Set GitHub personal access token
+     */
     setToken(token) {
-        if (!token || token.trim() === '') {
-            console.error('Invalid token provided');
-            return false;
-        }
-        
-        this.config.token = token.trim();
-        
-        try {
-            localStorage.setItem('github_token', this.config.token);
-            console.log('🔑 GitHub token saved');
-            return true;
-        } catch (error) {
-            console.error('Failed to save token:', error);
-            return false;
-        }
+        this.config.token = token;
+        localStorage.setItem('github_token', token);
+        console.log('🔑 GitHub token saved');
+        return true;
     }
 
+    /**
+     * Clear token
+     */
     clearToken() {
         this.config.token = null;
-        try {
-            localStorage.removeItem('github_token');
-            console.log('🔑 GitHub token cleared');
-        } catch (error) {
-            console.error('Failed to clear token:', error);
-        }
+        localStorage.removeItem('github_token');
+        console.log('🔑 GitHub token cleared');
     }
 
+    /**
+     * Get token from config
+     */
     getToken() {
         return this.config.token;
     }
 
+    /**
+<<<<<<< HEAD
+=======
+     * Check if token is set
+     */
     hasToken() {
-        return !!this.config.token && this.config.token.length > 0;
+        return !!this.config.token;
     }
 
     /**
+     * Check connection to GitHub
+     */
+    async checkConnection() {
+        try {
+            if (!this.hasToken()) {
+                return false;
+            }
+            
+            const response = await fetch(`${this.apiBase}/repos/${this.config.owner}/${this.config.repo}`, {
+                headers: this.getHeaders()
+            });
+            
+            return response.ok;
+        } catch (error) {
+            console.error('GitHub connection check failed:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get user info from token
+     */
+    async getUserInfo() {
+        try {
+            if (!this.hasToken()) return null;
+            
+            const response = await fetch(`${this.apiBase}/user`, {
+                headers: this.getHeaders()
+            });
+            
+            if (!response.ok) return null;
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Failed to get user info:', error);
+            return null;
+        }
+    }
+
+    /**
+>>>>>>> parent of a39c6c3 (enabled calendar auto synch from excel)
      * Get file content and SHA from GitHub
      */
     async getFileContent(path) {
@@ -73,11 +114,16 @@ class GitHubSync {
                 return { content: null, sha: null };
             }
             
+<<<<<<< HEAD
             const url = `${this.apiBase}/repos/${this.config.owner}/${this.config.repo}/contents/${path}`;
+=======
+            const url = `${this.apiBase}/repos/${this.config.owner}/${this.config.repo}/contents/${path}?ref=${this.config.branch}`;
+>>>>>>> parent of a39c6c3 (enabled calendar auto synch from excel)
             const response = await fetch(url, {
                 headers: this.getHeaders()
             });
             
+<<<<<<< HEAD
             if (response.status === 404) {
                 return { content: null, sha: null, exists: false };
             }
@@ -86,6 +132,13 @@ class GitHubSync {
                 const error = await response.json();
                 console.error('Failed to get file:', error);
                 return { content: null, sha: null, exists: false };
+=======
+            if (!response.ok) {
+                if (response.status === 404) {
+                    return { content: null, sha: null }; // File doesn't exist yet
+                }
+                throw new Error(`Failed to get file: ${response.statusText}`);
+>>>>>>> parent of a39c6c3 (enabled calendar auto synch from excel)
             }
             
             const data = await response.json();
@@ -94,7 +147,6 @@ class GitHubSync {
                 sha: data.sha,
                 exists: true
             };
-            
         } catch (error) {
             console.error('Error fetching file:', error);
             return { content: null, sha: null, exists: false };
@@ -104,6 +156,7 @@ class GitHubSync {
     /**
      * FIXED: Push bookings to GitHub with MERGE strategy
      */
+<<<<<<< HEAD
     async pushBookings(newBookings) {
         return this.pushFileWithMerge(
             'data/calendar-bookings.xlsx',
@@ -129,12 +182,16 @@ class GitHubSync {
      * NEW: Push file with merge strategy - preserves existing data
      */
     async pushFileWithMerge(path, newData, sheetName, idField) {
+=======
+    async pushBookings(bookings) {
+>>>>>>> parent of a39c6c3 (enabled calendar auto synch from excel)
         if (!this.hasToken()) {
             console.warn('⚠️ GitHub token not configured');
             return false;
         }
         
         try {
+<<<<<<< HEAD
             console.log(`📤 Syncing ${sheetName} to GitHub with MERGE strategy...`);
             
             // STEP 1: Get existing file from GitHub
@@ -186,26 +243,48 @@ class GitHubSync {
             
             // STEP 4: Convert merged data to Excel
             const worksheet = XLSX.utils.json_to_sheet(mergedData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+=======
+            console.log('📤 Pushing bookings to GitHub...', bookings.length);
             
+            // Convert bookings to Excel buffer
+            const worksheet = XLSX.utils.json_to_sheet(bookings);
+>>>>>>> parent of a39c6c3 (enabled calendar auto synch from excel)
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
+            
+            // Write to buffer
             const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
             
+<<<<<<< HEAD
             // STEP 5: Push merged file to GitHub
             const url = `${this.apiBase}/repos/${this.config.owner}/${this.config.repo}/contents/${path}`;
             const message = `Update ${sheetName}: ${newData.length} new records (merged with ${exists ? 'existing' : 'new'} data)`;
+=======
+            // Get current file to get SHA
+            const filePath = 'data/calendar-bookings.xlsx';
+            const { sha } = await this.getFileContent(filePath);
+            
+            // Prepare commit
+            const url = `${this.apiBase}/repos/${this.config.owner}/${this.config.repo}/contents/${filePath}`;
+            const commitMessage = `Update bookings: ${new Date().toLocaleString()} - ${bookings.length} total bookings`;
+>>>>>>> parent of a39c6c3 (enabled calendar auto synch from excel)
             
             const body = {
-                message: message,
+                message: commitMessage,
                 content: excelBuffer,
                 branch: this.config.branch
             };
             
+            // Add SHA if file exists (for update)
             if (sha) {
                 body.sha = sha;
+<<<<<<< HEAD
                 console.log('Updating existing file with SHA:', sha);
+=======
+>>>>>>> parent of a39c6c3 (enabled calendar auto synch from excel)
             }
             
+            // Push to GitHub
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: this.getHeaders(),
@@ -214,6 +293,7 @@ class GitHubSync {
             
             if (!response.ok) {
                 const error = await response.json();
+<<<<<<< HEAD
                 throw new Error(error.message || `HTTP ${response.status}`);
             }
             
@@ -223,6 +303,97 @@ class GitHubSync {
             
         } catch (error) {
             console.error(`❌ Error syncing ${sheetName} to GitHub:`, error);
+=======
+                throw new Error(error.message || 'Failed to push to GitHub');
+            }
+            
+            const result = await response.json();
+            console.log('✅ Successfully pushed bookings to GitHub:', result.content.sha);
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Error pushing bookings to GitHub:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Push availability to GitHub
+     */
+    async pushAvailability(availability) {
+        if (!this.hasToken()) {
+            console.warn('⚠️ GitHub token not configured. Please add token in admin panel.');
+            return false;
+        }
+        
+        try {
+            console.log('📤 Pushing availability to GitHub...', availability.length);
+            
+            // Convert availability to Excel buffer
+            const worksheet = XLSX.utils.json_to_sheet(availability);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Availability');
+            
+            // Write to buffer
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
+            
+            // Get current file to get SHA
+            const filePath = 'data/calendar-availability.xlsx';
+            const { sha } = await this.getFileContent(filePath);
+            
+            // Prepare commit
+            const url = `${this.apiBase}/repos/${this.config.owner}/${this.config.repo}/contents/${filePath}`;
+            const commitMessage = `Update availability: ${new Date().toLocaleString()} - ${availability.length} overrides`;
+            
+            const body = {
+                message: commitMessage,
+                content: excelBuffer,
+                branch: this.config.branch
+            };
+            
+            // Add SHA if file exists
+            if (sha) {
+                body.sha = sha;
+            }
+            
+            // Push to GitHub
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: this.getHeaders(),
+                body: JSON.stringify(body)
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to push to GitHub');
+            }
+            
+            const result = await response.json();
+            console.log('✅ Successfully pushed availability to GitHub:', result.content.sha);
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Error pushing availability to GitHub:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Push both files in a batch
+     */
+    async pushAll(bookings, availability) {
+        if (!this.hasToken()) {
+            return false;
+        }
+        
+        try {
+            const bookingsResult = await this.pushBookings(bookings);
+            const availabilityResult = await this.pushAvailability(availability);
+            
+            return bookingsResult && availabilityResult;
+        } catch (error) {
+            console.error('❌ Error pushing all files:', error);
+>>>>>>> parent of a39c6c3 (enabled calendar auto synch from excel)
             return false;
         }
     }

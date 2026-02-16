@@ -1,5 +1,5 @@
 /**
- * Booking System - Core calendar and booking logic with auto-resync
+ * Booking System - Core calendar and booking logic with GitHub sync
  */
 class BookingSystem {
     constructor() {
@@ -17,7 +17,7 @@ class BookingSystem {
         this.planName = '';
         
         this.defaultPrice = 12800;
-        this.defaultMaxBookings = 2;
+        this.defaultMaxBookings = 2; // Maximum number of BOOKINGS per day, not guests
         
         // Bind methods
         this.handleDateClick = this.handleDateClick.bind(this);
@@ -28,7 +28,6 @@ class BookingSystem {
         this.updateBookingSummary = this.updateBookingSummary.bind(this);
         this.refreshCalendarData = this.refreshCalendarData.bind(this);
         this.syncToGitHub = this.syncToGitHub.bind(this);
-        this.resyncFromGitHub = this.resyncFromGitHub.bind(this);
         
         this.init();
     }
@@ -83,43 +82,11 @@ class BookingSystem {
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
                 statusEl.textContent = `Loaded: ${this.availabilityOverrides.length} overrides, ${this.bookings.length} bookings`;
-                statusEl.style.color = '#27ae60';
             }
             
         } catch (error) {
             console.error('Error loading data:', error);
             this.loadDemoData();
-        }
-    }
-
-    /**
-     * NEW: Resync data from GitHub after successful booking
-     */
-    async resyncFromGitHub(showNotification = true) {
-        try {
-            if (showNotification) {
-                this.showNotification('🔄 Syncing with GitHub...', 'info');
-            }
-            
-            console.log('🔄 Resyncing data from GitHub...');
-            
-            // Reload all data from Excel files
-            await this.loadData();
-            
-            // Force calendar to refresh with new data
-            this.forceCalendarRefresh();
-            
-            if (showNotification) {
-                this.showNotification('✅ Calendar synced with GitHub', 'success');
-            }
-            
-            return true;
-        } catch (error) {
-            console.error('❌ Failed to resync from GitHub:', error);
-            if (showNotification) {
-                this.showNotification('⚠️ Failed to sync with GitHub', 'warning');
-            }
-            return false;
         }
     }
 
@@ -207,7 +174,7 @@ class BookingSystem {
                 'Date': demoDates[0].toISOString().split('T')[0],
                 'Customer Name': 'John Demo',
                 'Email': 'john@demo.com',
-                'Guests': 5,
+                'Guests': 5, // 5 guests, but counts as 1 booking
                 'Status': 'Confirmed'
             },
             {
@@ -215,7 +182,7 @@ class BookingSystem {
                 'Date': demoDates[2].toISOString().split('T')[0],
                 'Customer Name': 'Jane Demo',
                 'Email': 'jane@demo.com',
-                'Guests': 3,
+                'Guests': 3, // 3 guests, but counts as 1 booking
                 'Status': 'Confirmed'
             },
             {
@@ -231,7 +198,7 @@ class BookingSystem {
                 'Date': demoDates[3].toISOString().split('T')[0],
                 'Customer Name': 'Alice Demo',
                 'Email': 'alice@demo.com',
-                'Guests': 4,
+                'Guests': 4, // 4 guests, but counts as 1 booking (making total 2 bookings)
                 'Status': 'Confirmed'
             }
         ];
@@ -277,6 +244,7 @@ class BookingSystem {
                 month: 'Month'
             },
             datesSet: (info) => {
+                // When month changes, re-style all visible cells
                 console.log('📅 Month changed to:', info.view.currentStart);
                 this.refreshVisibleCells();
             }
@@ -357,6 +325,9 @@ class BookingSystem {
         this.applyStylesToCell(info.el, dateStr);
     }
 
+    /**
+     * FIXED: Get day status based on BOOKING COUNT, not guest count
+     */
     getDayStatus(dateStr) {
         // Check if date is in the past
         if (new Date(dateStr) < new Date(new Date().toISOString().split('T')[0])) {
@@ -366,27 +337,19 @@ class BookingSystem {
         // Check for override in availability data
         const override = this.availabilityOverrides.find(o => o.Date === dateStr);
         
+        // Get booking count (number of bookings, not guests)
+        const bookingCount = this.getBookingCount(dateStr);
+        
         if (override) {
-            // 🔥 CRITICAL FIX: ALWAYS respect the Status field from Excel FIRST
-            // This ensures Limited/Closed from Excel are displayed correctly
-            // regardless of actual booking count
+            // If explicitly closed, respect that
             if (override.Status === 'Closed') {
                 return { class: 'closed', label: 'Closed' };
             }
-            if (override.Status === 'Booked') {
-                return { class: 'booked', label: 'Fully Booked' };
-            }
-            if (override.Status === 'Limited') {
-                return { class: 'limited', label: 'Limited' };
-            }
-            if (override.Status === 'Available') {
-                return { class: 'available', label: 'Available' };
-            }
             
-            // Only calculate from bookings if Status is not set
-            const bookingCount = this.getBookingCount(dateStr);
+            // Use max bookings from override or default
             const maxBookings = override.MaxBookings || this.defaultMaxBookings;
             
+            // Determine status based on booking count
             if (bookingCount >= maxBookings) {
                 return { class: 'booked', label: 'Fully Booked' };
             } else if (bookingCount >= 1) {
@@ -397,7 +360,6 @@ class BookingSystem {
         }
         
         // No override - calculate from bookings only
-        const bookingCount = this.getBookingCount(dateStr);
         const maxBookings = this.defaultMaxBookings;
         
         if (bookingCount >= maxBookings) {
@@ -409,6 +371,9 @@ class BookingSystem {
         }
     }
 
+    /**
+     * FIXED: Get booking count - counts NUMBER OF BOOKINGS, not total guests
+     */
     getBookingCount(dateStr) {
         // Count unique booking IDs for this date
         const uniqueBookings = new Set();
@@ -436,6 +401,7 @@ class BookingSystem {
         const dateStr = info.startStr.split('T')[0];
         const today = new Date().toISOString().split('T')[0];
         
+        // Can't select past dates
         if (dateStr < today) return false;
         
         const status = this.getDayStatus(dateStr);
@@ -462,8 +428,10 @@ class BookingSystem {
         
         this.selectedDates.sort();
         
+        // Update booking summary
         this.updateBookingSummary();
         
+        // Dispatch custom event for SnowStation integration
         const event = new CustomEvent('datesSelected', { 
             detail: { dates: this.selectedDates } 
         });
@@ -494,8 +462,10 @@ class BookingSystem {
         
         this.selectedDates.sort();
         
+        // Update booking summary
         this.updateBookingSummary();
         
+        // Dispatch custom event
         const event = new CustomEvent('datesSelected', { 
             detail: { dates: this.selectedDates } 
         });
@@ -511,6 +481,7 @@ class BookingSystem {
         
         this.updateBookingSummary();
         
+        // Dispatch custom event
         const event = new CustomEvent('datesSelected', { 
             detail: { dates: [] } 
         });
@@ -531,6 +502,7 @@ class BookingSystem {
             return;
         }
         
+        // Format selected dates text
         if (this.selectedDates.length === 1) {
             selectedDatesText.textContent = this.formatDate(this.selectedDates[0]);
         } else {
@@ -539,6 +511,7 @@ class BookingSystem {
             selectedDatesText.textContent = `${first} - ${last} (${this.selectedDates.length} nights)`;
         }
         
+        // Calculate total price
         const nights = this.selectedDates.length;
         const pricePerNight = this.planPrice || this.defaultPrice;
         const roomRate = pricePerNight * nights;
@@ -548,6 +521,7 @@ class BookingSystem {
         
         totalPriceEl.textContent = `¥${total.toLocaleString()}`;
         
+        // Show summary
         summaryEl.classList.add('visible');
     }
 
@@ -559,18 +533,26 @@ class BookingSystem {
         });
     }
 
+    /**
+     * FIXED: Update availability after booking - counts bookings, not guests
+     */
     async updateAvailabilityAfterBooking(date, guests) {
+        // Get current booking count (number of unique bookings for this date)
         const bookingCount = this.getBookingCount(date);
         
+        // Find if date exists in availability overrides
         const existingIndex = this.availabilityOverrides.findIndex(a => a.Date === date);
         
         if (existingIndex >= 0) {
+            // Update existing record with actual booking count
             this.availabilityOverrides[existingIndex].Booked = bookingCount;
             this.availabilityOverrides[existingIndex].Available = 
                 Math.max(0, this.availabilityOverrides[existingIndex].MaxBookings - bookingCount);
             
+            // Update status based on actual booking count
             const available = this.availabilityOverrides[existingIndex].Available;
             
+            // Don't change if it was Closed
             if (this.availabilityOverrides[existingIndex].Status !== 'Closed') {
                 if (available <= 0) {
                     this.availabilityOverrides[existingIndex].Status = 'Booked';
@@ -581,6 +563,7 @@ class BookingSystem {
                 }
             }
         } else {
+            // Create new availability record based on actual booking count
             const maxBookings = this.defaultMaxBookings;
             const available = Math.max(0, maxBookings - bookingCount);
             
@@ -599,13 +582,13 @@ class BookingSystem {
     }
 
     /**
-     * UPDATED: Submit booking and then resync from GitHub
+     * Submit booking and sync to GitHub
      */
     async submitBooking(bookingData) {
         try {
             console.log('📝 Processing booking...', bookingData);
             
-            // Validate availability
+            // Validate that selected dates are still available
             for (const date of this.selectedDates) {
                 const bookingCount = this.getBookingCount(date);
                 const maxBookings = this.getMaxBookings(date);
@@ -622,12 +605,12 @@ class BookingSystem {
             
             for (const date of this.selectedDates) {
                 const booking = {
-                    'Booking ID': bookingId,
+                    'Booking ID': bookingId, // Same ID for all dates in this booking
                     'Date': date,
                     'Customer Name': bookingData.name,
                     'Email': bookingData.email,
                     'Phone': bookingData.phone || '',
-                    'Guests': bookingData.guests || 1,
+                    'Guests': bookingData.guests || 1, // Store guest count for reference
                     'Plan': this.planName,
                     'Plan Price': this.planPrice,
                     'Total Price': this.planPrice,
@@ -642,7 +625,7 @@ class BookingSystem {
             
             console.log('✅ Bookings saved locally:', newBookings.length);
             
-            // Update local availability
+            // Update availability for each date based on booking COUNT (not guests)
             for (const date of this.selectedDates) {
                 await this.updateAvailabilityAfterBooking(date, bookingData.guests || 1);
             }
@@ -650,23 +633,20 @@ class BookingSystem {
             // Clear selection
             this.clearDateSelection(false);
             
-            // Refresh calendar with local data (immediate feedback)
+            // Refresh calendar to show updated availability
             this.refreshCalendarData();
             
-            // Show optimistic success
+            // Show success message
             this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
-            // Step 1: Try to sync to GitHub (with retry)
-            const syncSuccess = await this.syncToGitHubWithRetry(3);
-            
-            // Step 2: If sync succeeded, RESYNC from GitHub to verify
-            if (syncSuccess) {
-                this.showNotification('🔄 Verifying with GitHub...', 'info');
-                await this.resyncFromGitHub(false); // Don't show notification (we'll show our own)
-                this.showNotification('✅ Booking verified on GitHub', 'success');
-            } else {
-                this.showNotification('⚠️ Booking saved locally but GitHub sync failed', 'warning');
-            }
+            // Sync to GitHub (don't await - let it happen in background)
+            this.syncToGitHub().then(success => {
+                if (success) {
+                    console.log('📤 GitHub sync completed');
+                } else {
+                    console.log('⚠️ GitHub sync failed - data saved locally');
+                }
+            });
             
             return { success: true, bookingId };
             
@@ -678,44 +658,26 @@ class BookingSystem {
     }
 
     /**
-     * Sync to GitHub with retry mechanism
-     */
-    async syncToGitHubWithRetry(maxRetries = 3) {
-        for (let i = 0; i < maxRetries; i++) {
-            try {
-                if (i > 0) {
-                    console.log(`🔄 Retry ${i}/${maxRetries}...`);
-                    // Exponential backoff: 1s, 2s, 4s
-                    await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i-1)));
-                }
-                
-                const success = await this.syncToGitHub();
-                if (success) return true;
-                
-            } catch (error) {
-                console.warn(`⚠️ Sync attempt ${i + 1} failed:`, error);
-            }
-        }
-        return false;
-    }
-
-    /**
      * Sync all data to GitHub
      */
     async syncToGitHub() {
         try {
+            // Check if token exists
             if (!this.githubSync.hasToken()) {
                 console.log('⚠️ No GitHub token, skipping sync');
                 return false;
             }
             
-            console.log('📤 Syncing to GitHub...');
+            // Show syncing notification
+            this.showNotification('Syncing to GitHub...', 'info');
             
+            // Push both files
             const bookingsResult = await this.githubSync.pushBookings(this.bookings);
             const availabilityResult = await this.githubSync.pushAvailability(this.availabilityOverrides);
             
             if (bookingsResult && availabilityResult) {
                 console.log('✅ Successfully synced all data to GitHub');
+                this.showNotification('Booking synced to GitHub successfully!', 'success');
                 return true;
             } else {
                 console.warn('⚠️ GitHub sync failed');
@@ -751,11 +713,12 @@ class BookingSystem {
     }
 
     /**
-     * Refresh calendar data from local arrays
+     * Refresh calendar data
      */
     refreshCalendarData() {
         console.log('🔄 Refreshing calendar data...');
         
+        // Update status display
         const statusEl = document.getElementById('calendarLastUpdated');
         if (statusEl) {
             const now = new Date();
@@ -763,6 +726,7 @@ class BookingSystem {
             statusEl.style.color = '#27ae60';
         }
         
+        // Refresh all visible cells
         this.refreshVisibleCells();
         
         console.log('✅ Calendar data refreshed');
@@ -820,6 +784,7 @@ class BookingSystem {
     }
 
     setupEventListeners() {
+        // Close modals on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 // Handle modal closing
