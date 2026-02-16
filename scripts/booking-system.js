@@ -17,7 +17,7 @@ class BookingSystem {
         this.planName = '';
         
         this.defaultPrice = 12800;
-        this.defaultMaxBookings = 2;
+        this.defaultMaxBookings = 2; // Maximum number of BOOKINGS per day, not guests
         
         // Bind methods
         this.handleDateClick = this.handleDateClick.bind(this);
@@ -128,7 +128,7 @@ class BookingSystem {
                 MaxBookings: 2,
                 Booked: 1,
                 Available: 1,
-                Notes: 'Limited availability'
+                Notes: 'Limited availability - 1 booking taken'
             },
             {
                 Date: demoDates[1].toISOString().split('T')[0],
@@ -146,7 +146,7 @@ class BookingSystem {
                 MaxBookings: 2,
                 Booked: 1,
                 Available: 1,
-                Notes: 'Peak pricing'
+                Notes: 'Limited availability - 1 booking taken'
             },
             {
                 Date: demoDates[3].toISOString().split('T')[0],
@@ -155,7 +155,7 @@ class BookingSystem {
                 MaxBookings: 2,
                 Booked: 2,
                 Available: 0,
-                Notes: 'Fully booked'
+                Notes: 'Fully booked - 2 bookings taken'
             },
             {
                 Date: demoDates[4].toISOString().split('T')[0],
@@ -164,63 +164,7 @@ class BookingSystem {
                 MaxBookings: 2,
                 Booked: 0,
                 Available: 2,
-                Notes: 'Available'
-            },
-            // Next month - various statuses
-            {
-                Date: demoDates[5].toISOString().split('T')[0],
-                Status: 'Available',
-                Price: 12800,
-                MaxBookings: 2,
-                Booked: 0,
-                Available: 2,
-                Notes: 'Available'
-            },
-            {
-                Date: demoDates[6].toISOString().split('T')[0],
-                Status: 'Limited',
-                Price: 18500,
-                MaxBookings: 2,
-                Booked: 1,
-                Available: 1,
-                Notes: 'Limited'
-            },
-            {
-                Date: demoDates[7].toISOString().split('T')[0],
-                Status: 'Booked',
-                Price: 18500,
-                MaxBookings: 2,
-                Booked: 2,
-                Available: 0,
-                Notes: 'Fully booked'
-            },
-            {
-                Date: demoDates[8].toISOString().split('T')[0],
-                Status: 'Closed',
-                Price: null,
-                MaxBookings: 0,
-                Booked: 0,
-                Available: 0,
-                Notes: 'Closed'
-            },
-            // Two months ahead
-            {
-                Date: demoDates[11].toISOString().split('T')[0],
-                Status: 'Available',
-                Price: 12800,
-                MaxBookings: 2,
-                Booked: 0,
-                Available: 2,
-                Notes: 'Available'
-            },
-            {
-                Date: demoDates[12].toISOString().split('T')[0],
-                Status: 'Limited',
-                Price: 18500,
-                MaxBookings: 2,
-                Booked: 1,
-                Available: 1,
-                Notes: 'Limited'
+                Notes: 'Available - 0 bookings'
             }
         ];
         
@@ -230,7 +174,7 @@ class BookingSystem {
                 'Date': demoDates[0].toISOString().split('T')[0],
                 'Customer Name': 'John Demo',
                 'Email': 'john@demo.com',
-                'Guests': 1,
+                'Guests': 5, // 5 guests, but counts as 1 booking
                 'Status': 'Confirmed'
             },
             {
@@ -238,23 +182,23 @@ class BookingSystem {
                 'Date': demoDates[2].toISOString().split('T')[0],
                 'Customer Name': 'Jane Demo',
                 'Email': 'jane@demo.com',
-                'Guests': 1,
+                'Guests': 3, // 3 guests, but counts as 1 booking
                 'Status': 'Confirmed'
             },
             {
                 'Booking ID': 'DEMO-003',
-                'Date': demoDates[6].toISOString().split('T')[0],
+                'Date': demoDates[3].toISOString().split('T')[0],
                 'Customer Name': 'Bob Demo',
                 'Email': 'bob@demo.com',
-                'Guests': 1,
+                'Guests': 2,
                 'Status': 'Confirmed'
             },
             {
                 'Booking ID': 'DEMO-004',
-                'Date': demoDates[12].toISOString().split('T')[0],
+                'Date': demoDates[3].toISOString().split('T')[0],
                 'Customer Name': 'Alice Demo',
                 'Email': 'alice@demo.com',
-                'Guests': 1,
+                'Guests': 4, // 4 guests, but counts as 1 booking (making total 2 bookings)
                 'Status': 'Confirmed'
             }
         ];
@@ -323,6 +267,9 @@ class BookingSystem {
         const today = new Date().toISOString().split('T')[0];
         const isPast = dateStr < today;
         const status = this.getDayStatus(dateStr);
+        const bookingCount = this.getBookingCount(dateStr);
+        const maxBookings = this.getMaxBookings(dateStr);
+        const available = Math.max(0, maxBookings - bookingCount);
         
         // Remove all existing classes
         cell.classList.remove(
@@ -348,15 +295,14 @@ class BookingSystem {
             const badge = document.createElement('div');
             badge.className = 'day-badge';
             
-            const bookingCount = this.getBookingCount(dateStr);
-            const maxBookings = this.getMaxBookings(dateStr);
-            const available = maxBookings - bookingCount;
-            
-            if (status.class === 'booked' || status.class === 'closed') {
+            if (status.class === 'closed') {
+                badge.textContent = 'Closed';
+                badge.style.color = '#8E8E93';
+            } else if (status.class === 'booked' || available <= 0) {
                 badge.textContent = 'Full';
                 badge.style.color = '#FF3B30';
-            } else if (status.class === 'limited') {
-                badge.textContent = `${available} left`;
+            } else if (status.class === 'limited' || available === 1) {
+                badge.textContent = '1 left';
                 badge.style.color = '#FF9F0A';
             } else if (status.class === 'available') {
                 badge.textContent = `${available} left`;
@@ -379,6 +325,9 @@ class BookingSystem {
         this.applyStylesToCell(info.el, dateStr);
     }
 
+    /**
+     * FIXED: Get day status based on BOOKING COUNT, not guest count
+     */
     getDayStatus(dateStr) {
         // Check if date is in the past
         if (new Date(dateStr) < new Date(new Date().toISOString().split('T')[0])) {
@@ -387,16 +336,31 @@ class BookingSystem {
         
         // Check for override in availability data
         const override = this.availabilityOverrides.find(o => o.Date === dateStr);
+        
+        // Get booking count (number of bookings, not guests)
+        const bookingCount = this.getBookingCount(dateStr);
+        
         if (override) {
-            if (override.Status === 'Closed') return { class: 'closed', label: 'Closed' };
-            if (override.Status === 'Booked') return { class: 'booked', label: 'Fully Booked' };
-            if (override.Status === 'Limited') return { class: 'limited', label: 'Limited' };
-            if (override.Status === 'Available') return { class: 'available', label: 'Available' };
+            // If explicitly closed, respect that
+            if (override.Status === 'Closed') {
+                return { class: 'closed', label: 'Closed' };
+            }
+            
+            // Use max bookings from override or default
+            const maxBookings = override.MaxBookings || this.defaultMaxBookings;
+            
+            // Determine status based on booking count
+            if (bookingCount >= maxBookings) {
+                return { class: 'booked', label: 'Fully Booked' };
+            } else if (bookingCount >= 1) {
+                return { class: 'limited', label: 'Limited' };
+            } else {
+                return { class: 'available', label: 'Available' };
+            }
         }
         
-        // Calculate from bookings
-        const bookingCount = this.getBookingCount(dateStr);
-        const maxBookings = this.getMaxBookings(dateStr);
+        // No override - calculate from bookings only
+        const maxBookings = this.defaultMaxBookings;
         
         if (bookingCount >= maxBookings) {
             return { class: 'booked', label: 'Fully Booked' };
@@ -407,10 +371,20 @@ class BookingSystem {
         }
     }
 
+    /**
+     * FIXED: Get booking count - counts NUMBER OF BOOKINGS, not total guests
+     */
     getBookingCount(dateStr) {
-        return this.bookings
+        // Count unique booking IDs for this date
+        const uniqueBookings = new Set();
+        
+        this.bookings
             .filter(b => b.Date === dateStr && b.Status === 'Confirmed')
-            .reduce((total, booking) => total + (parseInt(booking.Guests) || 1), 0);
+            .forEach(booking => {
+                uniqueBookings.add(booking['Booking ID']);
+            });
+        
+        return uniqueBookings.size;
     }
 
     getMaxBookings(dateStr) {
@@ -560,47 +534,51 @@ class BookingSystem {
     }
 
     /**
-     * Update availability after booking
+     * FIXED: Update availability after booking - counts bookings, not guests
      */
     async updateAvailabilityAfterBooking(date, guests) {
+        // Get current booking count (number of unique bookings for this date)
+        const bookingCount = this.getBookingCount(date);
+        
         // Find if date exists in availability overrides
         const existingIndex = this.availabilityOverrides.findIndex(a => a.Date === date);
         
         if (existingIndex >= 0) {
-            // Update existing record
-            this.availabilityOverrides[existingIndex].Booked = (this.availabilityOverrides[existingIndex].Booked || 0) + guests;
+            // Update existing record with actual booking count
+            this.availabilityOverrides[existingIndex].Booked = bookingCount;
             this.availabilityOverrides[existingIndex].Available = 
-                this.availabilityOverrides[existingIndex].MaxBookings - this.availabilityOverrides[existingIndex].Booked;
+                Math.max(0, this.availabilityOverrides[existingIndex].MaxBookings - bookingCount);
             
-            // Update status based on new availability
+            // Update status based on actual booking count
             const available = this.availabilityOverrides[existingIndex].Available;
-            const maxBookings = this.availabilityOverrides[existingIndex].MaxBookings;
             
             // Don't change if it was Closed
             if (this.availabilityOverrides[existingIndex].Status !== 'Closed') {
                 if (available <= 0) {
                     this.availabilityOverrides[existingIndex].Status = 'Booked';
-                } else if (available <= 1) {
+                } else if (available === 1) {
                     this.availabilityOverrides[existingIndex].Status = 'Limited';
                 } else {
                     this.availabilityOverrides[existingIndex].Status = 'Available';
                 }
             }
         } else {
-            // Create new availability record
-            const newAvailable = this.defaultMaxBookings - guests;
+            // Create new availability record based on actual booking count
+            const maxBookings = this.defaultMaxBookings;
+            const available = Math.max(0, maxBookings - bookingCount);
+            
             this.availabilityOverrides.push({
                 Date: date,
-                Status: newAvailable <= 0 ? 'Booked' : (newAvailable <= 1 ? 'Limited' : 'Available'),
+                Status: available <= 0 ? 'Booked' : (available === 1 ? 'Limited' : 'Available'),
                 Price: this.defaultPrice,
-                MaxBookings: this.defaultMaxBookings,
-                Booked: guests,
-                Available: newAvailable,
-                Notes: 'Auto-generated from booking'
+                MaxBookings: maxBookings,
+                Booked: bookingCount,
+                Available: available,
+                Notes: 'Auto-generated from bookings'
             });
         }
         
-        console.log(`✅ Availability updated for ${date}: +${guests} guests`);
+        console.log(`✅ Availability updated for ${date}: ${bookingCount}/${this.getMaxBookings(date)} bookings taken`);
     }
 
     /**
@@ -610,17 +588,29 @@ class BookingSystem {
         try {
             console.log('📝 Processing booking...', bookingData);
             
+            // Validate that selected dates are still available
+            for (const date of this.selectedDates) {
+                const bookingCount = this.getBookingCount(date);
+                const maxBookings = this.getMaxBookings(date);
+                
+                if (bookingCount >= maxBookings) {
+                    this.showNotification(`Date ${date} is no longer available`, 'error');
+                    this.refreshCalendarData();
+                    return { success: false, error: 'Date no longer available' };
+                }
+            }
+            
             const bookingId = this.generateBookingId();
             const newBookings = [];
             
             for (const date of this.selectedDates) {
                 const booking = {
-                    'Booking ID': bookingId,
+                    'Booking ID': bookingId, // Same ID for all dates in this booking
                     'Date': date,
                     'Customer Name': bookingData.name,
                     'Email': bookingData.email,
                     'Phone': bookingData.phone || '',
-                    'Guests': bookingData.guests || 1,
+                    'Guests': bookingData.guests || 1, // Store guest count for reference
                     'Plan': this.planName,
                     'Plan Price': this.planPrice,
                     'Total Price': this.planPrice,
@@ -631,31 +621,32 @@ class BookingSystem {
                 
                 this.bookings.push(booking);
                 newBookings.push(booking);
-                
-                // Update availability
-                await this.updateAvailabilityAfterBooking(date, bookingData.guests || 1);
             }
             
             console.log('✅ Bookings saved locally:', newBookings.length);
             
+            // Update availability for each date based on booking COUNT (not guests)
+            for (const date of this.selectedDates) {
+                await this.updateAvailabilityAfterBooking(date, bookingData.guests || 1);
+            }
+            
             // Clear selection
             this.clearDateSelection(false);
             
-            // Refresh calendar
+            // Refresh calendar to show updated availability
             this.refreshCalendarData();
+            
+            // Show success message
+            this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
             // Sync to GitHub (don't await - let it happen in background)
             this.syncToGitHub().then(success => {
                 if (success) {
                     console.log('📤 GitHub sync completed');
-                    this.showNotification('Booking synced to GitHub', 'success');
                 } else {
-                    this.showNotification('Booking saved locally but GitHub sync failed', 'warning');
+                    console.log('⚠️ GitHub sync failed - data saved locally');
                 }
             });
-            
-            // Show success message
-            this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
             return { success: true, bookingId };
             
@@ -686,9 +677,10 @@ class BookingSystem {
             
             if (bookingsResult && availabilityResult) {
                 console.log('✅ Successfully synced all data to GitHub');
+                this.showNotification('Booking synced to GitHub successfully!', 'success');
                 return true;
             } else {
-                console.warn('⚠️ Partial sync completed');
+                console.warn('⚠️ GitHub sync failed');
                 return false;
             }
         } catch (error) {
@@ -730,7 +722,7 @@ class BookingSystem {
         const statusEl = document.getElementById('calendarLastUpdated');
         if (statusEl) {
             const now = new Date();
-            statusEl.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()} (after booking)`;
+            statusEl.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
             statusEl.style.color = '#27ae60';
         }
         
