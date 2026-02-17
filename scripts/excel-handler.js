@@ -1,7 +1,6 @@
 /**
  * Excel Handler - Manages reading/writing Excel files
- * Dependencies: SheetJS (XLSX)
- * UPDATED: Added force refresh parameter to bypass cache
+ * UPDATED: Preserves MM/DD/YYYY format
  */
 class ExcelHandler {
     constructor() {
@@ -33,7 +32,6 @@ class ExcelHandler {
 
     /**
      * Load availability overrides from Excel
-     * UPDATED: Added forceRefresh parameter to bypass cache
      */
     async loadAvailabilityOverrides(forceRefresh = false) {
         // Check cache first unless force refresh is requested
@@ -67,34 +65,24 @@ class ExcelHandler {
             
             console.log(`📊 Loaded ${data.length} availability records from Excel`);
             
-            // Process and normalize the data
+            // Process and normalize the data - PRESERVE ORIGINAL FORMAT
             const processed = data.map(row => {
-                // Handle date conversion
                 let dateStr = row.Date || row['Date'];
                 let formattedDate = null;
                 
                 if (dateStr) {
                     if (typeof dateStr === 'number') {
-                        // Excel serial number
+                        // Excel serial number - convert to MM/DD/YYYY
                         const excelEpoch = new Date(1899, 11, 30);
                         const msPerDay = 86400000;
                         const date = new Date(excelEpoch.getTime() + (dateStr * msPerDay));
+                        const month = String(date.getMonth() + 1);
+                        const day = String(date.getDate());
                         const year = date.getFullYear();
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const day = String(date.getDate()).padStart(2, '0');
-                        formattedDate = `${year}-${month}-${day}`;
+                        formattedDate = `${month}/${day}/${year}`;
                     } else if (typeof dateStr === 'string') {
-                        // Handle MM/DD/YYYY format
-                        const parts = dateStr.split('/');
-                        if (parts.length === 3) {
-                            const month = parts[0].padStart(2, '0');
-                            const day = parts[1].padStart(2, '0');
-                            let year = parts[2];
-                            if (year.length === 2) year = '20' + year;
-                            formattedDate = `${year}-${month}-${day}`;
-                        } else {
-                            formattedDate = dateStr.split('T')[0];
-                        }
+                        // Keep original string format (should be MM/DD/YYYY)
+                        formattedDate = dateStr;
                     }
                 }
                 
@@ -126,7 +114,6 @@ class ExcelHandler {
 
     /**
      * Load all bookings from Excel
-     * UPDATED: Added forceRefresh parameter to bypass cache
      */
     async loadBookings(forceRefresh = false) {
         // Check cache first unless force refresh is requested
@@ -169,21 +156,13 @@ class ExcelHandler {
                         const excelEpoch = new Date(1899, 11, 30);
                         const msPerDay = 86400000;
                         const date = new Date(excelEpoch.getTime() + (dateStr * msPerDay));
+                        const month = String(date.getMonth() + 1);
+                        const day = String(date.getDate());
                         const year = date.getFullYear();
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const day = String(date.getDate()).padStart(2, '0');
-                        formattedDate = `${year}-${month}-${day}`;
+                        formattedDate = `${month}/${day}/${year}`;
                     } else if (typeof dateStr === 'string') {
-                        const parts = dateStr.split('/');
-                        if (parts.length === 3) {
-                            const month = parts[0].padStart(2, '0');
-                            const day = parts[1].padStart(2, '0');
-                            let year = parts[2];
-                            if (year.length === 2) year = '20' + year;
-                            formattedDate = `${year}-${month}-${day}`;
-                        } else {
-                            formattedDate = dateStr.split('T')[0];
-                        }
+                        // Keep original string format (should be MM/DD/YYYY)
+                        formattedDate = dateStr;
                     }
                 }
                 
@@ -198,7 +177,7 @@ class ExcelHandler {
                     'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
                     'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
                     'Status': row.Status || 'Confirmed',
-                    'Booking Date': row['Booking Date'] || new Date().toISOString().split('T')[0],
+                    'Booking Date': row['Booking Date'] || new Date().toLocaleDateString('en-US'),
                     'Special Requests': row['Special Requests'] || ''
                 };
             }).filter(item => item.Date);
@@ -218,92 +197,10 @@ class ExcelHandler {
     }
 
     /**
-     * Load time slots from Excel
-     */
-    async loadTimeSlots() {
-        try {
-            const url = this.getGitHubRawUrl(this.timeSlotsFile);
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-                console.log('No time slots found, using defaults');
-                return this.getDefaultTimeSlots();
-            }
-            
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const data = XLSX.utils.sheet_to_json(worksheet);
-            
-            console.log(`⏰ Loaded ${data.length} time slots`);
-            return data;
-        } catch (error) {
-            console.log('No time slots found, using defaults');
-            return this.getDefaultTimeSlots();
-        }
-    }
-
-    /**
-     * Get default time slots
-     */
-    getDefaultTimeSlots() {
-        return [
-            { 'Time Slot': '15:00', 'Display Time': '3:00 PM', 'Capacity': 10, 'Available': 10 },
-            { 'Time Slot': '16:00', 'Display Time': '4:00 PM', 'Capacity': 10, 'Available': 10 },
-            { 'Time Slot': '17:00', 'Display Time': '5:00 PM', 'Capacity': 10, 'Available': 10 },
-            { 'Time Slot': '18:00', 'Display Time': '6:00 PM', 'Capacity': 10, 'Available': 10 },
-            { 'Time Slot': '19:00', 'Display Time': '7:00 PM', 'Capacity': 10, 'Available': 10 },
-            { 'Time Slot': '20:00', 'Display Time': '8:00 PM', 'Capacity': 10, 'Available': 10 },
-            { 'Time Slot': '21:00', 'Display Time': '9:00 PM', 'Capacity': 10, 'Available': 10 },
-            { 'Time Slot': '22:00', 'Display Time': '10:00 PM', 'Capacity': 10, 'Available': 10 }
-        ];
-    }
-
-    /**
-     * Save booking to Excel
-     */
-    async saveBooking(bookingData) {
-        try {
-            console.log('✅ Booking saved locally:', bookingData['Booking ID']);
-            return true;
-        } catch (error) {
-            console.error('❌ Error saving booking:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Update availability after booking
-     */
-    async updateAvailability(date, guests) {
-        try {
-            console.log(`✅ Availability updated for ${date}: +${guests} guests`);
-            return true;
-        } catch (error) {
-            console.error('❌ Error updating availability:', error);
-            return false;
-        }
-    }
-
-    /**
      * Get GitHub raw URL
      */
     getGitHubRawUrl(filePath) {
         return `https://raw.githubusercontent.com/${this.githubConfig.owner}/${this.githubConfig.repo}/${this.githubConfig.branch}/${filePath}`;
-    }
-
-    /**
-     * Format date for display
-     */
-    formatDisplayDate(dateStr) {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
     }
 
     /**

@@ -1,6 +1,6 @@
 /**
- * Booking System - Core calendar and booking logic with auto-resync
- * UPDATED: After booking, calendar resyncs availability from Excel
+ * Booking System - Core calendar and booking logic
+ * FIXED: Proper date conversion from YYYY-MM-DD to MM/DD/YYYY
  */
 class BookingSystem {
     constructor() {
@@ -10,8 +10,8 @@ class BookingSystem {
         this.githubSync = new GitHubSync();
         
         this.calendar = null;
-        this.availabilityOverrides = []; // Static from Excel, never changes
-        this.bookings = []; // Dynamic, updates with new bookings
+        this.availabilityOverrides = []; // Static from Excel
+        this.bookings = []; // Dynamic from Excel
         this.selectedDates = [];
         this.selectedPlan = null;
         this.planPrice = 0;
@@ -61,11 +61,11 @@ class BookingSystem {
         try {
             console.log('📊 Loading data from Excel...');
             
-            // Load availability overrides - STATIC, never changes
+            // Load availability overrides from Excel
             const overrides = await this.excelHandler.loadAvailabilityOverrides();
             this.availabilityOverrides = overrides || [];
             
-            // Load bookings - DYNAMIC, updates with new bookings
+            // Load bookings from Excel
             const bookings = await this.excelHandler.loadBookings();
             this.bookings = bookings || [];
             
@@ -73,6 +73,10 @@ class BookingSystem {
                 overrides: this.availabilityOverrides.length,
                 bookings: this.bookings.length
             });
+            
+            // Log the actual data for debugging
+            console.log('📅 Availability Overrides:', JSON.stringify(this.availabilityOverrides, null, 2));
+            console.log('📅 Bookings:', JSON.stringify(this.bookings, null, 2));
             
             // If no data at all, load demo data
             if (this.availabilityOverrides.length === 0 && this.bookings.length === 0) {
@@ -96,104 +100,106 @@ class BookingSystem {
     loadDemoData() {
         console.log('📊 Loading demo data for testing');
         
-        const today = new Date();
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth();
-        
-        // Create demo dates for multiple months
-        const demoDates = [
-            // Current month
-            new Date(currentYear, currentMonth, 15),
-            new Date(currentYear, currentMonth, 16),
-            new Date(currentYear, currentMonth, 20),
-            new Date(currentYear, currentMonth, 21),
-            new Date(currentYear, currentMonth, 25),
-            // Next month
-            new Date(currentYear, currentMonth + 1, 5),
-            new Date(currentYear, currentMonth + 1, 6),
-            new Date(currentYear, currentMonth + 1, 10),
-            new Date(currentYear, currentMonth + 1, 11),
-            new Date(currentYear, currentMonth + 1, 15),
-            new Date(currentYear, currentMonth + 1, 16),
-            // Two months ahead
-            new Date(currentYear, currentMonth + 2, 1),
-            new Date(currentYear, currentMonth + 2, 2),
-            new Date(currentYear, currentMonth + 2, 8),
-            new Date(currentYear, currentMonth + 2, 9)
-        ];
-        
-        // STATIC availability overrides - never changes
+        // Demo data in MM/DD/YYYY format
         this.availabilityOverrides = [
             {
-                Date: demoDates[0].toISOString().split('T')[0],
+                Date: '2/23/2026',
                 Status: 'Limited',
                 Price: 18500,
                 MaxBookings: 2,
-                Notes: 'Limited availability - 1 booking taken'
+                Booked: 1,
+                Notes: 'Peak Season'
             },
             {
-                Date: demoDates[1].toISOString().split('T')[0],
+                Date: '2/24/2026',
+                Status: 'Limited',
+                Price: 18500,
+                MaxBookings: 2,
+                Booked: 1,
+                Notes: 'Peak Season'
+            },
+            {
+                Date: '2/25/2026',
+                Status: 'Limited',
+                Price: 18500,
+                MaxBookings: 2,
+                Booked: 1,
+                Notes: 'Maintenance'
+            },
+            {
+                Date: '2/26/2026',
+                Status: 'Limited',
+                Price: 18500,
+                MaxBookings: 2,
+                Booked: 1,
+                Notes: 'Maintenance'
+            },
+            {
+                Date: '2/27/2026',
                 Status: 'Closed',
                 Price: null,
                 MaxBookings: 0,
-                Notes: 'Closed for maintenance'
-            },
-            {
-                Date: demoDates[2].toISOString().split('T')[0],
-                Status: 'Limited',
-                Price: 22000,
-                MaxBookings: 2,
-                Notes: 'Limited availability - 1 booking taken'
-            },
-            {
-                Date: demoDates[3].toISOString().split('T')[0],
-                Status: 'Booked',
-                Price: 18500,
-                MaxBookings: 2,
-                Notes: 'Fully booked - 2 bookings taken'
-            },
-            {
-                Date: demoDates[4].toISOString().split('T')[0],
-                Status: 'Available',
-                Price: 12800,
-                MaxBookings: 2,
-                Notes: 'Available - 0 bookings'
+                Booked: 0,
+                Notes: 'Peak Season'
             }
         ];
         
-        // DYNAMIC bookings - updates with new bookings
         this.bookings = [
             {
-                'Booking ID': 'DEMO-001',
-                'Date': demoDates[0].toISOString().split('T')[0],
-                'Customer Name': 'John Demo',
-                'Email': 'john@demo.com',
-                'Guests': 5,
-                'Status': 'Confirmed'
-            },
-            {
-                'Booking ID': 'DEMO-002',
-                'Date': demoDates[2].toISOString().split('T')[0],
-                'Customer Name': 'Jane Demo',
-                'Email': 'jane@demo.com',
-                'Guests': 3,
-                'Status': 'Confirmed'
-            },
-            {
-                'Booking ID': 'DEMO-003',
-                'Date': demoDates[3].toISOString().split('T')[0],
-                'Customer Name': 'Bob Demo',
-                'Email': 'bob@demo.com',
+                'Booking ID': 'SNOW-001',
+                'Date': '3/21/2026',
+                'Customer Name': 'John Smith',
+                'Email': 'john@email.com',
+                'Phone': '555-0101',
                 'Guests': 2,
-                'Status': 'Confirmed'
+                'Plan': 'Weekend Getaway',
+                'Plan Price': 12800,
+                'Total Price': 12800,
+                'Status': 'Confirmed',
+                'Booking Date': '3/1/2026',
+                'Special Requests': 'Late check-in requested'
             },
             {
-                'Booking ID': 'DEMO-004',
-                'Date': demoDates[3].toISOString().split('T')[0],
-                'Customer Name': 'Alice Demo',
-                'Email': 'alice@demo.com',
-                'Guests': 4,
-                'Status': 'Confirmed'
+                'Booking ID': 'SNOW-002',
+                'Date': '3/21/2026',
+                'Customer Name': 'John Smith',
+                'Email': 'john@email.com',
+                'Phone': '555-0101',
+                'Guests': 2,
+                'Plan': 'Weekend Getaway',
+                'Plan Price': 12800,
+                'Total Price': 12800,
+                'Status': 'Confirmed',
+                'Booking Date': '3/1/2026',
+                'Special Requests': 'Late check-in requested'
+            },
+            {
+                'Booking ID': 'SNOW-003',
+                'Date': '3/21/2026',
+                'Customer Name': 'John Smith2',
+                'Email': 'john2@email.com',
+                'Phone': '555-0102',
+                'Guests': 2,
+                'Plan': 'Weekend Getaway',
+                'Plan Price': 12800,
+                'Total Price': 12800,
+                'Status': 'Confirmed',
+                'Booking Date': '3/1/2026',
+                'Special Requests': 'Late check-in requested'
+            },
+            {
+                'Booking ID': 'SNOW-004',
+                'Date': '2/26/2026',
+                'Customer Name': 'John Smith2',
+                'Email': 'john2@email.com',
+                'Phone': '555-0102',
+                'Guests': 2,
+                'Plan': 'Weekend Getaway',
+                'Plan Price': 12800,
+                'Total Price': 12800,
+                'Status': 'Confirmed',
+                'Booking Date': '3/1/2026',
+                'Special Requests': 'Late check-in requested'
             }
         ];
         
@@ -256,13 +262,40 @@ class BookingSystem {
         });
     }
 
+    /**
+     * FIXED: Convert YYYY-MM-DD from FullCalendar to MM/DD/YYYY correctly
+     */
+    convertToMMDDYYYY(dateStr) {
+        // Input format: YYYY-MM-DD
+        const [year, month, day] = dateStr.split('-');
+        // Remove leading zeros from month and day
+        const monthNoZero = parseInt(month, 10).toString();
+        const dayNoZero = parseInt(day, 10).toString();
+        return `${monthNoZero}/${dayNoZero}/${year}`;
+    }
+
     applyStylesToCell(cell, dateStr) {
-        const today = new Date().toISOString().split('T')[0];
-        const isPast = dateStr < today;
-        const status = this.getDayStatus(dateStr);
-        const bookingCount = this.getBookingCount(dateStr);
-        const maxBookings = this.getMaxBookings(dateStr);
-        const available = Math.max(0, maxBookings - bookingCount);
+        // Convert YYYY-MM-DD from FullCalendar to MM/DD/YYYY for internal use
+        const mmddyyyy = this.convertToMMDDYYYY(dateStr);
+        
+        // Parse the date for comparison
+        const [month, day, year] = mmddyyyy.split('/').map(num => parseInt(num, 10));
+        const checkDate = new Date(year, month-1, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const isPast = checkDate < today;
+        
+        // Get status and counts
+        const status = this.getDayStatus(mmddyyyy);
+        const totalBooked = this.getTotalBookedCount(mmddyyyy);
+        const maxBookings = this.getMaxBookings(mmddyyyy);
+        const available = Math.max(0, maxBookings - totalBooked);
+        
+        // Debug log for specific dates we care about
+        if (mmddyyyy === '2/23/2026' || mmddyyyy === '2/24/2026' || mmddyyyy === '2/25/2026' || 
+            mmddyyyy === '2/26/2026' || mmddyyyy === '2/27/2026' || mmddyyyy === '3/21/2026') {
+            console.log(`🎨 ${mmddyyyy}: Status=${status.class}, TotalBooked=${totalBooked}, Available=${available}`);
+        }
         
         // Remove all existing classes
         cell.classList.remove(
@@ -275,8 +308,12 @@ class BookingSystem {
         } else {
             if (status.class === 'closed') {
                 cell.classList.add('fc-day-booked');
-            } else {
-                cell.classList.add(`fc-day-${status.class}`);
+            } else if (status.class === 'booked') {
+                cell.classList.add('fc-day-booked');
+            } else if (status.class === 'limited') {
+                cell.classList.add('fc-day-limited');
+            } else if (status.class === 'available') {
+                cell.classList.add('fc-day-available');
             }
         }
         
@@ -290,23 +327,27 @@ class BookingSystem {
             
             if (status.class === 'closed') {
                 badge.textContent = 'Closed';
-                badge.style.color = '#8E8E93';
+                badge.style.backgroundColor = '#8E8E93';
+                badge.style.color = 'white';
             } else if (status.class === 'booked' || available <= 0) {
                 badge.textContent = 'Full';
-                badge.style.color = '#FF3B30';
+                badge.style.backgroundColor = '#FF3B30';
+                badge.style.color = 'white';
             } else if (status.class === 'limited' || available === 1) {
                 badge.textContent = '1 left';
-                badge.style.color = '#FF9F0A';
+                badge.style.backgroundColor = '#FF9F0A';
+                badge.style.color = 'white';
             } else if (status.class === 'available') {
                 badge.textContent = `${available} left`;
-                badge.style.color = '#34C759';
+                badge.style.backgroundColor = '#34C759';
+                badge.style.color = 'white';
             }
             
             cell.appendChild(badge);
         }
         
         // Add selected class if needed
-        if (this.selectedDates && this.selectedDates.includes(dateStr)) {
+        if (this.selectedDates && this.selectedDates.includes(mmddyyyy)) {
             cell.classList.add('fc-day-selected');
         } else {
             cell.classList.remove('fc-day-selected');
@@ -318,67 +359,108 @@ class BookingSystem {
         this.applyStylesToCell(info.el, dateStr);
     }
 
-    getDayStatus(dateStr) {
-        // Check if date is in the past
-        if (new Date(dateStr) < new Date(new Date().toISOString().split('T')[0])) {
-            return { class: 'past', label: 'Past' };
-        }
-        
-        // Check for override in availability data (STATIC - never changes)
+    /**
+     * Get total booked count from both availability Excel and bookings Excel
+     */
+    getTotalBookedCount(dateStr) {
+        // Get booked count from availability Excel
         const override = this.availabilityOverrides.find(o => o.Date === dateStr);
+        const overrideBooked = override && override.Booked ? parseInt(override.Booked) : 0;
         
-        if (override) {
-            // ALWAYS respect the Status field from Excel FIRST
-            if (override.Status === 'Closed') {
-                return { class: 'closed', label: 'Closed' };
-            }
-            if (override.Status === 'Booked') {
-                return { class: 'booked', label: 'Fully Booked' };
-            }
-            if (override.Status === 'Limited') {
-                return { class: 'limited', label: 'Limited' };
-            }
-            if (override.Status === 'Available') {
-                return { class: 'available', label: 'Available' };
-            }
-            
-            // Only calculate from bookings if Status is not set
-            const bookingCount = this.getBookingCount(dateStr);
-            const maxBookings = override.MaxBookings || this.defaultMaxBookings;
-            
-            if (bookingCount >= maxBookings) {
-                return { class: 'booked', label: 'Fully Booked' };
-            } else if (bookingCount >= 1) {
-                return { class: 'limited', label: 'Limited' };
-            } else {
-                return { class: 'available', label: 'Available' };
-            }
-        }
-        
-        // No override - calculate from bookings only
-        const bookingCount = this.getBookingCount(dateStr);
-        const maxBookings = this.defaultMaxBookings;
-        
-        if (bookingCount >= maxBookings) {
-            return { class: 'booked', label: 'Fully Booked' };
-        } else if (bookingCount >= 1) {
-            return { class: 'limited', label: 'Limited' };
-        } else {
-            return { class: 'available', label: 'Available' };
-        }
-    }
-
-    getBookingCount(dateStr) {
-        // Count unique booking IDs for this date
+        // Get booking count from bookings Excel (unique bookings for this date)
         const uniqueBookings = new Set();
-        
         this.bookings
             .filter(b => b.Date === dateStr && b.Status === 'Confirmed')
             .forEach(booking => {
                 uniqueBookings.add(booking['Booking ID']);
             });
+        const bookingsCount = uniqueBookings.size;
         
-        return uniqueBookings.size;
+        // Total is the sum of both
+        const total = overrideBooked + bookingsCount;
+        
+        // Debug log for specific dates
+        if (dateStr === '2/23/2026' || dateStr === '2/24/2026' || dateStr === '2/25/2026' || 
+            dateStr === '2/26/2026' || dateStr === '2/27/2026' || dateStr === '3/21/2026') {
+            console.log(`📊 ${dateStr}: Override booked=${overrideBooked}, Bookings=${bookingsCount}, Total=${total}`);
+        }
+        
+        return total;
+    }
+
+    getDayStatus(dateStr) {
+        // Parse date for comparison
+        const [month, day, year] = dateStr.split('/').map(num => parseInt(num, 10));
+        const checkDate = new Date(year, month-1, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (checkDate < today) {
+            return { class: 'past', label: 'Past' };
+        }
+        
+        // Find override in availability data
+        const override = this.availabilityOverrides.find(o => o.Date === dateStr);
+        
+        // Get total booked count from both sources
+        const totalBooked = this.getTotalBookedCount(dateStr);
+        const maxBookings = this.getMaxBookings(dateStr);
+        
+        // Log for debugging
+        if (dateStr === '2/23/2026' || dateStr === '2/24/2026' || dateStr === '2/25/2026' || 
+            dateStr === '2/26/2026' || dateStr === '2/27/2026' || dateStr === '3/21/2026') {
+            console.log(`📌 ${dateStr}: Override=${override?.Status}, TotalBooked=${totalBooked}, Max=${maxBookings}`);
+        }
+        
+        // If there's a static override
+        if (override) {
+            // Check if override status is absolute Closed
+            if (override.Status === 'Closed') {
+                return { class: 'closed', label: 'Closed' };
+            }
+            
+            // For Limited status, combine both booked numbers
+            if (override.Status === 'Limited') {
+                if (totalBooked >= maxBookings) {
+                    return { class: 'booked', label: 'Fully Booked' };
+                } else if (totalBooked >= 1) {
+                    return { class: 'limited', label: 'Limited' };
+                } else {
+                    // No bookings yet but static says Limited
+                    return { class: 'limited', label: 'Limited' };
+                }
+            }
+            
+            // For Booked status
+            if (override.Status === 'Booked') {
+                if (totalBooked >= maxBookings) {
+                    return { class: 'booked', label: 'Fully Booked' };
+                } else {
+                    // Static says booked but actually has availability
+                    return { class: 'limited', label: 'Limited' };
+                }
+            }
+            
+            // For Available status
+            if (override.Status === 'Available') {
+                if (totalBooked >= maxBookings) {
+                    return { class: 'booked', label: 'Fully Booked' };
+                } else if (totalBooked >= 1) {
+                    return { class: 'limited', label: 'Limited' };
+                } else {
+                    return { class: 'available', label: 'Available' };
+                }
+            }
+        }
+        
+        // No override - calculate from total booked only
+        if (totalBooked >= maxBookings) {
+            return { class: 'booked', label: 'Fully Booked' };
+        } else if (totalBooked >= 1) {
+            return { class: 'limited', label: 'Limited' };
+        } else {
+            return { class: 'available', label: 'Available' };
+        }
     }
 
     getMaxBookings(dateStr) {
@@ -393,33 +475,43 @@ class BookingSystem {
 
     isDateSelectable(info) {
         const dateStr = info.startStr.split('T')[0];
-        const today = new Date().toISOString().split('T')[0];
+        const mmddyyyy = this.convertToMMDDYYYY(dateStr);
         
-        if (dateStr < today) return false;
+        const [month, day, year] = mmddyyyy.split('/').map(num => parseInt(num, 10));
+        const checkDate = new Date(year, month-1, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         
-        const status = this.getDayStatus(dateStr);
+        if (checkDate < today) return false;
+        
+        const status = this.getDayStatus(mmddyyyy);
         return !['booked', 'closed', 'past'].includes(status.class);
     }
 
     handleDateClick(info) {
         const dateStr = info.dateStr;
+        const mmddyyyy = this.convertToMMDDYYYY(dateStr);
         
         if (!this.isDateSelectable(info)) {
             this.showNotification('This date is not available for booking', 'error');
             return;
         }
         
-        const index = this.selectedDates.indexOf(dateStr);
+        const index = this.selectedDates.indexOf(mmddyyyy);
         
         if (index === -1) {
-            this.selectedDates.push(dateStr);
+            this.selectedDates.push(mmddyyyy);
             info.el.classList.add('fc-day-selected');
         } else {
             this.selectedDates.splice(index, 1);
             info.el.classList.remove('fc-day-selected');
         }
         
-        this.selectedDates.sort();
+        this.selectedDates.sort((a, b) => {
+            const [aMonth, aDay, aYear] = a.split('/').map(num => parseInt(num, 10));
+            const [bMonth, bDay, bYear] = b.split('/').map(num => parseInt(num, 10));
+            return new Date(aYear, aMonth-1, aDay) - new Date(bYear, bMonth-1, bDay);
+        });
         
         this.updateBookingSummary();
         
@@ -436,13 +528,19 @@ class BookingSystem {
         this.clearDateSelection(false);
         
         let current = new Date(start);
-        while (current.toISOString().split('T')[0] < end) {
-            const dateStr = current.toISOString().split('T')[0];
+        const endDate = new Date(end);
+        
+        while (current < endDate) {
+            const year = current.getFullYear();
+            const month = String(current.getMonth() + 1);
+            const day = String(current.getDate());
+            const mmddyyyy = `${month}/${day}/${year}`;
+            const yyyymmdd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             
-            if (this.isDateSelectable({ startStr: dateStr })) {
-                this.selectedDates.push(dateStr);
+            if (this.isDateSelectable({ startStr: yyyymmdd })) {
+                this.selectedDates.push(mmddyyyy);
                 
-                const dayCell = document.querySelector(`[data-date="${dateStr}"]`);
+                const dayCell = document.querySelector(`[data-date="${yyyymmdd}"]`);
                 if (dayCell) {
                     dayCell.classList.add('fc-day-selected');
                 }
@@ -451,7 +549,11 @@ class BookingSystem {
             current.setDate(current.getDate() + 1);
         }
         
-        this.selectedDates.sort();
+        this.selectedDates.sort((a, b) => {
+            const [aMonth, aDay, aYear] = a.split('/').map(num => parseInt(num, 10));
+            const [bMonth, bDay, bYear] = b.split('/').map(num => parseInt(num, 10));
+            return new Date(aYear, aMonth-1, aDay) - new Date(bYear, bMonth-1, bDay);
+        });
         
         this.updateBookingSummary();
         
@@ -511,7 +613,9 @@ class BookingSystem {
     }
 
     formatDate(dateStr) {
-        const date = new Date(dateStr);
+        // Input is MM/DD/YYYY
+        const [month, day, year] = dateStr.split('/');
+        const date = new Date(year, month-1, day);
         return date.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric'
@@ -519,7 +623,7 @@ class BookingSystem {
     }
 
     /**
-     * NEW: Resync availability from Excel without changing bookings
+     * Resync availability from Excel
      */
     async resyncFromExcel(showNotification = true) {
         try {
@@ -529,13 +633,20 @@ class BookingSystem {
             
             console.log('🔄 Resyncing availability from Excel...');
             
-            // Reload only availability overrides from Excel
-            const overrides = await this.excelHandler.loadAvailabilityOverrides(true); // Force refresh
+            // Reload availability overrides from Excel
+            const overrides = await this.excelHandler.loadAvailabilityOverrides(true);
             this.availabilityOverrides = overrides || [];
             
-            console.log('✅ Availability resynced:', this.availabilityOverrides.length, 'overrides');
+            // Reload bookings from Excel
+            const bookings = await this.excelHandler.loadBookings(true);
+            this.bookings = bookings || [];
             
-            // Refresh calendar with new availability data
+            console.log('✅ Data resynced:', {
+                overrides: this.availabilityOverrides.length,
+                bookings: this.bookings.length
+            });
+            
+            // Refresh calendar with new data
             this.refreshCalendarData();
             
             if (showNotification) {
@@ -553,7 +664,7 @@ class BookingSystem {
     }
 
     /**
-     * UPDATED: Submit booking - immediately update cache, then resync from Excel
+     * Submit booking - immediately update cache, then resync from Excel
      */
     async submitBooking(bookingData) {
         try {
@@ -561,10 +672,10 @@ class BookingSystem {
             
             // Validate availability
             for (const date of this.selectedDates) {
-                const bookingCount = this.getBookingCount(date);
+                const totalBooked = this.getTotalBookedCount(date);
                 const maxBookings = this.getMaxBookings(date);
                 
-                if (bookingCount >= maxBookings) {
+                if (totalBooked >= maxBookings) {
                     this.showNotification(`Date ${date} is no longer available`, 'error');
                     this.refreshCalendarData();
                     return { success: false, error: 'Date no longer available' };
@@ -587,7 +698,7 @@ class BookingSystem {
                     'Plan Price': this.planPrice,
                     'Total Price': this.planPrice * this.selectedDates.length,
                     'Status': 'Confirmed',
-                    'Booking Date': new Date().toISOString().split('T')[0],
+                    'Booking Date': new Date().toLocaleDateString('en-US'),
                     'Special Requests': bookingData.requests || ''
                 };
                 
@@ -615,15 +726,14 @@ class BookingSystem {
                 }
             });
             
-            // STEP 6: Resync availability from Excel to ensure calendar is up-to-date
-            // This will refresh the availability overrides in case they were changed externally
+            // STEP 6: Resync from Excel to ensure calendar is up-to-date
             setTimeout(() => {
                 this.resyncFromExcel(false).then(success => {
                     if (success) {
-                        console.log('✅ Availability resynced from Excel after booking');
+                        console.log('✅ Data resynced from Excel after booking');
                     }
                 });
-            }, 1000); // Small delay to ensure everything settles
+            }, 1000);
             
             return { success: true, bookingId };
             
@@ -635,7 +745,7 @@ class BookingSystem {
     }
 
     /**
-     * Sync to GitHub with retry mechanism - only updates bookings, never availability
+     * Sync to GitHub with retry mechanism
      */
     async syncToGitHubWithRetry(maxRetries = 3) {
         for (let i = 0; i < maxRetries; i++) {
@@ -656,7 +766,7 @@ class BookingSystem {
     }
 
     /**
-     * Sync only bookings to GitHub - availability Excel never changes
+     * Sync bookings to GitHub
      */
     async syncToGitHub() {
         try {
@@ -667,7 +777,6 @@ class BookingSystem {
             
             console.log('📤 Syncing bookings to GitHub...');
             
-            // Only push bookings - availability Excel is static and never changes
             const bookingsResult = await this.githubSync.pushBookings(this.bookings);
             
             if (bookingsResult) {
