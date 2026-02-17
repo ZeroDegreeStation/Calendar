@@ -1,6 +1,7 @@
 /**
  * Booking System - Core calendar and booking logic
  * OPTIMIZED: Faster Excel resync with parallel loading and caching
+ * FIXED: Multi-date selection correctly sets check-in/out dates
  * FIXED: Proper date conversion from YYYY-MM-DD to MM/DD/YYYY
  */
 class BookingSystem {
@@ -308,6 +309,15 @@ class BookingSystem {
         return `${monthNoZero}/${dayNoZero}/${year}`;
     }
 
+    /**
+     * Convert MM/DD/YYYY to YYYY-MM-DD for FullCalendar
+     */
+    convertToYYYYMMDD(dateStr) {
+        if (!dateStr) return null;
+        const [month, day, year] = dateStr.split('/');
+        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
     applyStylesToCell(cell, dateStr) {
         // Convert YYYY-MM-DD from FullCalendar to MM/DD/YYYY for internal use
         const mmddyyyy = this.convertToMMDDYYYY(dateStr);
@@ -522,6 +532,9 @@ class BookingSystem {
         return !['booked', 'closed', 'past'].includes(status.class);
     }
 
+    /**
+     * Handle date click (single date selection)
+     */
     handleDateClick(info) {
         const dateStr = info.dateStr;
         const mmddyyyy = this.convertToMMDDYYYY(dateStr);
@@ -535,26 +548,36 @@ class BookingSystem {
         
         if (index === -1) {
             this.selectedDates.push(mmddyyyy);
-            info.el.classList.add('fc-day-selected');
         } else {
             this.selectedDates.splice(index, 1);
-            info.el.classList.remove('fc-day-selected');
         }
         
+        // Sort dates chronologically
         this.selectedDates.sort((a, b) => {
             const [aMonth, aDay, aYear] = a.split('/').map(num => parseInt(num, 10));
             const [bMonth, bDay, bYear] = b.split('/').map(num => parseInt(num, 10));
             return new Date(aYear, aMonth-1, aDay) - new Date(bYear, bMonth-1, bDay);
         });
         
+        // Update visual selection on calendar
+        this.updateSelectedCells();
+        
         this.updateBookingSummary();
         
+        // Dispatch event with selected dates and calculated check-in/out
         const event = new CustomEvent('datesSelected', { 
-            detail: { dates: this.selectedDates } 
+            detail: { 
+                dates: this.selectedDates,
+                checkin: this.selectedDates.length > 0 ? this.selectedDates[0] : null,
+                checkout: this.getCheckoutDate()
+            } 
         });
         document.dispatchEvent(event);
     }
 
+    /**
+     * Handle date range selection (multiple dates)
+     */
     handleDateSelect(info) {
         const start = info.startStr.split('T')[0];
         const end = info.endStr.split('T')[0];
@@ -564,37 +587,80 @@ class BookingSystem {
         let current = new Date(start);
         const endDate = new Date(end);
         
+        // Collect all selected dates (nights)
         while (current < endDate) {
             const year = current.getFullYear();
             const month = String(current.getMonth() + 1);
             const day = String(current.getDate());
             const mmddyyyy = `${month}/${day}/${year}`;
-            const yyyymmdd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             
-            if (this.isDateSelectable({ startStr: yyyymmdd })) {
+            if (this.isDateSelectable({ startStr: current.toISOString().split('T')[0] })) {
                 this.selectedDates.push(mmddyyyy);
-                
-                const dayCell = document.querySelector(`[data-date="${yyyymmdd}"]`);
-                if (dayCell) {
-                    dayCell.classList.add('fc-day-selected');
-                }
             }
             
             current.setDate(current.getDate() + 1);
         }
         
+        // Sort dates chronologically
         this.selectedDates.sort((a, b) => {
             const [aMonth, aDay, aYear] = a.split('/').map(num => parseInt(num, 10));
             const [bMonth, bDay, bYear] = b.split('/').map(num => parseInt(num, 10));
             return new Date(aYear, aMonth-1, aDay) - new Date(bYear, bMonth-1, bDay);
         });
         
+        // Update visual selection on calendar
+        this.updateSelectedCells();
+        
         this.updateBookingSummary();
         
+        // Dispatch event with selected dates and calculated check-in/out
         const event = new CustomEvent('datesSelected', { 
-            detail: { dates: this.selectedDates } 
+            detail: { 
+                dates: this.selectedDates,
+                checkin: this.selectedDates.length > 0 ? this.selectedDates[0] : null,
+                checkout: this.getCheckoutDate()
+            } 
         });
         document.dispatchEvent(event);
+    }
+
+    /**
+     * Get checkout date (day after last selected date)
+     */
+    getCheckoutDate() {
+        if (this.selectedDates.length === 0) return null;
+        
+        const lastDate = this.selectedDates[this.selectedDates.length - 1];
+        const [month, day, year] = lastDate.split('/').map(num => parseInt(num, 10));
+        
+        const checkoutDate = new Date(year, month-1, day);
+        checkoutDate.setDate(checkoutDate.getDate() + 1);
+        
+        const checkoutMonth = String(checkoutDate.getMonth() + 1);
+        const checkoutDay = String(checkoutDate.getDate());
+        const checkoutYear = checkoutDate.getFullYear();
+        
+        return `${checkoutMonth}/${checkoutDay}/${checkoutYear}`;
+    }
+
+    /**
+     * Update selected cells on calendar
+     */
+    updateSelectedCells() {
+        // Remove selected class from all cells
+        document.querySelectorAll('.fc-day-selected').forEach(el => {
+            el.classList.remove('fc-day-selected');
+        });
+        
+        // Add selected class to current selection
+        this.selectedDates.forEach(dateStr => {
+            const [month, day, year] = dateStr.split('/');
+            const yyyymmdd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const cell = document.querySelector(`[data-date="${yyyymmdd}"]`);
+            if (cell) {
+                cell.classList.add('fc-day-selected');
+            }
+        });
     }
 
     clearDateSelection(showNotification = true) {
@@ -607,7 +673,11 @@ class BookingSystem {
         this.updateBookingSummary();
         
         const event = new CustomEvent('datesSelected', { 
-            detail: { dates: [] } 
+            detail: { 
+                dates: [],
+                checkin: null,
+                checkout: null
+            } 
         });
         document.dispatchEvent(event);
     }

@@ -1,6 +1,7 @@
 /**
  * SnowStation Integration - Links Calendar with Booking Form
  * FIXED: Better waiting mechanism for BookingSystem
+ * FIXED: Properly sets check-in/out dates from multi-date selection
  */
 class SnowStationIntegration {
     constructor() {
@@ -58,7 +59,7 @@ class SnowStationIntegration {
     setupEventListeners() {
         // Listen for date selection from calendar
         document.addEventListener('datesSelected', (e) => {
-            this.syncDatesToForm(e.detail.dates);
+            this.syncDatesToForm(e.detail);
         });
         
         // Plan selection change
@@ -110,7 +111,7 @@ class SnowStationIntegration {
             });
         }
         
-        // Date inputs
+        // Date inputs manual changes
         const checkinInput = document.getElementById('checkin');
         const checkoutInput = document.getElementById('checkout');
         
@@ -207,7 +208,14 @@ class SnowStationIntegration {
         }
     }
 
-    syncDatesToForm(dates) {
+    /**
+     * UPDATED: Sync selected dates to form with proper check-in/out
+     */
+    syncDatesToForm(detail) {
+        const dates = detail.dates || [];
+        const checkinDate = detail.checkin;
+        const checkoutDate = detail.checkout;
+        
         const checkinInput = document.getElementById('checkin');
         const checkoutInput = document.getElementById('checkout');
         const displayEl = document.getElementById('selectedDatesDisplay');
@@ -220,14 +228,23 @@ class SnowStationIntegration {
             return;
         }
         
-        const checkinDate = dates[0];
-        const checkoutDate = this.calculateCheckoutDate(dates);
+        // Set check-in date (first selected date)
+        if (checkinInput && checkinDate) {
+            // Convert MM/DD/YYYY to YYYY-MM-DD for input field
+            const [month, day, year] = checkinDate.split('/');
+            checkinInput.value = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
         
-        if (checkinInput) checkinInput.value = checkinDate;
-        if (checkoutInput) checkoutInput.value = checkoutDate;
+        // Set check-out date (day after last selected)
+        if (checkoutInput && checkoutDate) {
+            // Convert MM/DD/YYYY to YYYY-MM-DD for input field
+            const [month, day, year] = checkoutDate.split('/');
+            checkoutInput.value = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
         
+        // Update the visual display
         if (displayEl && rangeEl && this.bookingSystem) {
-            const nights = this.calculateNights(checkinDate, checkoutDate);
+            const nights = dates.length;
             const checkinDisplay = this.formatDate(checkinDate);
             const checkoutDisplay = this.formatDate(checkoutDate);
             
@@ -255,28 +272,36 @@ class SnowStationIntegration {
         this.updatePricing();
     }
 
-    calculateCheckoutDate(dates) {
-        if (dates.length === 0) return '';
-        const lastDate = new Date(dates[dates.length - 1]);
-        lastDate.setDate(lastDate.getDate() + 1);
-        return lastDate.toISOString().split('T')[0];
-    }
-
-    calculateNights(checkin, checkout) {
-        if (!checkin || !checkout) return 0;
-        const start = new Date(checkin);
-        const end = new Date(checkout);
-        const diffTime = Math.abs(end - start);
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
-
+    /**
+     * UPDATED: Format date for display
+     */
     formatDate(dateStr) {
-        const date = new Date(dateStr);
+        if (!dateStr) return '';
+        // Input is MM/DD/YYYY
+        const [month, day, year] = dateStr.split('/');
+        const date = new Date(year, month-1, day);
         return date.toLocaleDateString('en-US', {
             weekday: 'short',
             month: 'short',
             day: 'numeric'
         });
+    }
+
+    /**
+     * UPDATED: Calculate nights between check-in and check-out
+     */
+    calculateNights(checkin, checkout) {
+        if (!checkin || !checkout) return 0;
+        
+        // Parse MM/DD/YYYY format
+        const [checkinMonth, checkinDay, checkinYear] = checkin.split('/');
+        const [checkoutMonth, checkoutDay, checkoutYear] = checkout.split('/');
+        
+        const start = new Date(checkinYear, checkinMonth-1, checkinDay);
+        const end = new Date(checkoutYear, checkoutMonth-1, checkoutDay);
+        
+        const diffTime = Math.abs(end - start);
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
     updateSelectedPlanDisplay() {
@@ -308,6 +333,9 @@ class SnowStationIntegration {
         }
     }
 
+    /**
+     * UPDATED: Update pricing based on selected dates and plan
+     */
     updatePricing() {
         const checkin = document.getElementById('checkin')?.value;
         const checkout = document.getElementById('checkout')?.value;
@@ -319,7 +347,14 @@ class SnowStationIntegration {
                          this.planPrices[planSelect.value] || 0;
         
         if (planPrice > 0) {
-            const nights = this.calculateNights(checkin, checkout);
+            // Convert YYYY-MM-DD from input to MM/DD/YYYY for calculation
+            const [checkinYear, checkinMonth, checkinDay] = checkin.split('-');
+            const [checkoutYear, checkoutMonth, checkoutDay] = checkout.split('-');
+            
+            const checkinMMDDYYYY = `${parseInt(checkinMonth)}/${parseInt(checkinDay)}/${checkinYear}`;
+            const checkoutMMDDYYYY = `${parseInt(checkoutMonth)}/${parseInt(checkoutDay)}/${checkoutYear}`;
+            
+            const nights = this.calculateNights(checkinMMDDYYYY, checkoutMMDDYYYY);
             const roomRate = planPrice * nights;
             const tax = Math.round(roomRate * 0.1);
             const serviceCharge = 1000;
