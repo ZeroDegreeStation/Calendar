@@ -1,5 +1,6 @@
 /**
  * Booking System - Core calendar and booking logic with auto-resync
+ * UPDATED: After booking, calendar resyncs availability from Excel
  */
 class BookingSystem {
     constructor() {
@@ -9,8 +10,8 @@ class BookingSystem {
         this.githubSync = new GitHubSync();
         
         this.calendar = null;
-        this.availabilityOverrides = [];
-        this.bookings = [];
+        this.availabilityOverrides = []; // Static from Excel, never changes
+        this.bookings = []; // Dynamic, updates with new bookings
         this.selectedDates = [];
         this.selectedPlan = null;
         this.planPrice = 0;
@@ -28,7 +29,7 @@ class BookingSystem {
         this.updateBookingSummary = this.updateBookingSummary.bind(this);
         this.refreshCalendarData = this.refreshCalendarData.bind(this);
         this.syncToGitHub = this.syncToGitHub.bind(this);
-        this.resyncFromGitHub = this.resyncFromGitHub.bind(this);
+        this.resyncFromExcel = this.resyncFromExcel.bind(this);
         
         this.init();
     }
@@ -60,11 +61,11 @@ class BookingSystem {
         try {
             console.log('📊 Loading data from Excel...');
             
-            // Load availability overrides
+            // Load availability overrides - STATIC, never changes
             const overrides = await this.excelHandler.loadAvailabilityOverrides();
             this.availabilityOverrides = overrides || [];
             
-            // Load bookings
+            // Load bookings - DYNAMIC, updates with new bookings
             const bookings = await this.excelHandler.loadBookings();
             this.bookings = bookings || [];
             
@@ -89,37 +90,6 @@ class BookingSystem {
         } catch (error) {
             console.error('Error loading data:', error);
             this.loadDemoData();
-        }
-    }
-
-    /**
-     * NEW: Resync data from GitHub after successful booking
-     */
-    async resyncFromGitHub(showNotification = true) {
-        try {
-            if (showNotification) {
-                this.showNotification('🔄 Syncing with GitHub...', 'info');
-            }
-            
-            console.log('🔄 Resyncing data from GitHub...');
-            
-            // Reload all data from Excel files
-            await this.loadData();
-            
-            // Force calendar to refresh with new data
-            this.forceCalendarRefresh();
-            
-            if (showNotification) {
-                this.showNotification('✅ Calendar synced with GitHub', 'success');
-            }
-            
-            return true;
-        } catch (error) {
-            console.error('❌ Failed to resync from GitHub:', error);
-            if (showNotification) {
-                this.showNotification('⚠️ Failed to sync with GitHub', 'warning');
-            }
-            return false;
         }
     }
 
@@ -152,15 +122,13 @@ class BookingSystem {
             new Date(currentYear, currentMonth + 2, 9)
         ];
         
+        // STATIC availability overrides - never changes
         this.availabilityOverrides = [
-            // Current month - various statuses
             {
                 Date: demoDates[0].toISOString().split('T')[0],
                 Status: 'Limited',
                 Price: 18500,
                 MaxBookings: 2,
-                Booked: 1,
-                Available: 1,
                 Notes: 'Limited availability - 1 booking taken'
             },
             {
@@ -168,8 +136,6 @@ class BookingSystem {
                 Status: 'Closed',
                 Price: null,
                 MaxBookings: 0,
-                Booked: 0,
-                Available: 0,
                 Notes: 'Closed for maintenance'
             },
             {
@@ -177,8 +143,6 @@ class BookingSystem {
                 Status: 'Limited',
                 Price: 22000,
                 MaxBookings: 2,
-                Booked: 1,
-                Available: 1,
                 Notes: 'Limited availability - 1 booking taken'
             },
             {
@@ -186,8 +150,6 @@ class BookingSystem {
                 Status: 'Booked',
                 Price: 18500,
                 MaxBookings: 2,
-                Booked: 2,
-                Available: 0,
                 Notes: 'Fully booked - 2 bookings taken'
             },
             {
@@ -195,12 +157,11 @@ class BookingSystem {
                 Status: 'Available',
                 Price: 12800,
                 MaxBookings: 2,
-                Booked: 0,
-                Available: 2,
                 Notes: 'Available - 0 bookings'
             }
         ];
         
+        // DYNAMIC bookings - updates with new bookings
         this.bookings = [
             {
                 'Booking ID': 'DEMO-001',
@@ -363,13 +324,11 @@ class BookingSystem {
             return { class: 'past', label: 'Past' };
         }
         
-        // Check for override in availability data
+        // Check for override in availability data (STATIC - never changes)
         const override = this.availabilityOverrides.find(o => o.Date === dateStr);
         
         if (override) {
-            // 🔥 CRITICAL FIX: ALWAYS respect the Status field from Excel FIRST
-            // This ensures Limited/Closed from Excel are displayed correctly
-            // regardless of actual booking count
+            // ALWAYS respect the Status field from Excel FIRST
             if (override.Status === 'Closed') {
                 return { class: 'closed', label: 'Closed' };
             }
@@ -559,47 +518,42 @@ class BookingSystem {
         });
     }
 
-    async updateAvailabilityAfterBooking(date, guests) {
-        const bookingCount = this.getBookingCount(date);
-        
-        const existingIndex = this.availabilityOverrides.findIndex(a => a.Date === date);
-        
-        if (existingIndex >= 0) {
-            this.availabilityOverrides[existingIndex].Booked = bookingCount;
-            this.availabilityOverrides[existingIndex].Available = 
-                Math.max(0, this.availabilityOverrides[existingIndex].MaxBookings - bookingCount);
-            
-            const available = this.availabilityOverrides[existingIndex].Available;
-            
-            if (this.availabilityOverrides[existingIndex].Status !== 'Closed') {
-                if (available <= 0) {
-                    this.availabilityOverrides[existingIndex].Status = 'Booked';
-                } else if (available === 1) {
-                    this.availabilityOverrides[existingIndex].Status = 'Limited';
-                } else {
-                    this.availabilityOverrides[existingIndex].Status = 'Available';
-                }
+    /**
+     * NEW: Resync availability from Excel without changing bookings
+     */
+    async resyncFromExcel(showNotification = true) {
+        try {
+            if (showNotification) {
+                this.showNotification('🔄 Syncing availability from Excel...', 'info');
             }
-        } else {
-            const maxBookings = this.defaultMaxBookings;
-            const available = Math.max(0, maxBookings - bookingCount);
             
-            this.availabilityOverrides.push({
-                Date: date,
-                Status: available <= 0 ? 'Booked' : (available === 1 ? 'Limited' : 'Available'),
-                Price: this.defaultPrice,
-                MaxBookings: maxBookings,
-                Booked: bookingCount,
-                Available: available,
-                Notes: 'Auto-generated from bookings'
-            });
+            console.log('🔄 Resyncing availability from Excel...');
+            
+            // Reload only availability overrides from Excel
+            const overrides = await this.excelHandler.loadAvailabilityOverrides(true); // Force refresh
+            this.availabilityOverrides = overrides || [];
+            
+            console.log('✅ Availability resynced:', this.availabilityOverrides.length, 'overrides');
+            
+            // Refresh calendar with new availability data
+            this.refreshCalendarData();
+            
+            if (showNotification) {
+                this.showNotification('✅ Calendar synced with Excel', 'success');
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to resync from Excel:', error);
+            if (showNotification) {
+                this.showNotification('⚠️ Failed to sync with Excel', 'warning');
+            }
+            return false;
         }
-        
-        console.log(`✅ Availability updated for ${date}: ${bookingCount}/${this.getMaxBookings(date)} bookings taken`);
     }
 
     /**
-     * UPDATED: Submit booking and then resync from GitHub
+     * UPDATED: Submit booking - immediately update cache, then resync from Excel
      */
     async submitBooking(bookingData) {
         try {
@@ -620,6 +574,7 @@ class BookingSystem {
             const bookingId = this.generateBookingId();
             const newBookings = [];
             
+            // STEP 1: Add to local cache immediately
             for (const date of this.selectedDates) {
                 const booking = {
                     'Booking ID': bookingId,
@@ -630,7 +585,7 @@ class BookingSystem {
                     'Guests': bookingData.guests || 1,
                     'Plan': this.planName,
                     'Plan Price': this.planPrice,
-                    'Total Price': this.planPrice,
+                    'Total Price': this.planPrice * this.selectedDates.length,
                     'Status': 'Confirmed',
                     'Booking Date': new Date().toISOString().split('T')[0],
                     'Special Requests': bookingData.requests || ''
@@ -640,33 +595,35 @@ class BookingSystem {
                 newBookings.push(booking);
             }
             
-            console.log('✅ Bookings saved locally:', newBookings.length);
+            console.log('✅ Bookings added to cache:', newBookings.length);
             
-            // Update local availability
-            for (const date of this.selectedDates) {
-                await this.updateAvailabilityAfterBooking(date, bookingData.guests || 1);
-            }
-            
-            // Clear selection
+            // STEP 2: Clear selection
             this.clearDateSelection(false);
             
-            // Refresh calendar with local data (immediate feedback)
+            // STEP 3: Refresh calendar with updated cache
             this.refreshCalendarData();
             
-            // Show optimistic success
+            // STEP 4: Show success notification
             this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
-            // Step 1: Try to sync to GitHub (with retry)
-            const syncSuccess = await this.syncToGitHubWithRetry(3);
+            // STEP 5: Sync to GitHub in background
+            this.syncToGitHubWithRetry(3).then(success => {
+                if (success) {
+                    console.log('✅ Bookings synced to GitHub successfully');
+                } else {
+                    console.warn('⚠️ Bookings saved locally but GitHub sync failed');
+                }
+            });
             
-            // Step 2: If sync succeeded, RESYNC from GitHub to verify
-            if (syncSuccess) {
-                this.showNotification('🔄 Verifying with GitHub...', 'info');
-                await this.resyncFromGitHub(false); // Don't show notification (we'll show our own)
-                this.showNotification('✅ Booking verified on GitHub', 'success');
-            } else {
-                this.showNotification('⚠️ Booking saved locally but GitHub sync failed', 'warning');
-            }
+            // STEP 6: Resync availability from Excel to ensure calendar is up-to-date
+            // This will refresh the availability overrides in case they were changed externally
+            setTimeout(() => {
+                this.resyncFromExcel(false).then(success => {
+                    if (success) {
+                        console.log('✅ Availability resynced from Excel after booking');
+                    }
+                });
+            }, 1000); // Small delay to ensure everything settles
             
             return { success: true, bookingId };
             
@@ -678,14 +635,13 @@ class BookingSystem {
     }
 
     /**
-     * Sync to GitHub with retry mechanism
+     * Sync to GitHub with retry mechanism - only updates bookings, never availability
      */
     async syncToGitHubWithRetry(maxRetries = 3) {
         for (let i = 0; i < maxRetries; i++) {
             try {
                 if (i > 0) {
                     console.log(`🔄 Retry ${i}/${maxRetries}...`);
-                    // Exponential backoff: 1s, 2s, 4s
                     await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i-1)));
                 }
                 
@@ -700,7 +656,7 @@ class BookingSystem {
     }
 
     /**
-     * Sync all data to GitHub
+     * Sync only bookings to GitHub - availability Excel never changes
      */
     async syncToGitHub() {
         try {
@@ -709,13 +665,13 @@ class BookingSystem {
                 return false;
             }
             
-            console.log('📤 Syncing to GitHub...');
+            console.log('📤 Syncing bookings to GitHub...');
             
+            // Only push bookings - availability Excel is static and never changes
             const bookingsResult = await this.githubSync.pushBookings(this.bookings);
-            const availabilityResult = await this.githubSync.pushAvailability(this.availabilityOverrides);
             
-            if (bookingsResult && availabilityResult) {
-                console.log('✅ Successfully synced all data to GitHub');
+            if (bookingsResult) {
+                console.log('✅ Successfully synced bookings to GitHub');
                 return true;
             } else {
                 console.warn('⚠️ GitHub sync failed');

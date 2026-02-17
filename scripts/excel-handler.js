@@ -1,6 +1,7 @@
 /**
  * Excel Handler - Manages reading/writing Excel files
  * Dependencies: SheetJS (XLSX)
+ * UPDATED: Added force refresh parameter to bypass cache
  */
 class ExcelHandler {
     constructor() {
@@ -19,13 +20,29 @@ class ExcelHandler {
             branch: 'main'
         };
         
+        // Cache settings
+        this.cache = {
+            availability: null,
+            bookings: null,
+            timestamp: null
+        };
+        this.cacheDuration = 5 * 60 * 1000; // 5 minutes
+        
         console.log('✅ ExcelHandler initialized');
     }
 
     /**
      * Load availability overrides from Excel
+     * UPDATED: Added forceRefresh parameter to bypass cache
      */
-    async loadAvailabilityOverrides() {
+    async loadAvailabilityOverrides(forceRefresh = false) {
+        // Check cache first unless force refresh is requested
+        if (!forceRefresh && this.cache.availability && 
+            this.cache.timestamp && (Date.now() - this.cache.timestamp) < this.cacheDuration) {
+            console.log('📦 Using cached availability data');
+            return this.cache.availability;
+        }
+        
         try {
             const url = this.getGitHubRawUrl(this.availabilityFile);
             console.log('📥 Fetching availability from:', url);
@@ -94,6 +111,11 @@ class ExcelHandler {
             }).filter(item => item.Date); // Remove items with invalid dates
             
             console.log('✅ Processed availability:', processed);
+            
+            // Update cache
+            this.cache.availability = processed;
+            this.cache.timestamp = Date.now();
+            
             return processed;
             
         } catch (error) {
@@ -104,8 +126,16 @@ class ExcelHandler {
 
     /**
      * Load all bookings from Excel
+     * UPDATED: Added forceRefresh parameter to bypass cache
      */
-    async loadBookings() {
+    async loadBookings(forceRefresh = false) {
+        // Check cache first unless force refresh is requested
+        if (!forceRefresh && this.cache.bookings && 
+            this.cache.timestamp && (Date.now() - this.cache.timestamp) < this.cacheDuration) {
+            console.log('📦 Using cached bookings data');
+            return this.cache.bookings;
+        }
+        
         try {
             const url = this.getGitHubRawUrl(this.bookingsFile);
             console.log('📥 Fetching bookings from:', url);
@@ -174,6 +204,11 @@ class ExcelHandler {
             }).filter(item => item.Date);
             
             console.log('✅ Processed bookings:', processed);
+            
+            // Update cache
+            this.cache.bookings = processed;
+            this.cache.timestamp = Date.now();
+            
             return processed;
             
         } catch (error) {
@@ -280,6 +315,18 @@ class ExcelHandler {
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
         XLSX.writeFile(workbook, filename);
         console.log(`✅ Exported to ${filename}`);
+    }
+    
+    /**
+     * Clear cache to force fresh load on next request
+     */
+    clearCache() {
+        this.cache = {
+            availability: null,
+            bookings: null,
+            timestamp: null
+        };
+        console.log('🧹 Cache cleared');
     }
 }
 
