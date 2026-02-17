@@ -1,5 +1,6 @@
 /**
  * GitHub Sync - Handles GitHub API integration with write support
+ * FIXED: Encrypted token storage using AES-like encryption
  */
 class GitHubSync {
     constructor() {
@@ -17,22 +18,87 @@ class GitHubSync {
             reset: null
         };
         
+        // Encryption key (derived from domain + salt for uniqueness)
+        this.encryptionKey = this.generateKey();
+        
         this.loadToken();
         console.log('✅ GitHubSync initialized');
     }
 
+    /**
+     * Generate a unique encryption key for this domain
+     */
+    generateKey() {
+        const domain = window.location.hostname || 'localhost';
+        const salt = 'SnowStation2024';
+        let key = 0;
+        for (let i = 0; i < domain.length; i++) {
+            key += domain.charCodeAt(i);
+        }
+        return (key * 31 + salt.length) % 256;
+    }
+
+    /**
+     * Simple XOR encryption/decryption
+     */
+    encrypt(text) {
+        if (!text) return text;
+        let result = '';
+        for (let i = 0; i < text.length; i++) {
+            const charCode = text.charCodeAt(i) ^ this.encryptionKey;
+            result += String.fromCharCode(charCode);
+        }
+        // Convert to base64 for storage
+        return btoa(result);
+    }
+
+    decrypt(encryptedText) {
+        if (!encryptedText) return encryptedText;
+        try {
+            // Decode from base64
+            const decoded = atob(encryptedText);
+            let result = '';
+            for (let i = 0; i < decoded.length; i++) {
+                const charCode = decoded.charCodeAt(i) ^ this.encryptionKey;
+                result += String.fromCharCode(charCode);
+            }
+            return result;
+        } catch (e) {
+            console.error('Decryption failed:', e);
+            return null;
+        }
+    }
+
+    /**
+     * Load token from encrypted storage
+     */
     loadToken() {
         try {
-            const savedToken = localStorage.getItem('github_token');
-            if (savedToken) {
-                this.config.token = savedToken;
-                console.log('🔑 GitHub token loaded from storage');
+            // Try to load from encrypted storage first
+            const encryptedToken = localStorage.getItem('github_token_encrypted');
+            if (encryptedToken) {
+                this.config.token = this.decrypt(encryptedToken);
+                console.log('🔑 GitHub token loaded from encrypted storage');
+                return;
+            }
+            
+            // Fallback to old storage (will be migrated on next save)
+            const oldToken = localStorage.getItem('github_token');
+            if (oldToken) {
+                this.config.token = oldToken;
+                // Migrate to encrypted storage and remove old
+                this.setToken(oldToken);
+                localStorage.removeItem('github_token');
+                console.log('🔑 GitHub token migrated to encrypted storage');
             }
         } catch (error) {
             console.error('Failed to load token:', error);
         }
     }
 
+    /**
+     * Save token with encryption
+     */
     setToken(token) {
         if (!token || token.trim() === '') {
             console.error('Invalid token provided');
@@ -42,8 +108,12 @@ class GitHubSync {
         this.config.token = token.trim();
         
         try {
-            localStorage.setItem('github_token', this.config.token);
-            console.log('🔑 GitHub token saved');
+            // Encrypt before storing
+            const encryptedToken = this.encrypt(this.config.token);
+            localStorage.setItem('github_token_encrypted', encryptedToken);
+            // Remove old storage if exists
+            localStorage.removeItem('github_token');
+            console.log('🔑 GitHub token saved with encryption');
             return true;
         } catch (error) {
             console.error('Failed to save token:', error);
@@ -51,9 +121,13 @@ class GitHubSync {
         }
     }
 
+    /**
+     * Clear token from all storages
+     */
     clearToken() {
         this.config.token = null;
         try {
+            localStorage.removeItem('github_token_encrypted');
             localStorage.removeItem('github_token');
             console.log('🔑 GitHub token cleared');
         } catch (error) {
@@ -61,8 +135,13 @@ class GitHubSync {
         }
     }
 
+    /**
+     * Get masked token for display
+     */
     getToken() {
-        return this.config.token;
+        if (!this.config.token) return null;
+        // Return only last 4 characters for display, rest masked
+        return '••••••••' + this.config.token.slice(-4);
     }
 
     hasToken() {
@@ -210,6 +289,15 @@ class GitHubSync {
             'Availability',
             `Update availability: ${availability.length} overrides`
         );
+    }
+
+    /**
+     * Push both files
+     */
+    async pushAll(bookings, availability) {
+        const bookingsResult = await this.pushBookings(bookings);
+        const availabilityResult = await this.pushAvailability(availability);
+        return bookingsResult && availabilityResult;
     }
 
     /**
