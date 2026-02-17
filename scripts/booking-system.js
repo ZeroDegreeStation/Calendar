@@ -1,5 +1,6 @@
 /**
  * Booking System - Core calendar and booking logic
+ * OPTIMIZED: Faster Excel resync with parallel loading and caching
  * FIXED: Proper date conversion from YYYY-MM-DD to MM/DD/YYYY
  */
 class BookingSystem {
@@ -10,8 +11,8 @@ class BookingSystem {
         this.githubSync = new GitHubSync();
         
         this.calendar = null;
-        this.availabilityOverrides = []; // Static from Excel
-        this.bookings = []; // Dynamic from Excel
+        this.availabilityOverrides = [];
+        this.bookings = [];
         this.selectedDates = [];
         this.selectedPlan = null;
         this.planPrice = 0;
@@ -19,6 +20,10 @@ class BookingSystem {
         
         this.defaultPrice = 12800;
         this.defaultMaxBookings = 2;
+        
+        // Add loading state
+        this.isLoading = false;
+        this.pendingResync = false;
         
         // Bind methods
         this.handleDateClick = this.handleDateClick.bind(this);
@@ -36,40 +41,71 @@ class BookingSystem {
 
     async init() {
         try {
+            // Show loading state
+            this.showCalendarLoading('Loading calendar data...');
+            
             await this.loadData();
             this.initCalendar();
             this.setupEventListeners();
             
-            // Update status
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
                 const now = new Date();
                 statusEl.textContent = `Calendar ready: ${now.toLocaleDateString()}`;
             }
             
-            // Check GitHub connection
             this.checkGitHubStatus();
             
             console.log('✅ BookingSystem initialized');
         } catch (error) {
             console.error('❌ Failed to initialize BookingSystem:', error);
-            this.showNotification('Failed to initialize calendar', 'error');
+            this.showCalendarError('Failed to initialize calendar');
+        }
+    }
+
+    showCalendarLoading(message) {
+        const calendarEl = document.getElementById('calendar');
+        if (calendarEl) {
+            calendarEl.innerHTML = `
+                <div class="calendar-loading">
+                    <i class="fas fa-spinner fa-spin"></i> ${message}
+                </div>
+            `;
+        }
+    }
+
+    showCalendarError(message) {
+        const calendarEl = document.getElementById('calendar');
+        if (calendarEl) {
+            calendarEl.innerHTML = `
+                <div class="calendar-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Error</h3>
+                    <p>${message}</p>
+                    <button onclick="window.location.reload()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            `;
         }
     }
 
     async loadData() {
+        const startTime = performance.now();
+        console.log('📊 Loading data from Excel...');
+        
         try {
-            console.log('📊 Loading data from Excel...');
+            // Load both files in parallel for speed
+            const [overrides, bookings] = await Promise.all([
+                this.excelHandler.loadAvailabilityOverrides(),
+                this.excelHandler.loadBookings()
+            ]);
             
-            // Load availability overrides from Excel
-            const overrides = await this.excelHandler.loadAvailabilityOverrides();
             this.availabilityOverrides = overrides || [];
-            
-            // Load bookings from Excel
-            const bookings = await this.excelHandler.loadBookings();
             this.bookings = bookings || [];
             
-            console.log('📊 Data loaded:', {
+            const endTime = performance.now();
+            console.log(`📊 Data loaded in ${Math.round(endTime - startTime)}ms:`, {
                 overrides: this.availabilityOverrides.length,
                 bookings: this.bookings.length
             });
@@ -78,13 +114,11 @@ class BookingSystem {
             console.log('📅 Availability Overrides:', JSON.stringify(this.availabilityOverrides, null, 2));
             console.log('📅 Bookings:', JSON.stringify(this.bookings, null, 2));
             
-            // If no data at all, load demo data
             if (this.availabilityOverrides.length === 0 && this.bookings.length === 0) {
                 console.log('⚠️ No data found, loading demo data');
                 this.loadDemoData();
             }
             
-            // Update status
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
                 statusEl.textContent = `Loaded: ${this.availabilityOverrides.length} overrides, ${this.bookings.length} bookings`;
@@ -263,7 +297,7 @@ class BookingSystem {
     }
 
     /**
-     * FIXED: Convert YYYY-MM-DD from FullCalendar to MM/DD/YYYY correctly
+     * Convert YYYY-MM-DD from FullCalendar to MM/DD/YYYY correctly
      */
     convertToMMDDYYYY(dateStr) {
         // Input format: YYYY-MM-DD
@@ -623,69 +657,131 @@ class BookingSystem {
     }
 
     /**
-     * Resync availability from Excel
+     * OPTIMIZED: Faster resync from Excel with parallel loading and minimal re-rendering
      */
-    async resyncFromExcel(showNotification = true) {
+    async resyncFromExcel(showNotification = true, force = false) {
+        // Prevent multiple simultaneous resyncs
+        if (this.isLoading) {
+            console.log('⏳ Already loading, queueing pending resync');
+            this.pendingResync = true;
+            return false;
+        }
+        
+        this.isLoading = true;
+        const startTime = performance.now();
+        
         try {
             if (showNotification) {
-                this.showNotification('🔄 Syncing availability from Excel...', 'info');
+                this.showNotification('🔄 Syncing calendar...', 'info', 2000);
             }
             
-            console.log('🔄 Resyncing availability from Excel...');
+            console.log('🔄 Resyncing data from Excel...');
             
-            // Reload availability overrides from Excel
-            const overrides = await this.excelHandler.loadAvailabilityOverrides(true);
-            this.availabilityOverrides = overrides || [];
+            // Load both files in parallel with cache busting
+            const [overrides, bookings] = await Promise.all([
+                this.excelHandler.loadAvailabilityOverrides(force),
+                this.excelHandler.loadBookings(force)
+            ]);
             
-            // Reload bookings from Excel
-            const bookings = await this.excelHandler.loadBookings(true);
-            this.bookings = bookings || [];
+            // Only update if data actually changed
+            const overridesChanged = JSON.stringify(this.availabilityOverrides) !== JSON.stringify(overrides);
+            const bookingsChanged = JSON.stringify(this.bookings) !== JSON.stringify(bookings);
             
-            console.log('✅ Data resynced:', {
-                overrides: this.availabilityOverrides.length,
-                bookings: this.bookings.length
-            });
+            if (overridesChanged || bookingsChanged) {
+                this.availabilityOverrides = overrides || [];
+                this.bookings = bookings || [];
+                
+                console.log('✅ Data updated:', {
+                    overridesChanged,
+                    bookingsChanged
+                });
+                
+                // Fast refresh - only update visible cells, don't re-render entire calendar
+                this.fastRefreshCalendar();
+            } else {
+                console.log('📦 No changes detected, skipping refresh');
+            }
             
-            // Refresh calendar with new data
-            this.refreshCalendarData();
+            const endTime = performance.now();
+            console.log(`✅ Resync completed in ${Math.round(endTime - startTime)}ms`);
             
             if (showNotification) {
-                this.showNotification('✅ Calendar synced with Excel', 'success');
+                this.showNotification('✅ Calendar updated', 'success', 2000);
+            }
+            
+            // Check if there's a pending resync
+            if (this.pendingResync) {
+                this.pendingResync = false;
+                setTimeout(() => this.resyncFromExcel(false, true), 100);
             }
             
             return true;
+            
         } catch (error) {
             console.error('❌ Failed to resync from Excel:', error);
             if (showNotification) {
-                this.showNotification('⚠️ Failed to sync with Excel', 'warning');
+                this.showNotification('⚠️ Sync failed', 'warning', 3000);
             }
             return false;
+        } finally {
+            this.isLoading = false;
         }
     }
 
     /**
-     * Submit booking - immediately update cache, then resync from Excel
+     * Fast refresh - only update visible cells without re-rendering entire calendar
+     */
+    fastRefreshCalendar() {
+        console.log('⚡ Fast refreshing calendar cells...');
+        
+        const startTime = performance.now();
+        
+        // Only update cells that are currently visible
+        const visibleCells = document.querySelectorAll('.fc-daygrid-day');
+        let updatedCount = 0;
+        
+        visibleCells.forEach(cell => {
+            const dateStr = cell.getAttribute('data-date');
+            if (dateStr) {
+                const oldClass = cell.className;
+                this.applyStylesToCell(cell, dateStr);
+                if (oldClass !== cell.className) {
+                    updatedCount++;
+                }
+            }
+        });
+        
+        const endTime = performance.now();
+        console.log(`✅ Fast refresh updated ${updatedCount} cells in ${Math.round(endTime - startTime)}ms`);
+        
+        const statusEl = document.getElementById('calendarLastUpdated');
+        if (statusEl) {
+            const now = new Date();
+            statusEl.textContent = `Updated: ${now.toLocaleTimeString()}`;
+        }
+    }
+
+    /**
+     * OPTIMIZED: Submit booking with faster resync
      */
     async submitBooking(bookingData) {
         try {
             console.log('📝 Processing booking...', bookingData);
             
-            // Validate availability
+            // Quick validation using current data
             for (const date of this.selectedDates) {
                 const totalBooked = this.getTotalBookedCount(date);
                 const maxBookings = this.getMaxBookings(date);
                 
                 if (totalBooked >= maxBookings) {
                     this.showNotification(`Date ${date} is no longer available`, 'error');
-                    this.refreshCalendarData();
                     return { success: false, error: 'Date no longer available' };
                 }
             }
             
             const bookingId = this.generateBookingId();
-            const newBookings = [];
             
-            // STEP 1: Add to local cache immediately
+            // Add to cache immediately
             for (const date of this.selectedDates) {
                 const booking = {
                     'Booking ID': bookingId,
@@ -703,43 +799,27 @@ class BookingSystem {
                 };
                 
                 this.bookings.push(booking);
-                newBookings.push(booking);
             }
             
-            console.log('✅ Bookings added to cache:', newBookings.length);
-            
-            // STEP 2: Clear selection
+            // Clear selection and refresh immediately
             this.clearDateSelection(false);
+            this.fastRefreshCalendar(); // Fast refresh instead of full refresh
             
-            // STEP 3: Refresh calendar with updated cache
-            this.refreshCalendarData();
-            
-            // STEP 4: Show success notification
             this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
-            // STEP 5: Sync to GitHub in background
-            this.syncToGitHubWithRetry(3).then(success => {
-                if (success) {
-                    console.log('✅ Bookings synced to GitHub successfully');
-                } else {
-                    console.warn('⚠️ Bookings saved locally but GitHub sync failed');
-                }
-            });
+            // Sync to GitHub in background (don't wait)
+            this.syncToGitHubWithRetry(2).catch(console.warn);
             
-            // STEP 6: Resync from Excel to ensure calendar is up-to-date
+            // Quick background resync after 2 seconds
             setTimeout(() => {
-                this.resyncFromExcel(false).then(success => {
-                    if (success) {
-                        console.log('✅ Data resynced from Excel after booking');
-                    }
-                });
-            }, 1000);
+                this.resyncFromExcel(false, true).catch(console.warn);
+            }, 2000);
             
             return { success: true, bookingId };
             
         } catch (error) {
             console.error('❌ Error submitting booking:', error);
-            this.showNotification('Booking failed. Please try again.', 'error');
+            this.showNotification('Booking failed', 'error');
             return { success: false, error };
         }
     }
@@ -747,12 +827,11 @@ class BookingSystem {
     /**
      * Sync to GitHub with retry mechanism
      */
-    async syncToGitHubWithRetry(maxRetries = 3) {
+    async syncToGitHubWithRetry(maxRetries = 2) {
         for (let i = 0; i < maxRetries; i++) {
             try {
                 if (i > 0) {
-                    console.log(`🔄 Retry ${i}/${maxRetries}...`);
-                    await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i-1)));
+                    await new Promise(r => setTimeout(r, 500));
                 }
                 
                 const success = await this.syncToGitHub();
@@ -769,23 +848,12 @@ class BookingSystem {
      * Sync bookings to GitHub
      */
     async syncToGitHub() {
+        if (!this.githubSync.hasToken()) {
+            return false;
+        }
+        
         try {
-            if (!this.githubSync.hasToken()) {
-                console.log('⚠️ No GitHub token, skipping sync');
-                return false;
-            }
-            
-            console.log('📤 Syncing bookings to GitHub...');
-            
-            const bookingsResult = await this.githubSync.pushBookings(this.bookings);
-            
-            if (bookingsResult) {
-                console.log('✅ Successfully synced bookings to GitHub');
-                return true;
-            } else {
-                console.warn('⚠️ GitHub sync failed');
-                return false;
-            }
+            return await this.githubSync.pushBookings(this.bookings);
         } catch (error) {
             console.error('❌ Failed to sync to GitHub:', error);
             return false;
@@ -819,18 +887,7 @@ class BookingSystem {
      * Refresh calendar data from local arrays
      */
     refreshCalendarData() {
-        console.log('🔄 Refreshing calendar data...');
-        
-        const statusEl = document.getElementById('calendarLastUpdated');
-        if (statusEl) {
-            const now = new Date();
-            statusEl.textContent = `Last updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-            statusEl.style.color = '#27ae60';
-        }
-        
-        this.refreshVisibleCells();
-        
-        console.log('✅ Calendar data refreshed');
+        this.fastRefreshCalendar();
     }
 
     generateBookingId() {
@@ -838,17 +895,18 @@ class BookingSystem {
     }
 
     forceCalendarRefresh() {
-        console.log('🔄 Force refreshing calendar...');
-        
         if (!this.calendar) return;
         
         try {
             const calendarEl = document.getElementById('calendar');
+            const currentView = this.calendar.view.type;
+            const currentDate = this.calendar.getDate();
             
             this.calendar.destroy();
             
             this.calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
+                initialView: currentView,
+                initialDate: currentDate,
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
@@ -877,7 +935,7 @@ class BookingSystem {
             });
             
             this.calendar.render();
-            console.log('✅ Calendar re-rendered successfully');
+            console.log('✅ Calendar re-rendered');
             
         } catch (error) {
             console.error('❌ Failed to refresh calendar:', error);
@@ -885,14 +943,15 @@ class BookingSystem {
     }
 
     setupEventListeners() {
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                // Handle modal closing
+        // Add periodic refresh every 30 seconds (optional)
+        setInterval(() => {
+            if (!this.isLoading) {
+                this.resyncFromExcel(false, false).catch(console.warn);
             }
-        });
+        }, 30000);
     }
 
-    showNotification(message, type = 'info') {
+    showNotification(message, type = 'info', duration = 3000) {
         console.log(`[${type}] ${message}`);
         
         const notification = document.createElement('div');
@@ -900,20 +959,28 @@ class BookingSystem {
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 1rem 1.5rem;
+            padding: 0.8rem 1.2rem;
             background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : '#3498db'};
             color: white;
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 9999;
-            animation: slideIn 0.3s ease;
+            animation: slideIn 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 0.8rem;
+            gap: 0.5rem;
+            font-size: 0.9rem;
         `;
         
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+        
         notification.innerHTML = `
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
+            <i class="fas ${icons[type] || icons.info}"></i>
             <span>${message}</span>
         `;
         
@@ -921,8 +988,8 @@ class BookingSystem {
         
         setTimeout(() => {
             notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+            setTimeout(() => notification.remove(), 200);
+        }, duration);
     }
 }
 

@@ -1,6 +1,6 @@
 /**
  * Excel Handler - Manages reading/writing Excel files
- * UPDATED: Preserves MM/DD/YYYY format
+ * UPDATED: Preserves MM/DD/YYYY format with caching
  */
 class ExcelHandler {
     constructor() {

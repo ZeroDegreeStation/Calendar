@@ -1,6 +1,6 @@
 /**
  * GitHub Sync - Handles GitHub API integration with write support
- * FIXED: Encrypted token storage using AES-like encryption
+ * FIXED: Secure token storage with encryption
  */
 class GitHubSync {
     constructor() {
@@ -277,27 +277,6 @@ class GitHubSync {
             'Bookings',
             `Update bookings: ${bookings.length} total bookings`
         );
-    }
-
-    /**
-     * Push availability to GitHub
-     */
-    async pushAvailability(availability) {
-        return this.pushFile(
-            'data/calendar-availability.xlsx',
-            availability,
-            'Availability',
-            `Update availability: ${availability.length} overrides`
-        );
-    }
-
-    /**
-     * Push both files
-     */
-    async pushAll(bookings, availability) {
-        const bookingsResult = await this.pushBookings(bookings);
-        const availabilityResult = await this.pushAvailability(availability);
-        return bookingsResult && availabilityResult;
     }
 
     /**

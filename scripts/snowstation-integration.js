@@ -1,5 +1,6 @@
 /**
  * SnowStation Integration - Links Calendar with Booking Form
+ * FIXED: Better waiting mechanism for BookingSystem
  */
 class SnowStationIntegration {
     constructor() {
@@ -7,6 +8,8 @@ class SnowStationIntegration {
         
         this.bookingSystem = null;
         this.excelHandler = new ExcelHandler();
+        this.initAttempts = 0;
+        this.maxAttempts = 10;
         
         this.planPrices = {
             'weekend-getaway': 12800,
@@ -34,20 +37,21 @@ class SnowStationIntegration {
     async waitForBookingSystem() {
         return new Promise((resolve) => {
             const checkInterval = setInterval(() => {
-                // FIXED: Check for window.bookingSystem instead of window.calendar
+                this.initAttempts++;
+                
                 if (window.bookingSystem) {
                     this.bookingSystem = window.bookingSystem;
                     clearInterval(checkInterval);
-                    console.log('✅ BookingSystem connected');
+                    console.log(`✅ BookingSystem connected after ${this.initAttempts} attempts`);
                     resolve();
+                } else if (this.initAttempts >= this.maxAttempts) {
+                    console.log('⚠️ BookingSystem not found after max attempts');
+                    clearInterval(checkInterval);
+                    resolve();
+                } else {
+                    console.log(`⏳ Waiting for BookingSystem... (${this.initAttempts}/${this.maxAttempts})`);
                 }
-            }, 100);
-            
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                console.log('⚠️ BookingSystem not found after timeout');
-                resolve();
-            }, 5000);
+            }, 500);
         });
     }
 
@@ -222,7 +226,7 @@ class SnowStationIntegration {
         if (checkinInput) checkinInput.value = checkinDate;
         if (checkoutInput) checkoutInput.value = checkoutDate;
         
-        if (displayEl && rangeEl) {
+        if (displayEl && rangeEl && this.bookingSystem) {
             const nights = this.calculateNights(checkinDate, checkoutDate);
             const checkinDisplay = this.formatDate(checkinDate);
             const checkoutDisplay = this.formatDate(checkoutDate);
@@ -309,7 +313,7 @@ class SnowStationIntegration {
         const checkout = document.getElementById('checkout')?.value;
         const planSelect = document.getElementById('selected-plan');
         
-        if (!planSelect || !checkin || !checkout) return;
+        if (!planSelect || !checkin || !checkout || !this.bookingSystem) return;
         
         const planPrice = parseInt(planSelect.getAttribute('data-price')) || 
                          this.planPrices[planSelect.value] || 0;
@@ -516,6 +520,8 @@ class SnowStationIntegration {
     }
 
     showNotification(message, type = 'info') {
+        console.log(`[${type}] ${message}`);
+        
         const notification = document.createElement('div');
         notification.style.cssText = `
             position: fixed;
@@ -533,8 +539,14 @@ class SnowStationIntegration {
             gap: 0.8rem;
         `;
         
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            info: 'fa-info-circle'
+        };
+        
         notification.innerHTML = `
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+            <i class="fas ${icons[type] || icons.info}"></i>
             <span>${message}</span>
         `;
         
@@ -566,6 +578,9 @@ document.head.appendChild(style);
 // Initialize - wait for DOM
 if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', function() {
-        window.snowStation = new SnowStationIntegration();
+        // Small delay to ensure BookingSystem is initialized first
+        setTimeout(() => {
+            window.snowStation = new SnowStationIntegration();
+        }, 1000);
     });
 }
