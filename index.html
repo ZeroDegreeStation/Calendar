@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Guest House Snow Station - Near Meiho Ski Resort</title>
     
     <!-- FullCalendar CSS -->
@@ -48,6 +48,23 @@
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+
+        /* Mobile optimizations - minimal critical styles */
+        @media (max-width: 768px) {
+            #calendar {
+                height: 500px;
+            }
+            
+            input, select, textarea, button {
+                font-size: 16px; /* Prevent zoom on focus */
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #calendar {
+                height: 450px;
+            }
         }
     </style>
 </head>
@@ -577,7 +594,7 @@
         </div>
     </footer>
 
-    <!-- SCRIPTS -->
+    <!-- SCRIPTS - Load in optimal order for mobile -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
@@ -586,27 +603,26 @@
     <script src="scripts/booking-system.js"></script>
     <script src="scripts/snowstation-integration.js"></script>
     
-    <!-- MAIN INITIALIZATION SCRIPT -->
+    <!-- MAIN INITIALIZATION SCRIPT - OPTIMIZED FOR MOBILE -->
     <script>
+        // Optimize touch events globally
+        document.addEventListener('touchstart', function(e) {
+            // Allow default behavior but prepare for fast response
+        }, { passive: true });
+        
         // Initialize the booking system when the page loads
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing Snow Station Booking System...');
             
             // Clear loading indicator
             const calendarEl = document.getElementById('calendar');
-            if (calendarEl) {
-                // Keep loading indicator visible until calendar renders
-                console.log('📅 Calendar element found, waiting for initialization...');
-            }
             
-            // Initialize the booking system
+            // Initialize immediately without delay
             try {
-                // This creates the global bookingSystem instance
                 window.bookingSystem = new BookingSystem();
                 console.log('✅ BookingSystem instance created');
             } catch (error) {
                 console.error('❌ Failed to initialize BookingSystem:', error);
-                const calendarEl = document.getElementById('calendar');
                 if (calendarEl) {
                     calendarEl.innerHTML = '<div class="calendar-loading" style="color: #e74c3c;"><i class="fas fa-exclamation-circle"></i> Failed to load calendar. Please refresh the page.</div>';
                 }
@@ -614,87 +630,103 @@
         });
     </script>
     
-    <!-- MOBILE MENU SCRIPT - UPDATED FOR BETTER TOUCH HANDLING -->
+    <!-- MOBILE MENU SCRIPT - OPTIMIZED FOR FAST RESPONSE -->
     <script>
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const mainNav = document.getElementById('mainNav');
-        
-        if (mobileMenuBtn && mainNav) {
-            // Handle both click and touch events for mobile
-            mobileMenuBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                toggleMobileMenu();
-            });
+        (function() {
+            'use strict';
             
-            mobileMenuBtn.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                toggleMobileMenu();
-            }, { passive: false });
-        }
-        
-        function toggleMobileMenu() {
-            mainNav.classList.toggle('active');
-            mobileMenuBtn.innerHTML = mainNav.classList.contains('active') 
-                ? '<i class="fas fa-times"></i>' 
-                : '<i class="fas fa-bars"></i>';
-        }
-        
-        // Smooth scroll for anchor links with touch support
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', handleAnchorClick);
-            anchor.addEventListener('touchstart', handleAnchorClick, { passive: false });
-        });
-        
-        function handleAnchorClick(e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href');
-            if (targetId === '#') return;
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mainNav = document.getElementById('mainNav');
             
-            const targetElement = document.querySelector(targetId);
-            if (targetElement) {
-                window.scrollTo({
-                    top: targetElement.offsetTop - 80,
-                    behavior: 'smooth'
+            if (!mobileMenuBtn || !mainNav) return;
+            
+            // Cache DOM elements
+            const menuIcon = mobileMenuBtn.querySelector('i');
+            
+            // Fast toggle function with no delays
+            function toggleMenu(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                const isActive = mainNav.classList.toggle('active');
+                mobileMenuBtn.innerHTML = isActive 
+                    ? '<i class="fas fa-times"></i>' 
+                    : '<i class="fas fa-bars"></i>';
+            }
+            
+            // Add both events with passive: false for immediate response
+            mobileMenuBtn.addEventListener('click', toggleMenu);
+            mobileMenuBtn.addEventListener('touchstart', toggleMenu, { passive: false });
+            
+            // Fast smooth scroll with RAF
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+                    
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        // Use requestAnimationFrame for smoother scroll
+                        requestAnimationFrame(() => {
+                            window.scrollTo({
+                                top: targetElement.offsetTop - 80,
+                                behavior: 'smooth'
+                            });
+                        });
+                        
+                        // Close menu immediately
+                        if (mainNav.classList.contains('active')) {
+                            mainNav.classList.remove('active');
+                            mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                        }
+                    }
                 });
                 
-                // Close mobile menu after clicking a link
-                if (mainNav && mainNav.classList.contains('active')) {
+                // Handle touch separately for faster response
+                anchor.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+                    
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        requestAnimationFrame(() => {
+                            window.scrollTo({
+                                top: targetElement.offsetTop - 80,
+                                behavior: 'smooth'
+                            });
+                        });
+                        
+                        if (mainNav.classList.contains('active')) {
+                            mainNav.classList.remove('active');
+                            mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                        }
+                    }
+                }, { passive: false });
+            });
+            
+            // Fast close when clicking outside
+            document.addEventListener('click', function(e) {
+                if (mainNav.classList.contains('active') && 
+                    !mainNav.contains(e.target) && 
+                    !mobileMenuBtn.contains(e.target)) {
                     mainNav.classList.remove('active');
                     mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
                 }
-            }
-        }
-        
-        // Close mobile menu when clicking outside
-        document.addEventListener('click', function(e) {
-            if (mainNav && mainNav.classList.contains('active')) {
-                if (!mainNav.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+            });
+            
+            document.addEventListener('touchstart', function(e) {
+                if (mainNav.classList.contains('active') && 
+                    !mainNav.contains(e.target) && 
+                    !mobileMenuBtn.contains(e.target)) {
                     mainNav.classList.remove('active');
                     mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
                 }
-            }
-        });
-        
-        // Handle touch events for closing menu when tapping outside
-        document.addEventListener('touchstart', function(e) {
-            if (mainNav && mainNav.classList.contains('active')) {
-                if (!mainNav.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-                    mainNav.classList.remove('active');
-                    mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
-                }
-            }
-        }, { passive: true });
-    </script>
-    
-    <!-- ADDITIONAL MOBILE TOUCH FIXES FOR CALENDAR -->
-    <script>
-        // Ensure calendar cells are tappable on mobile
-        document.addEventListener('touchstart', function(e) {
-            // Allow default touch behavior but ensure clicks work
-        }, { passive: true });
-        
-        // Fix for iOS :active state
-        document.addEventListener('touchstart', function(){}, {passive: true});
+            }, { passive: true });
+        })();
     </script>
 </body>
 </html>

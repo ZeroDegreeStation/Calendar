@@ -828,56 +828,79 @@ footer {
     color: #bdc3c7;
 }
 
-/* ============= RESPONSIVE ============= */
-/* Add to the end of home.css, before the existing responsive section */
-
-/* Mobile-specific calendar fixes */
+/* ============= MOBILE OPTIMIZATIONS - ADDED FOR FASTER RESPONSE ============= */
 @media (max-width: 768px) {
     #calendar {
         height: 500px;
-        touch-action: pan-y pinch-zoom; /* Allow vertical scrolling but capture horizontal touches */
+        touch-action: manipulation;
         -webkit-overflow-scrolling: touch;
     }
     
-    /* Increase tap target size for mobile */
     .fc-daygrid-day {
         cursor: pointer !important;
-        min-height: 44px !important; /* Minimum touch target size */
+        min-height: 48px !important;
+        transition: none !important;
     }
     
     .fc-daygrid-day-frame {
-        min-height: 44px !important;
+        min-height: 48px !important;
     }
     
-    /* Make badges more tappable */
+    .fc-daygrid-day:active {
+        background-color: rgba(52, 152, 219, 0.3) !important;
+        transform: scale(0.98);
+        transition: transform 0.05s ease;
+    }
+    
+    .fc-daygrid-day:hover {
+        background-color: transparent !important;
+    }
+    
     .day-badge {
         padding: 4px 10px !important;
         font-size: 12px !important;
-        pointer-events: none; /* Prevents badge from interfering with day selection */
+        pointer-events: none;
+        z-index: 1;
     }
     
-    /* Improve touch feedback */
-    .fc-daygrid-day:active {
-        background-color: rgba(52, 152, 219, 0.2) !important;
-    }
-    
-    /* Fix toolbar for mobile */
     .fc-toolbar {
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
     }
     
     .fc-toolbar-chunk {
-        margin: 5px 0 !important;
+        margin: 4px 0 !important;
     }
     
     .fc-button {
-        padding: 8px 12px !important;
+        padding: 10px 14px !important;
         font-size: 14px !important;
+        min-height: 48px;
+        min-width: 48px;
+        touch-action: manipulation;
+        transition: background-color 0.1s ease !important;
+    }
+    
+    .fc-button:active {
+        transform: scale(0.96);
+        background-color: #2980b9 !important;
+    }
+    
+    .fc-button, 
+    .fc-daygrid-day,
+    .cta-button,
+    .select-plan-btn,
+    .pay-now-btn {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(52, 152, 219, 0.2);
+    }
+    
+    input, select, textarea, button {
+        font-size: 16px !important;
+        touch-action: manipulation;
     }
 }
 
-/* Small mobile devices */
 @media (max-width: 480px) {
     #calendar {
         height: 450px;
@@ -888,11 +911,22 @@ footer {
     }
     
     .fc-button {
-        padding: 6px 10px !important;
+        padding: 8px 12px !important;
         font-size: 13px !important;
+        min-height: 44px;
+        min-width: 44px;
     }
 }
 
+html {
+    touch-action: manipulation;
+}
+
+* {
+    -webkit-tap-highlight-color: rgba(52, 152, 219, 0.2);
+}
+
+/* ============= RESPONSIVE ============= */
 @media (max-width: 1200px) {
     .booking-container {
         grid-template-columns: 1fr;
@@ -951,10 +985,6 @@ footer {
 
     .card-input-group {
         grid-template-columns: 1fr;
-    }
-
-    #calendar {
-        height: 500px;
     }
 
     .booking-container {
