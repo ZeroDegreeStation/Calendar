@@ -734,6 +734,45 @@ body {
 }
 
 /* Responsive */
+/* Add to the end of calendar.css, before the existing responsive section */
+
+/* Mobile-specific calendar fixes */
+@media (max-width: 768px) {
+    /* Ensure calendar container handles touch properly */
+    .fc .fc-toolbar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .fc .fc-toolbar-title {
+        font-size: 1.2rem;
+    }
+    
+    /* Improve touch targets for buttons */
+    .fc .fc-button {
+        padding: 8px 12px;
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Ensure day cells are tappable */
+    .fc-daygrid-day {
+        cursor: pointer;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .fc .fc-toolbar-title {
+        font-size: 1rem;
+    }
+    
+    .fc .fc-button {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+}
+
 @media (max-width: 768px) {
     .calendar-container {
         padding: 16px;

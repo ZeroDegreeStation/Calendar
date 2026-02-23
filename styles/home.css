@@ -829,6 +829,70 @@ footer {
 }
 
 /* ============= RESPONSIVE ============= */
+/* Add to the end of home.css, before the existing responsive section */
+
+/* Mobile-specific calendar fixes */
+@media (max-width: 768px) {
+    #calendar {
+        height: 500px;
+        touch-action: pan-y pinch-zoom; /* Allow vertical scrolling but capture horizontal touches */
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Increase tap target size for mobile */
+    .fc-daygrid-day {
+        cursor: pointer !important;
+        min-height: 44px !important; /* Minimum touch target size */
+    }
+    
+    .fc-daygrid-day-frame {
+        min-height: 44px !important;
+    }
+    
+    /* Make badges more tappable */
+    .day-badge {
+        padding: 4px 10px !important;
+        font-size: 12px !important;
+        pointer-events: none; /* Prevents badge from interfering with day selection */
+    }
+    
+    /* Improve touch feedback */
+    .fc-daygrid-day:active {
+        background-color: rgba(52, 152, 219, 0.2) !important;
+    }
+    
+    /* Fix toolbar for mobile */
+    .fc-toolbar {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .fc-toolbar-chunk {
+        margin: 5px 0 !important;
+    }
+    
+    .fc-button {
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    #calendar {
+        height: 450px;
+    }
+    
+    .fc-toolbar-title {
+        font-size: 1.2rem !important;
+    }
+    
+    .fc-button {
+        padding: 6px 10px !important;
+        font-size: 13px !important;
+    }
+}
+
 @media (max-width: 1200px) {
     .booking-container {
         grid-template-columns: 1fr;
