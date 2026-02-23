@@ -733,7 +733,7 @@ body {
     color: var(--primary-color);
 }
 
-/* ============= MOBILE OPTIMIZATIONS - ADDED FOR FASTER RESPONSE ============= */
+/* ============= MOBILE OPTIMIZATIONS ============= */
 @media (max-width: 768px) {
     .fc .fc-daygrid-day:hover {
         background: transparent !important;
@@ -767,58 +767,66 @@ body {
     .fc-daygrid-body {
         transition: none !important;
     }
-}
-
-@media (max-width: 480px) {
-    .fc .fc-button {
-        min-height: 44px;
-        min-width: 44px;
-    }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
+    
+    /* Fix calendar container */
     .calendar-container {
-        padding: 16px;
+        padding: 12px;
     }
     
     .calendar-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 12px;
+        padding: 16px;
     }
     
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
     
     .legend {
         gap: 12px;
+        padding: 12px;
     }
     
-    .summary-content {
-        flex-direction: column;
-        gap: 12px;
-        text-align: center;
-    }
-    
-    .summary-actions {
-        width: 100%;
-        justify-content: space-between;
+    .modal-content {
+        width: 95%;
+        padding: 1.5rem;
     }
 }
 
 @media (max-width: 480px) {
+    .fc .fc-button {
+        min-height: 40px;
+        min-width: 40px;
+    }
+    
+    .calendar-container {
+        padding: 8px;
+    }
+    
     .stats-grid {
         grid-template-columns: 1fr;
     }
     
     .header-right {
         flex-wrap: wrap;
+        width: 100%;
+        justify-content: center;
     }
     
-    .modal-content {
-        width: 95%;
+    .github-status {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-info p {
+        font-size: 24px;
     }
 }
 

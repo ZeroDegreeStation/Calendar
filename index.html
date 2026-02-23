@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Guest House Snow Station - Near Meiho Ski Resort</title>
     
     <!-- FullCalendar CSS -->
@@ -53,7 +53,7 @@
         /* Mobile optimizations - minimal critical styles */
         @media (max-width: 768px) {
             #calendar {
-                height: 500px;
+                height: 450px;
             }
             
             input, select, textarea, button {
@@ -63,7 +63,13 @@
         
         @media (max-width: 480px) {
             #calendar {
-                height: 450px;
+                height: 400px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            #calendar {
+                height: 380px;
             }
         }
     </style>

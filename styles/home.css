@@ -828,116 +828,191 @@ footer {
     color: #bdc3c7;
 }
 
-/* ============= MOBILE OPTIMIZATIONS - ADDED FOR FASTER RESPONSE ============= */
+/* ============= MOBILE OPTIMIZATIONS - FIXED OVERFLOW ISSUES ============= */
 @media (max-width: 768px) {
+    /* Calendar container fixes */
+    .calendar-section {
+        padding: 1rem;
+        overflow-x: hidden;
+    }
+    
     #calendar {
-        height: 500px;
-        touch-action: manipulation;
+        height: 450px !important;
+        width: 100% !important;
+        margin: 0 auto 1rem auto !important;
+        padding: 0.5rem !important;
+        overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
     }
     
+    /* Force calendar to fit within container */
+    .fc {
+        width: 100% !important;
+        min-width: 300px !important;
+    }
+    
+    .fc-view-harness {
+        height: 380px !important;
+    }
+    
     .fc-daygrid-day {
-        cursor: pointer !important;
-        min-height: 48px !important;
+        min-height: 40px !important;
+        touch-action: manipulation;
         transition: none !important;
     }
     
     .fc-daygrid-day-frame {
-        min-height: 48px !important;
+        min-height: 40px !important;
     }
     
-    .fc-daygrid-day:active {
-        background-color: rgba(52, 152, 219, 0.3) !important;
-        transform: scale(0.98);
-        transition: transform 0.05s ease;
-    }
-    
-    .fc-daygrid-day:hover {
-        background-color: transparent !important;
-    }
-    
-    .day-badge {
-        padding: 4px 10px !important;
-        font-size: 12px !important;
-        pointer-events: none;
-        z-index: 1;
-    }
-    
+    /* Fix header toolbar */
     .fc-toolbar {
-        flex-wrap: wrap;
-        gap: 8px;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        justify-content: center !important;
+        margin-bottom: 10px !important;
     }
     
     .fc-toolbar-chunk {
-        margin: 4px 0 !important;
-    }
-    
-    .fc-button {
-        padding: 10px 14px !important;
-        font-size: 14px !important;
-        min-height: 48px;
-        min-width: 48px;
-        touch-action: manipulation;
-        transition: background-color 0.1s ease !important;
-    }
-    
-    .fc-button:active {
-        transform: scale(0.96);
-        background-color: #2980b9 !important;
-    }
-    
-    .fc-button, 
-    .fc-daygrid-day,
-    .cta-button,
-    .select-plan-btn,
-    .pay-now-btn {
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: rgba(52, 152, 219, 0.2);
-    }
-    
-    input, select, textarea, button {
-        font-size: 16px !important;
-        touch-action: manipulation;
-    }
-}
-
-@media (max-width: 480px) {
-    #calendar {
-        height: 450px;
+        margin: 2px !important;
     }
     
     .fc-toolbar-title {
+        font-size: 1.1rem !important;
+        white-space: nowrap !important;
+    }
+    
+    /* Fix buttons */
+    .fc-button {
+        padding: 6px 10px !important;
+        font-size: 13px !important;
+        min-height: 36px !important;
+        min-width: 36px !important;
+    }
+    
+    /* Fix day numbers */
+    .fc-daygrid-day-number {
+        font-size: 12px !important;
+        padding: 2px !important;
+    }
+    
+    /* Fix badges */
+    .day-badge {
+        padding: 2px 6px !important;
+        font-size: 9px !important;
+        bottom: 1px !important;
+        right: 1px !important;
+    }
+    
+    /* Fix legend */
+    .legend {
+        padding: 0.8rem !important;
+        gap: 0.8rem !important;
+        justify-content: center !important;
+        flex-wrap: wrap;
+    }
+    
+    .legend-item {
+        font-size: 0.8rem !important;
+    }
+    
+    /* Fix booking container */
+    .booking-container {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    
+    .booking-form, .payment-form {
+        padding: 1rem !important;
+    }
+    
+    /* Fix form inputs */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        padding: 0.6rem !important;
+        font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+    
+    /* Fix payment methods */
+    .payment-method {
+        padding: 0.8rem !important;
+    }
+    
+    .payment-icon {
         font-size: 1.2rem !important;
     }
     
-    .fc-button {
-        padding: 8px 12px !important;
-        font-size: 13px !important;
-        min-height: 44px;
-        min-width: 44px;
+    /* Fix total summary */
+    .total-summary {
+        padding: 1rem !important;
     }
-}
-
-html {
-    touch-action: manipulation;
-}
-
-* {
-    -webkit-tap-highlight-color: rgba(52, 152, 219, 0.2);
-}
-
-/* ============= RESPONSIVE ============= */
-@media (max-width: 1200px) {
-    .booking-container {
-        grid-template-columns: 1fr;
+    
+    /* Fix booking summary bar */
+    .booking-summary {
+        padding: 0.8rem !important;
     }
-}
-
-@media (max-width: 768px) {
-    .mobile-menu-btn {
-        display: block;
+    
+    .summary-info i {
+        font-size: 1.2rem !important;
     }
-
+    
+    .summary-price span:last-child {
+        font-size: 1.4rem !important;
+    }
+    
+    /* Fix section titles */
+    .section-title {
+        font-size: 1.5rem !important;
+        margin: 2rem 0 1.5rem !important;
+    }
+    
+    /* Fix hero section */
+    .hero-content h1 {
+        font-size: 1.8rem !important;
+    }
+    
+    .hero-content p {
+        font-size: 1rem !important;
+    }
+    
+    /* Fix plan cards */
+    .plans-container {
+        gap: 1rem !important;
+    }
+    
+    .plan-header {
+        padding: 1rem !important;
+    }
+    
+    .plan-name {
+        font-size: 1.2rem !important;
+    }
+    
+    .plan-price {
+        font-size: 1.8rem !important;
+    }
+    
+    .plan-features {
+        padding: 1rem !important;
+    }
+    
+    .feature-list li {
+        padding: 0.5rem 0 !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Fix access section */
+    #access > div {
+        padding: 1rem !important;
+    }
+    
+    #access > div > div {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    
+    /* Fix mobile menu */
     .main-nav {
         position: fixed;
         top: 70px;
@@ -950,6 +1025,7 @@ html {
         opacity: 0;
         visibility: hidden;
         transition: all 0.3s ease;
+        z-index: 999;
     }
 
     .main-nav.active {
@@ -970,36 +1046,82 @@ html {
         padding: 1rem;
         border-bottom: 1px solid #eee;
     }
-
-    .hero-content h1 {
-        font-size: 2rem;
-    }
-
-    .plans-container {
-        grid-template-columns: 1fr;
-    }
-
-    .plan-card.popular {
-        transform: scale(1);
-    }
-
-    .card-input-group {
-        grid-template-columns: 1fr;
-    }
-
-    .booking-container {
-        grid-template-columns: 1fr;
-    }
-
-    .summary-content {
-        flex-direction: column;
-        align-items: flex-start;
+    
+    .mobile-menu-btn {
+        display: block;
     }
 }
 
+/* Small mobile devices */
 @media (max-width: 480px) {
-    .legend {
+    #calendar {
+        height: 400px !important;
+    }
+    
+    .fc-view-harness {
+        height: 340px !important;
+    }
+    
+    .fc-daygrid-day {
+        min-height: 35px !important;
+    }
+    
+    .fc-toolbar-title {
+        font-size: 1rem !important;
+    }
+    
+    .fc-button {
+        padding: 5px 8px !important;
+        font-size: 12px !important;
+        min-height: 32px !important;
+        min-width: 32px !important;
+    }
+    
+    .legend-item {
+        font-size: 0.75rem !important;
+    }
+    
+    .legend-color {
+        width: 14px !important;
+        height: 14px !important;
+    }
+    
+    .section-title {
+        font-size: 1.3rem !important;
+    }
+    
+    .hero-content h1 {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* Very small devices */
+@media (max-width: 360px) {
+    #calendar {
+        height: 380px !important;
+    }
+    
+    .fc-view-harness {
+        height: 320px !important;
+    }
+    
+    .fc-daygrid-day {
+        min-height: 32px !important;
+    }
+    
+    .fc-toolbar {
         flex-direction: column;
-        gap: 0.8rem;
+        align-items: center;
+    }
+    
+    .fc-toolbar-chunk {
+        margin: 2px 0 !important;
+    }
+}
+
+/* ============= RESPONSIVE (Original) ============= */
+@media (max-width: 1200px) {
+    .booking-container {
+        grid-template-columns: 1fr;
     }
 }
