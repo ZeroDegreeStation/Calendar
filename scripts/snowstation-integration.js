@@ -1,7 +1,7 @@
 /**
  * SnowStation Integration - Links Calendar with Booking Form
- * FIXED: Better waiting mechanism for BookingSystem
- * FIXED: Properly sets check-in/out dates from multi-date selection
+ * FIXED: Added mobile touch support while preserving desktop
+ * CHANGES: Added touch event handlers and mobile detection
  */
 class SnowStationIntegration {
     constructor() {
@@ -11,6 +11,10 @@ class SnowStationIntegration {
         this.excelHandler = new ExcelHandler();
         this.initAttempts = 0;
         this.maxAttempts = 10;
+        
+        // ADDED: Mobile detection
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        this._processingTouch = false;
         
         this.planPrices = {
             'weekend-getaway': 12800,
@@ -32,7 +36,7 @@ class SnowStationIntegration {
         this.setupEventListeners();
         this.setupPlanSelection();
         this.setupPaymentHandlers();
-        console.log('✅ SnowStation Integration ready');
+        console.log('✅ SnowStation Integration ready' + (this.isMobile ? ' (Mobile mode)' : ''));
     }
 
     async waitForBookingSystem() {
@@ -86,20 +90,42 @@ class SnowStationIntegration {
             });
         }
         
-        // Complete booking button
+        // Complete booking button - MODIFIED: Added touch support
         const completeBtn = document.getElementById('completeBookingBtn');
         if (completeBtn) {
-            completeBtn.addEventListener('click', () => {
+            // Keep existing click handler (works on desktop)
+            completeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.handleBookingSubmission();
             });
+            
+            // ADDED: Touch handler for mobile (faster response, no double-firing)
+            if (this.isMobile) {
+                completeBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (!this._processingTouch) {
+                        this._processingTouch = true;
+                        this.handleBookingSubmission();
+                        setTimeout(() => { this._processingTouch = false; }, 1000);
+                    }
+                }, { passive: false });
+            }
         }
         
-        // Close modal buttons
+        // Close modal buttons - MODIFIED: Added touch support
         const closeModalBtn = document.getElementById('closeEmailModal');
         if (closeModalBtn) {
             closeModalBtn.addEventListener('click', () => {
                 document.getElementById('emailModal')?.classList.remove('active');
             });
+            
+            // ADDED: Touch handler for mobile
+            if (this.isMobile) {
+                closeModalBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    document.getElementById('emailModal')?.classList.remove('active');
+                }, { passive: false });
+            }
         }
         
         const finishBtn = document.getElementById('finishBookingBtn');
@@ -109,6 +135,16 @@ class SnowStationIntegration {
                 this.resetForm();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             });
+            
+            // ADDED: Touch handler for mobile
+            if (this.isMobile) {
+                finishBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    document.getElementById('emailModal')?.classList.remove('active');
+                    this.resetForm();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, { passive: false });
+            }
         }
         
         // Date inputs manual changes
@@ -126,69 +162,65 @@ class SnowStationIntegration {
 
     setupPlanSelection() {
         document.querySelectorAll('.select-plan-btn').forEach(button => {
+            // Keep existing click handler
             button.addEventListener('click', (e) => {
-                const planValue = e.currentTarget.getAttribute('data-plan');
-                const planPrice = e.currentTarget.getAttribute('data-price');
-                const planName = e.currentTarget.getAttribute('data-plan-name');
-                
-                const planSelect = document.getElementById('selected-plan');
-                if (planSelect) {
-                    planSelect.value = planValue;
-                    planSelect.setAttribute('data-price', planPrice);
-                    
-                    if (this.bookingSystem) {
-                        this.bookingSystem.planPrice = parseInt(planPrice);
-                        this.bookingSystem.planName = planName;
-                        this.bookingSystem.updateBookingSummary();
-                    }
-                    
-                    this.updateSelectedPlanDisplay();
-                    this.updatePricing();
-                }
-                
-                // Scroll to calendar section
-                document.getElementById('calendar-section')?.scrollIntoView({ 
-                    behavior: 'smooth' 
-                });
-                
-                this.showNotification(`✓ Selected: ${planName}`, 'success');
+                this.handlePlanClick(e);
             });
+            
+            // ADDED: Touch handler for mobile
+            if (this.isMobile) {
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.handlePlanClick(e);
+                }, { passive: false });
+            }
         });
     }
 
+    handlePlanClick(e) {
+        const button = e.currentTarget;
+        const planValue = button.getAttribute('data-plan');
+        const planPrice = button.getAttribute('data-price');
+        const planName = button.getAttribute('data-plan-name');
+        
+        const planSelect = document.getElementById('selected-plan');
+        if (planSelect) {
+            planSelect.value = planValue;
+            planSelect.setAttribute('data-price', planPrice);
+            
+            if (this.bookingSystem) {
+                this.bookingSystem.planPrice = parseInt(planPrice);
+                this.bookingSystem.planName = planName;
+                this.bookingSystem.updateBookingSummary();
+            }
+            
+            this.updateSelectedPlanDisplay();
+            this.updatePricing();
+        }
+        
+        // Scroll to calendar section
+        document.getElementById('calendar-section')?.scrollIntoView({ 
+            behavior: 'smooth' 
+        });
+        
+        this.showNotification(`✓ Selected: ${planName}`, 'success');
+    }
+
     setupPaymentHandlers() {
-        // Payment method selection
+        // Payment method selection - MODIFIED: Added touch support
         document.querySelectorAll('.payment-method').forEach(method => {
+            // Keep existing click handler
             method.addEventListener('click', (e) => {
-                const currentMethod = e.currentTarget;
-                
-                document.querySelectorAll('.payment-method').forEach(m => {
-                    m.classList.remove('selected');
-                });
-                
-                currentMethod.classList.add('selected');
-                
-                const radio = currentMethod.querySelector('input[type="radio"]');
-                if (radio) radio.checked = true;
-                
-                const methodType = currentMethod.getAttribute('data-method');
-                const detailsMap = {
-                    'credit-card': 'creditCardDetails',
-                    'paypal': 'paypalDetails',
-                    'bank-transfer': 'bankTransferDetails',
-                    'pay-at-hotel': 'payAtHotelDetails'
-                };
-                
-                document.querySelectorAll('.payment-details').forEach(d => {
-                    d.classList.remove('active');
-                });
-                
-                const detailsId = detailsMap[methodType];
-                if (detailsId) {
-                    const detailsEl = document.getElementById(detailsId);
-                    if (detailsEl) detailsEl.classList.add('active');
-                }
+                this.handlePaymentMethodClick(e);
             });
+            
+            // ADDED: Touch handler for mobile
+            if (this.isMobile) {
+                method.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.handlePaymentMethodClick(e);
+                }, { passive: false });
+            }
         });
 
         // Format card inputs
@@ -205,6 +237,37 @@ class SnowStationIntegration {
         const cvv = document.getElementById('cvv');
         if (cvv) {
             cvv.addEventListener('input', this.formatCVV);
+        }
+    }
+
+    handlePaymentMethodClick(e) {
+        const currentMethod = e.currentTarget;
+        
+        document.querySelectorAll('.payment-method').forEach(m => {
+            m.classList.remove('selected');
+        });
+        
+        currentMethod.classList.add('selected');
+        
+        const radio = currentMethod.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+        
+        const methodType = currentMethod.getAttribute('data-method');
+        const detailsMap = {
+            'credit-card': 'creditCardDetails',
+            'paypal': 'paypalDetails',
+            'bank-transfer': 'bankTransferDetails',
+            'pay-at-hotel': 'payAtHotelDetails'
+        };
+        
+        document.querySelectorAll('.payment-details').forEach(d => {
+            d.classList.remove('active');
+        });
+        
+        const detailsId = detailsMap[methodType];
+        if (detailsId) {
+            const detailsEl = document.getElementById(detailsId);
+            if (detailsEl) detailsEl.classList.add('active');
         }
     }
 

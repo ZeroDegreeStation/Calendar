@@ -1125,3 +1125,43 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+/* ============= MINIMAL MOBILE BOOKING FIXES ============= */
+@media (max-width: 768px) {
+    /* Increase touch target sizes for better mobile usability */
+    .payment-method,
+    .select-plan-btn,
+    .cta-button,
+    .pay-now-btn,
+    #completeBookingBtn {
+        min-height: 48px;
+        padding: 12px !important;
+        -webkit-tap-highlight-color: rgba(52, 152, 219, 0.2);
+    }
+    
+    /* Ensure form inputs don't zoom on focus (iOS issue) */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+    
+    /* Add touch feedback */
+    .payment-method:active,
+    .select-plan-btn:active,
+    .cta-button:active,
+    .pay-now-btn:active {
+        opacity: 0.8;
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+}
+
+/* Prevent double-tap zoom on all interactive elements */
+button, 
+.btn, 
+.cta-button, 
+.pay-now-btn,
+.select-plan-btn,
+.payment-method,
+[role="button"] {
+    touch-action: manipulation;
+}
