@@ -31,7 +31,6 @@ class ExcelHandler {
 
     async fetchFileFromGitHub(filePath) {
         try {
-            // Use GitHub API instead of raw CDN (handles CORS better)
             const url = `https://api.github.com/repos/${this.githubConfig.owner}/${this.githubConfig.repo}/contents/${filePath}?ref=${this.githubConfig.branch}`;
             
             const headers = {
@@ -57,11 +56,8 @@ class ExcelHandler {
             
             const data = await response.json();
             
-            // GitHub API returns content as base64
             if (data.content) {
-                // Decode base64 content
                 const content = atob(data.content.replace(/\n/g, ''));
-                // Convert string to array buffer
                 const buffer = new Uint8Array(content.length);
                 for (let i = 0; i < content.length; i++) {
                     buffer[i] = content.charCodeAt(i);
@@ -80,7 +76,6 @@ class ExcelHandler {
     async loadAvailabilityOverrides(forceRefresh = false) {
         console.log('📊 Loading availability from private repo...');
         
-        // Check cache
         if (!forceRefresh && this.cache.availability && 
             this.cache.timestamp && (Date.now() - this.cache.timestamp) < this.cacheDuration) {
             console.log('📦 Using cached availability data');
@@ -107,9 +102,16 @@ class ExcelHandler {
             
             console.log(`📊 Loaded ${data.length} availability records`);
             
-            const processed = this.processAvailabilityData(data);
+            // Keep the original MM/DD/YYYY format for display
+            const processed = data.map(row => ({
+                Date: row.Date || row['Date'], // Keep as MM/DD/YYYY
+                Status: row.Status || 'Available',
+                Price: row.Price ? parseInt(row.Price) : null,
+                MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : 2,
+                Booked: row.Booked ? parseInt(row.Booked) : 0,
+                Notes: row.Notes || ''
+            })).filter(item => item.Date);
             
-            // Update cache
             this.cache.availability = processed;
             this.cache.timestamp = Date.now();
             
@@ -124,7 +126,6 @@ class ExcelHandler {
     async loadBookings(forceRefresh = false) {
         console.log('📊 Loading bookings from private repo...');
         
-        // Check cache
         if (!forceRefresh && this.cache.bookings && 
             this.cache.timestamp && (Date.now() - this.cache.timestamp) < this.cacheDuration) {
             console.log('📦 Using cached bookings data');
@@ -150,7 +151,21 @@ class ExcelHandler {
             
             console.log(`📊 Loaded ${data.length} booking records`);
             
-            const processed = this.processBookingsData(data);
+            // Keep original format
+            const processed = data.map(row => ({
+                'Booking ID': row['Booking ID'] || '',
+                'Date': row.Date || row['Date'], // Keep as MM/DD/YYYY
+                'Customer Name': row['Customer Name'] || '',
+                'Email': row.Email || '',
+                'Phone': row.Phone || '',
+                'Guests': row.Guests ? parseInt(row.Guests) : 1,
+                'Plan': row.Plan || '',
+                'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
+                'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
+                'Status': row.Status || 'Confirmed',
+                'Booking Date': row['Booking Date'] || '',
+                'Special Requests': row['Special Requests'] || ''
+            })).filter(item => item.Date);
             
             this.cache.bookings = processed;
             this.cache.timestamp = Date.now();
@@ -163,68 +178,18 @@ class ExcelHandler {
         }
     }
 
-    // Add this method to ExcelHandler class
-    normalizeDate(dateStr) {
-        if (!dateStr) return null;
-        
-        // If it's already YYYY-MM-DD, return as is
-        if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            return dateStr;
-        }
-        
-        // Try to convert from MM/DD/YYYY
-        if (typeof dateStr === 'string' && dateStr.includes('/')) {
-            const [month, day, year] = dateStr.split('/');
-            if (month && day && year) {
-                const paddedMonth = month.padStart(2, '0');
-                const paddedDay = day.padStart(2, '0');
-                const fullYear = year.length === 2 ? '20' + year : year;
-                return `${fullYear}-${paddedMonth}-${paddedDay}`;
-            }
-        }
-        
-        return dateStr;
-    }
-
-    // Use it in processAvailabilityData:
-    processAvailabilityData(data) {
-        return data.map(row => ({
-            Date: this.normalizeDate(row.Date || row['Date']),
-            Status: row.Status || 'Available',
-            Price: row.Price ? parseInt(row.Price) : null,
-            MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : 2,
-            Booked: row.Booked ? parseInt(row.Booked) : 0,
-            Notes: row.Notes || ''
-        })).filter(item => item.Date);
-    }
-
-    // And in processBookingsData:
-    processBookingsData(data) {
-        return data.map(row => ({
-            'Booking ID': row['Booking ID'] || '',
-            'Date': this.normalizeDate(row.Date || row['Date']),
-            'Customer Name': row['Customer Name'] || '',
-            'Email': row.Email || '',
-            'Phone': row.Phone || '',
-            'Guests': row.Guests ? parseInt(row.Guests) : 1,
-            'Plan': row.Plan || '',
-            'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
-            'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
-            'Status': row.Status || 'Confirmed',
-            'Booking Date': row['Booking Date'] || '',
-            'Special Requests': row['Special Requests'] || ''
-        })).filter(item => item.Date);
-    }
-
     getDefaultAvailability() {
-        // Return default availability so calendar doesn't break
         const today = new Date();
         const defaults = [];
         
         for (let i = 0; i < 30; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0];
+            // Format as MM/DD/YYYY to match your Excel
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const year = date.getFullYear();
+            const dateStr = `${month}/${day}/${year}`;
             
             defaults.push({
                 Date: dateStr,

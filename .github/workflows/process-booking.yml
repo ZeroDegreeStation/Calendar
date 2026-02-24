@@ -14,7 +14,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: ZeroDegreeStation/Calendar-Data
-          # FIXED: Use the correct secret name
           token: ${{ secrets.CALENDAR_DATA_REPO_TOKEN }}
           path: data-repo
       
@@ -28,24 +27,50 @@ jobs:
           echo "📦 Received booking data:"
           echo '${{ toJson(github.event.client_payload) }}'
       
-      - name: Install xlsx
-        run: npm install -g xlsx
+      - name: Create package.json and install xlsx locally
+        run: |
+          # Create a package.json file
+          echo '{
+            "name": "booking-processor",
+            "version": "1.0.0",
+            "dependencies": {
+              "xlsx": "latest"
+            }
+          }' > package.json
+          
+          # Install xlsx locally (not globally)
+          npm install
+          
+          echo "✅ xlsx installed locally"
       
       - name: Process booking data
         env:
           BOOKING_DATA: ${{ toJson(github.event.client_payload) }}
         run: |
-          # Create a temporary script
+          # Save booking data to a file
+          echo '${{ toJson(github.event.client_payload) }}' > booking.json
+          
+          # Create the Node.js script
           cat > add-booking.js << 'EOF'
           const XLSX = require('xlsx');
           const fs = require('fs');
           const path = require('path');
 
           console.log('📝 Starting booking processing...');
+          console.log('Current directory:', process.cwd());
+          console.log('Files in current directory:', fs.readdirSync('.'));
 
-          // Read booking data from environment variable
-          const bookingData = JSON.parse(process.env.BOOKING_DATA || '{}');
-          console.log('Booking data:', JSON.stringify(bookingData, null, 2));
+          // Read booking data
+          let bookingData;
+          try {
+            const rawData = fs.readFileSync('booking.json', 'utf8');
+            bookingData = JSON.parse(rawData);
+            console.log('✅ Booking data loaded:', bookingData.bookingId);
+          } catch (error) {
+            console.error('❌ Error reading booking.json:', error);
+            // Try to get from env as fallback
+            bookingData = JSON.parse(process.env.BOOKING_DATA || '{}');
+          }
 
           if (!bookingData.bookingId) {
             console.error('❌ No booking ID received');
@@ -54,7 +79,13 @@ jobs:
 
           // Path to Excel file
           const excelFilePath = path.join('data-repo', 'data', 'calendar-bookings.xlsx');
-          console.log('Excel file path:', excelFilePath);
+          console.log('📁 Excel file path:', excelFilePath);
+
+          // Check if data-repo exists
+          if (!fs.existsSync('data-repo')) {
+            console.error('❌ data-repo directory not found');
+            process.exit(1);
+          }
 
           let workbook;
           let bookings = [];
@@ -88,11 +119,12 @@ jobs:
             'Plan Price': bookingData.planPrice || 0,
             'Total Price': bookingData.totalPrice || 0,
             'Status': 'Confirmed',
-            'Booking Date': new Date().toISOString().split('T')[0],
+            'Booking Date': new Date().toLocaleDateString('en-US'),
             'Special Requests': bookingData.requests || ''
           };
 
           console.log('➕ Adding new booking:', newBooking['Booking ID']);
+          console.log('Booking details:', JSON.stringify(newBooking, null, 2));
 
           // Add to bookings
           bookings.push(newBooking);
@@ -110,10 +142,20 @@ jobs:
           XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
 
           // Ensure directory exists
-          fs.mkdirSync(path.dirname(excelFilePath), { recursive: true });
+          const dataDir = path.dirname(excelFilePath);
+          if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+          }
 
           // Write file
           XLSX.writeFile(workbook, excelFilePath);
+          console.log(`✅ Successfully wrote Excel file`);
+
+          // Verify file was created
+          if (fs.existsSync(excelFilePath)) {
+            const stats = fs.statSync(excelFilePath);
+            console.log(`📊 Excel file size: ${stats.size} bytes`);
+          }
 
           console.log(`✅ Successfully added booking: ${newBooking['Booking ID']}`);
           console.log(`📊 Total bookings: ${bookings.length}`);
@@ -135,3 +177,6 @@ jobs:
             git push
             echo "✅ Changes pushed to private repo"
           fi
+      
+      - name: Notify success
+        run: echo "✅ Booking successfully processed and stored"
