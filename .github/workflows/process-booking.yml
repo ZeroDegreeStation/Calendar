@@ -1,0 +1,54 @@
+name: Process Booking
+
+on:
+  repository_dispatch:
+    types: [new-booking]
+
+jobs:
+  process-and-store-booking:
+    runs-on: ubuntu-latest
+    # Prevent concurrent runs to avoid conflicts
+    concurrency: 
+      group: booking-processing
+      cancel-in-progress: false
+    
+    steps:
+      - name: Checkout private data repo
+        uses: actions/checkout@v3
+        with:
+          repository: ZeroDegreeStation/Calendar-Data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install -g xlsx
+      
+      - name: Process booking data
+        env:
+          BOOKING_DATA: ${{ toJson(github.event.client_payload) }}
+        run: |
+          # Save booking data to a temp file
+          echo "$BOOKING_DATA" > booking.json
+          
+          # Navigate to data repo
+          cd data-repo
+          
+          # Create data directory if it doesn't exist
+          mkdir -p data
+          
+          # Process the Excel file
+          node ../.github/scripts/add-booking.js
+      
+      - name: Commit and push changes
+        run: |
+          cd data-repo
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add data/
+          git diff --quiet && git diff --staged --quiet || git commit -m "New booking: ${{ github.event.client_payload.bookingId }}"
+          git push

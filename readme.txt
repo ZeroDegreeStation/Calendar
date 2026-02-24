@@ -1,22 +1,25 @@
-ª   admin.html
-ª   index.html
-ª   readme.txt
-ª   
-+---.github
-ª   +---workflows
-ª           sync-data.yml
-ª           
-+---data
-ª       calendar-availability.xlsx
-ª       calendar-bookings.xlsx
-ª       calendar-time-slots.xlsx
-ª       
-+---scripts
-ª       booking-system.js
-ª       excel-handler.js
-ª       github-sync.js
-ª       snowstation-integration.js
-ª       
-+---styles
-        calendar.css
-        home.css
+Calendar/ (Public Repository)
+│
+├── 📄 index.html                 # Main booking page
+├── 📄 admin.html                 # Admin dashboard (basic, points to private data)
+├── 📄 readme.txt                 # Documentation
+│
+├── 📁 .github/
+│   └── 📁 workflows/
+│       └── 📄 process-booking.yml    # GitHub Actions workflow (triggers private repo update)
+│   └── 📁 scripts/
+│       └── 📄 add-booking.js         # Node.js script that processes Excel files
+│
+├── 📁 scripts/
+│   ├── 📄 booking-system.js          # Core booking logic (modified to use workflow)
+│   ├── 📄 excel-handler.js           # Excel handling (unchanged)
+│   ├── 📄 github-sync.js             # UPDATED: Now triggers workflow, no tokens
+│   └── 📄 snowstation-integration.js # UI integration (unchanged)
+│
+├── 📁 styles/
+│   ├── 📄 home.css                    # Main styles
+│   └── 📄 calendar.css                # Calendar styles
+│
+└── 📁 data/                           # ⚠️ OPTIONAL: Can be removed
+    ├── 📄 calendar-availability.xlsx  # May still exist but not used for writes
+    └── 📄 calendar-bookings.xlsx       # Read-only copies if needed
