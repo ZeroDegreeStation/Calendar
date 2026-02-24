@@ -1,6 +1,6 @@
 /**
  * Booking System - Core calendar and booking logic
- * FINAL FIXED: Proper Excel date matching for calendar display
+ * FIXED: Simplified date matching for Excel dates (MM/DD/YYYY)
  */
 class BookingSystem {
     constructor() {
@@ -105,8 +105,7 @@ class BookingSystem {
             });
             
             // Log the actual data for debugging
-            console.log('📅 Availability from Excel:', JSON.stringify(this.availabilityOverrides, null, 2));
-            console.log('📅 Bookings from Excel:', JSON.stringify(this.bookings, null, 2));
+            console.log('📅 Availability from Excel:', this.availabilityOverrides);
             
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
@@ -197,21 +196,15 @@ class BookingSystem {
     }
 
     /**
-     * Convert YYYY-MM-DD (from calendar) to multiple Excel formats for matching
+     * Convert YYYY-MM-DD (from calendar) to MM/DD/YYYY (Excel format)
      */
-    convertToExcelFormats(dateStr) {
-        if (!dateStr) return [];
+    convertToExcelFormat(dateStr) {
+        if (!dateStr) return null;
         const [year, month, day] = dateStr.split('-');
-        
-        // Generate multiple possible formats that might appear in Excel
-        const formats = [
-            `${month}/${day}/${year}`,           // 03/23/2026
-            `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`, // 3/23/2026
-            `${month}/${day}/${year.slice(-2)}`,  // 03/23/26
-            `${parseInt(month, 10)}/${parseInt(day, 10)}/${year.slice(-2)}` // 3/23/26
-        ];
-        
-        return formats;
+        // Remove leading zeros to match Excel format (e.g., 3/23/2026 not 03/23/2026)
+        const monthNoZero = parseInt(month, 10).toString();
+        const dayNoZero = parseInt(day, 10).toString();
+        return `${monthNoZero}/${dayNoZero}/${year}`;
     }
 
     applyStylesToCell(cell, dateStr) {
@@ -223,8 +216,23 @@ class BookingSystem {
         
         const isPast = cellDate < today;
         
-        // Get status and available spots
-        const { status, available } = this.getDayInfo(dateStr);
+        // Convert to Excel format for lookup
+        const excelDateStr = this.convertToExcelFormat(dateStr);
+        const override = this.availabilityOverrides.find(o => o.Date === excelDateStr);
+        
+        let status = 'Available';
+        let available = this.defaultMaxBookings;
+        let booked = 0;
+        
+        if (override) {
+            status = override.Status || 'Available';
+            const maxBookings = override.MaxBookings || this.defaultMaxBookings;
+            booked = override.Booked || 0;
+            available = Math.max(0, maxBookings - booked);
+            console.log(`📅 Date ${dateStr} (Excel: ${excelDateStr}): found with status ${status}, booked=${booked}, available=${available}`);
+        } else {
+            console.log(`📅 Date ${dateStr} (Excel: ${excelDateStr}): not found, defaulting to Available`);
+        }
         
         // Remove all existing classes
         cell.classList.remove(
@@ -288,57 +296,24 @@ class BookingSystem {
         this.applyStylesToCell(info.el, info.date.toISOString().split('T')[0]);
     }
 
-    /**
-     * Get day info (status and available spots) by trying multiple date formats
-     */
-    getDayInfo(dateStr) {
-        if (!dateStr) return { status: 'unknown', available: 0 };
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const checkDate = new Date(dateStr);
-        checkDate.setHours(0, 0, 0, 0);
-        
-        if (checkDate < today) {
-            return { status: 'past', available: 0 };
-        }
-        
-        // Generate all possible Excel formats
-        const possibleFormats = this.convertToExcelFormats(dateStr);
-        
-        // Try each format to find a match
-        for (const format of possibleFormats) {
-            const override = this.availabilityOverrides.find(o => o.Date === format);
-            if (override) {
-                console.log(`📅 Date ${dateStr} matched Excel format ${format}: ${override.Status}`);
-                const maxBookings = override.MaxBookings || this.defaultMaxBookings;
-                const booked = override.Booked || 0;
-                const available = Math.max(0, maxBookings - booked);
-                return {
-                    status: override.Status,
-                    available: available
-                };
-            }
-        }
-        
-        // No match found
-        console.log(`📅 Date ${dateStr} not found in Excel, defaulting to Available`);
-        return {
-            status: 'Available',
-            available: this.defaultMaxBookings
-        };
-    }
-
     getDayStatus(dateStr) {
-        return this.getDayInfo(dateStr).status;
+        const excelDateStr = this.convertToExcelFormat(dateStr);
+        const override = this.availabilityOverrides.find(o => o.Date === excelDateStr);
+        return override ? override.Status : 'Available';
     }
 
     getAvailableSpots(dateStr) {
-        return this.getDayInfo(dateStr).available;
+        const excelDateStr = this.convertToExcelFormat(dateStr);
+        const override = this.availabilityOverrides.find(o => o.Date === excelDateStr);
+        if (override) {
+            const maxBookings = override.MaxBookings || this.defaultMaxBookings;
+            const booked = override.Booked || 0;
+            return Math.max(0, maxBookings - booked);
+        }
+        return this.defaultMaxBookings;
     }
 
     isDateSelectable(dateInput) {
-        // Handle both string dates and info objects
         let dateStr;
         if (typeof dateInput === 'string') {
             dateStr = dateInput;
@@ -356,17 +331,15 @@ class BookingSystem {
         const checkDate = new Date(dateStr);
         checkDate.setHours(0, 0, 0, 0);
         
-        // Past dates are not selectable
         if (checkDate < today) return false;
         
-        const { status, available } = this.getDayInfo(dateStr);
+        const status = this.getDayStatus(dateStr);
+        const available = this.getAvailableSpots(dateStr);
         
         const statusLower = (status || '').toLowerCase();
         const isSelectable = statusLower === 'available' || 
                             statusLower === 'limited' || 
                             available > 0;
-        
-        console.log(`📅 ${dateStr}: status=${status}, available=${available}, selectable=${isSelectable}`);
         
         return isSelectable;
     }
@@ -542,7 +515,6 @@ class BookingSystem {
             
             // Add to local cache
             for (const date of this.selectedDates) {
-                // Convert to MM/DD/YYYY format for Excel
                 const [year, month, day] = date.split('-');
                 const excelDate = `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`;
                 
