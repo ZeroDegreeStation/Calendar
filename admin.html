@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snow Station - Admin Dashboard</title>
     
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <style>
@@ -36,83 +33,48 @@
             padding: 2rem;
             margin-bottom: 2rem;
             box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
-        .admin-title {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        .privacy-notice {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
         }
 
-        .admin-title i {
-            font-size: 2rem;
-            color: #3498db;
+        .token-section {
+            background: #f0f8ff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid #d4e6f1;
         }
 
-        .admin-title h1 {
-            color: #2c3e50;
-            font-size: 1.8rem;
-        }
-
-        .admin-title p {
-            color: #666;
-            margin-top: 0.3rem;
-        }
-
-        .admin-grid {
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
             margin-bottom: 2rem;
         }
 
-        .admin-card {
+        .stat-card {
             background: white;
             border-radius: 12px;
             padding: 1.5rem;
             box-shadow: 0 5px 20px rgba(0,0,0,0.08);
         }
 
-        .admin-card h2 {
-            color: #2c3e50;
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            padding-bottom: 0.8rem;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .admin-card h2 i {
-            color: #3498db;
-        }
-
-        .stats-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.8rem 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .stat-label {
+        .stat-card h3 {
             color: #666;
             font-size: 0.95rem;
+            margin-bottom: 0.5rem;
         }
 
-        .stat-value {
+        .stat-card p {
+            font-size: 2rem;
             font-weight: 700;
-            font-size: 1.2rem;
             color: #2c3e50;
         }
 
@@ -136,74 +98,20 @@
 
         .btn-primary:hover {
             background: #2980b9;
-            transform: translateY(-2px);
         }
 
-        .btn-success {
-            background: #27ae60;
-            color: white;
+        .token-input-group {
+            display: flex;
+            gap: 10px;
+            margin: 1rem 0;
         }
 
-        .btn-success:hover {
-            background: #219653;
-            transform: translateY(-2px);
-        }
-
-        .btn-outline {
-            background: white;
+        .token-input-group input {
+            flex: 1;
+            padding: 0.8rem;
             border: 1px solid #ddd;
-            color: #666;
-        }
-
-        .btn-outline:hover {
-            background: #f8f9fa;
-            border-color: #999;
-        }
-
-        .btn-danger {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c0392b;
-            transform: translateY(-2px);
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-
-        .file-list {
-            margin-top: 1rem;
-        }
-
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 0.8rem;
-        }
-
-        .file-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .file-info i {
-            color: #27ae60;
-            font-size: 1.2rem;
-        }
-
-        .file-actions {
-            display: flex;
-            gap: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
         }
 
         .table-container {
@@ -220,11 +128,11 @@
         }
 
         th {
-            text-align: left;
-            padding: 1rem;
             background: #f8f9fa;
-            color: #2c3e50;
+            padding: 1rem;
+            text-align: left;
             font-weight: 600;
+            color: #2c3e50;
         }
 
         td {
@@ -244,126 +152,31 @@
             color: #27ae60;
         }
 
-        .badge-warning {
-            background: rgba(243, 156, 18, 0.1);
-            color: #f39c12;
-        }
-
-        .badge-danger {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
-        }
-
-        .badge-info {
-            background: rgba(52, 152, 219, 0.1);
-            color: #3498db;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-header h2 {
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
+        .anonymized-note {
             color: #999;
-        }
-
-        .close-btn:hover {
-            color: #333;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #2c3e50;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-        }
-
-        .github-config {
-            background: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 8px;
+            font-style: italic;
+            font-size: 0.9rem;
             margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .github-status-badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
+        .status-message {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
         }
 
-        .status-connected {
+        .status-success {
             background: rgba(39, 174, 96, 0.1);
             color: #27ae60;
         }
 
-        .status-disconnected {
+        .status-error {
             background: rgba(231, 76, 60, 0.1);
             color: #e74c3c;
-        }
-
-        .token-input-group {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .token-input-group input {
-            flex: 1;
         }
 
         .back-link {
@@ -372,690 +185,260 @@
             gap: 0.5rem;
             color: #666;
             text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            transition: all 0.3s ease;
+            margin-bottom: 1rem;
         }
 
         .back-link:hover {
-            background: #f0f0f0;
-            color: #333;
+            color: #3498db;
         }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <!-- Header -->
+        <a href="index.html" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Website
+        </a>
+
         <div class="admin-header">
-            <div class="admin-title">
-                <i class="fas fa-snowflake"></i>
-                <div>
-                    <h1>Snow Station Admin</h1>
-                    <p>Manage your guest house bookings and availability</p>
-                </div>
-            </div>
-            <a href="index.html" class="back-link">
-                <i class="fas fa-arrow-left"></i> Back to Website
-            </a>
+            <h1><i class="fas fa-snowflake" style="color: #3498db;"></i> Snow Station Admin</h1>
+            <p>Manage your guest house bookings (Public View - Data Anonymized)</p>
         </div>
-        
-        <!-- Stats Grid -->
-        <div class="admin-grid">
-            <div class="admin-card">
-                <h2><i class="fas fa-chart-bar"></i> Booking Statistics</h2>
-                <div class="stats-list">
-                    <div class="stat-row">
-                        <span class="stat-label">Total Bookings</span>
-                        <span class="stat-value" id="totalBookings">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Total Revenue</span>
-                        <span class="stat-value" id="totalRevenue">¥0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Unique Customers</span>
-                        <span class="stat-value" id="uniqueCustomers">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Today's Bookings</span>
-                        <span class="stat-value" id="todayBookings">0</span>
-                    </div>
-                </div>
+
+        <div class="privacy-notice">
+            <i class="fas fa-shield-alt" style="color: #3498db; margin-right: 0.5rem;"></i>
+            <strong>Privacy Protection:</strong> All personal data is anonymized in this public view. 
+            Full customer details are only accessible in the private admin interface.
+        </div>
+
+        <!-- Token Configuration -->
+        <div class="token-section" id="tokenSection">
+            <h3><i class="fab fa-github"></i> GitHub Private Repo Access</h3>
+            <p>Enter a GitHub token with read access to your private data repository.</p>
+            <div class="token-input-group">
+                <input type="password" id="githubToken" placeholder="github_pat_xxxxxxxxxxxx" value="">
+                <button class="btn btn-primary" onclick="saveToken()">
+                    <i class="fas fa-save"></i> Save Token
+                </button>
             </div>
-            
-            <div class="admin-card">
-                <h2><i class="fas fa-calendar-alt"></i> Availability Overview</h2>
-                <div class="stats-list">
-                    <div class="stat-row">
-                        <span class="stat-label">Available Days (30d)</span>
-                        <span class="stat-value" id="availableDays">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Limited Days</span>
-                        <span class="stat-value" id="limitedDays">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Fully Booked</span>
-                        <span class="stat-value" id="bookedDays">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Closed Days</span>
-                        <span class="stat-value" id="closedDays">0</span>
-                    </div>
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-primary" onclick="openAvailabilityModal()">
-                        <i class="fas fa-edit"></i> Manage Availability
-                    </button>
-                </div>
+            <div id="tokenStatus" class="status-message"></div>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                <i class="fas fa-info-circle"></i> 
+                Token is stored locally in your browser and never sent to our servers.
+                <a href="#" onclick="window.open('https://github.com/settings/tokens/new?scopes=repo&description=Calendar%20Read%20Token', '_blank')">Create a token</a>
+            </p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <h3><i class="fas fa-calendar-check"></i> Total Bookings</h3>
+                <p id="totalBookings">-</p>
             </div>
-            
-            <div class="admin-card">
-                <h2><i class="fab fa-github"></i> GitHub Sync</h2>
-                <div class="stats-list">
-                    <div class="stat-row">
-                        <span class="stat-label">Repository</span>
-                        <span class="stat-value">ZeroDegreeStation/Calendar</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Branch</span>
-                        <span class="stat-value">main</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Status</span>
-                        <span class="stat-value" id="githubStatus">Checking...</span>
-                    </div>
-                </div>
-                
-                <div class="github-config">
-                    <h4 style="margin-bottom: 1rem; color: #2c3e50;">GitHub Personal Access Token</h4>
-                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
-                        <i class="fas fa-info-circle"></i> 
-                        Token needs <code>repo</code> scope (full control of repositories).
-                        <a href="#" onclick="window.open(githubSync?.getTokenUrl(), '_blank')">Create token</a>
-                    </p>
-                    
-                    <div class="token-input-group">
-                        <input type="password" id="githubToken" class="form-control" 
-                               placeholder="ghp_xxxxxxxxxxxx" value="">
-                        <button class="btn btn-success" onclick="saveGitHubToken()">
-                            <i class="fas fa-save"></i> Save
-                        </button>
-                    </div>
-                    
-                    <div style="display: flex; gap: 8px; margin-top: 1rem;">
-                        <button class="btn btn-primary" onclick="testGitHubConnection()" style="flex: 1;">
-                            <i class="fas fa-plug"></i> Test Connection
-                        </button>
-                        <button class="btn btn-outline" onclick="clearGitHubToken()" style="flex: 1;">
-                            <i class="fas fa-trash"></i> Clear Token
-                        </button>
-                    </div>
-                    
-                    <div id="connectionResult" style="margin-top: 1rem; font-size: 0.9rem; display: none;"></div>
-                </div>
+            <div class="stat-card">
+                <h3><i class="fas fa-yen-sign"></i> Total Revenue</h3>
+                <p id="totalRevenue">-</p>
+            </div>
+            <div class="stat-card">
+                <h3><i class="fas fa-users"></i> This Month</h3>
+                <p id="monthlyBookings">-</p>
+            </div>
+            <div class="stat-card">
+                <h3><i class="fas fa-bed"></i> Available Rooms</h3>
+                <p id="availableRooms">-</p>
             </div>
         </div>
-        
-        <!-- File Management -->
-        <div class="admin-grid">
-            <div class="admin-card">
-                <h2><i class="fas fa-file-excel"></i> Excel Files</h2>
-                <div class="file-list">
-                    <div class="file-item">
-                        <div class="file-info">
-                            <i class="fas fa-file-excel"></i>
-                            <div>
-                                <div style="font-weight: 600;">calendar-availability.xlsx</div>
-                                <div style="font-size: 0.85rem; color: #666;">Override unavailable dates</div>
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <button class="btn btn-outline" onclick="downloadFile('availability')">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <button class="btn btn-outline" onclick="forcePushAvailability()">
-                                <i class="fab fa-github"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="file-item">
-                        <div class="file-info">
-                            <i class="fas fa-file-excel"></i>
-                            <div>
-                                <div style="font-weight: 600;">calendar-bookings.xlsx</div>
-                                <div style="font-size: 0.85rem; color: #666;">All booking records</div>
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <button class="btn btn-outline" onclick="downloadFile('bookings')">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <button class="btn btn-outline" onclick="exportCSV()">
-                                <i class="fas fa-file-csv"></i>
-                            </button>
-                            <button class="btn btn-outline" onclick="forcePushBookings()">
-                                <i class="fab fa-github"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="btn-group">
-                    <button class="btn btn-success" onclick="generateTemplates()">
-                        <i class="fas fa-file-export"></i> Generate Templates
-                    </button>
-                    <button class="btn btn-primary" onclick="forcePushAll()">
-                        <i class="fab fa-github"></i> Push All to GitHub
-                    </button>
-                </div>
-            </div>
-        </div>
-        
+
         <!-- Recent Bookings -->
         <div class="table-container">
-            <h2 style="color: #2c3e50; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.8rem;">
-                <i class="fas fa-list"></i> Recent Bookings
+            <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.8rem;">
+                <i class="fas fa-list" style="color: #3498db;"></i>
+                Recent Bookings (Anonymized)
             </h2>
+            
             <table id="bookingsTable">
                 <thead>
                     <tr>
                         <th>Booking ID</th>
                         <th>Date</th>
                         <th>Customer</th>
-                        <th>Email</th>
+                        <th>Contact</th>
                         <th>Guests</th>
+                        <th>Plan</th>
                         <th>Total</th>
                         <th>Status</th>
-                        <th>Booked On</th>
                     </tr>
                 </thead>
                 <tbody id="bookingsTableBody">
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">
+                        <td colspan="8" style="text-align: center; padding: 3rem; color: #666;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
                             Loading bookings...
                         </td>
                     </tr>
                 </tbody>
             </table>
-        </div>
-    </div>
-    
-    <!-- Availability Modal -->
-    <div id="availabilityModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-calendar-alt"></i> Manage Availability</h2>
-                <button class="close-btn" onclick="closeAvailabilityModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div style="margin-bottom: 2rem;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label>Date</label>
-                            <input type="date" id="overrideDate">
-                        </div>
-                        <div class="form-group">
-                            <label>Status</label>
-                            <select id="overrideStatus">
-                                <option value="Available">Available</option>
-                                <option value="Limited">Limited</option>
-                                <option value="Booked">Fully Booked</option>
-                                <option value="Closed">Closed</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Price (¥)</label>
-                            <input type="number" id="overridePrice" placeholder="Default">
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" onclick="addOverride()" style="width: 100%;">
-                        <i class="fas fa-plus"></i> Add Override
-                    </button>
-                </div>
-                
-                <div style="max-height: 400px; overflow-y: auto;">
-                    <table style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Price</th>
-                                <th>Max</th>
-                                <th>Booked</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="availabilityTableBody">
-                            <tr>
-                                <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
-                                    No overrides. All days available by default.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
-                <button class="btn btn-outline" onclick="closeAvailabilityModal()">Cancel</button>
-                <button class="btn btn-success" onclick="saveAvailability()">
-                    <i class="fas fa-save"></i> Save Changes
-                </button>
+            
+            <div class="anonymized-note">
+                <i class="fas fa-user-secret"></i>
+                Customer names and contact details are anonymized for privacy.
+                <span style="margin-left: auto; font-size: 0.85rem;">
+                    <i class="fas fa-download"></i> 
+                    <a href="#" onclick="exportAnonymizedCSV()" style="color: #3498db;">Export CSV (Anonymized)</a>
+                </span>
             </div>
         </div>
     </div>
-    
+
     <script src="scripts/excel-handler.js"></script>
     <script src="scripts/github-sync.js"></script>
-    
+
     <script>
-        // Admin Panel Logic
-        class AdminPanel {
-            constructor() {
-                this.excelHandler = new ExcelHandler();
-                this.githubSync = new GitHubSync();
-                this.availabilityOverrides = [];
-                this.bookings = [];
-                
-                this.init();
-            }
+        let githubSync;
+        let excelHandler;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            githubSync = new GitHubSync();
+            excelHandler = new ExcelHandler();
             
-            async init() {
-                await this.loadData();
-                this.updateStats();
-                this.renderBookingsTable();
-                this.renderAvailabilityTable();
-                this.updateGitHubUI();
+            // Check for existing token
+            const savedToken = githubSync.getTokenForReading();
+            if (savedToken) {
+                document.getElementById('githubToken').value = '••••••••' + savedToken.slice(-4);
+                excelHandler.setToken(savedToken);
+                loadData();
             }
+        });
+
+        function saveToken() {
+            const token = document.getElementById('githubToken').value;
+            const statusEl = document.getElementById('tokenStatus');
             
-            async loadData() {
-                try {
-                    const [overrides, bookings] = await Promise.all([
-                        this.excelHandler.loadAvailabilityOverrides(),
-                        this.excelHandler.loadBookings()
-                    ]);
-                    
-                    this.availabilityOverrides = overrides || [];
-                    this.bookings = bookings || [];
-                } catch (error) {
-                    console.error('Error loading data:', error);
-                }
+            if (!token) {
+                statusEl.textContent = 'Please enter a token';
+                statusEl.className = 'status-message status-error';
+                return;
             }
+
+            // Save token
+            githubSync.setReadToken(token);
+            excelHandler.setToken(token);
             
-            updateStats() {
-                const today = new Date().toISOString().split('T')[0];
+            statusEl.textContent = '✅ Token saved! Loading data...';
+            statusEl.className = 'status-message status-success';
+            
+            // Mask token in input
+            document.getElementById('githubToken').value = '••••••••' + token.slice(-4);
+            
+            // Load data
+            loadData();
+        }
+
+        async function loadData() {
+            try {
+                const [overrides, bookings] = await Promise.all([
+                    excelHandler.loadAvailabilityOverrides(),
+                    excelHandler.loadBookings()
+                ]);
+
+                // Update statistics
+                document.getElementById('totalBookings').textContent = bookings.length;
                 
-                // Booking stats
-                document.getElementById('totalBookings').textContent = this.bookings.length;
-                
-                const totalRevenue = this.bookings.reduce((sum, b) => sum + (parseInt(b['Total Price']) || 0), 0);
+                const totalRevenue = bookings.reduce((sum, b) => sum + (parseInt(b['Total Price']) || 0), 0);
                 document.getElementById('totalRevenue').textContent = `¥${totalRevenue.toLocaleString()}`;
                 
-                const uniqueCustomers = [...new Set(this.bookings.map(b => b.Email))].length;
-                document.getElementById('uniqueCustomers').textContent = uniqueCustomers;
-                
-                const todayBookings = this.bookings.filter(b => b.Date === today).length;
-                document.getElementById('todayBookings').textContent = todayBookings;
-                
-                // Availability stats
-                let available = 0, limited = 0, booked = 0, closed = 0;
-                
-                for (let i = 0; i < 30; i++) {
-                    const date = new Date();
-                    date.setDate(date.getDate() + i);
-                    const dateStr = date.toISOString().split('T')[0];
-                    
-                    const override = this.availabilityOverrides.find(o => o.Date === dateStr);
-                    
-                    if (override) {
-                        if (override.Status === 'Closed') closed++;
-                        else if (override.Status === 'Booked') booked++;
-                        else if (override.Status === 'Limited') limited++;
-                        else available++;
-                    } else {
-                        const bookingCount = this.bookings.filter(b => b.Date === dateStr).length;
-                        if (bookingCount >= 10) booked++;
-                        else if (bookingCount >= 7) limited++;
-                        else available++;
-                    }
-                }
-                
-                document.getElementById('availableDays').textContent = available;
-                document.getElementById('limitedDays').textContent = limited;
-                document.getElementById('bookedDays').textContent = booked;
-                document.getElementById('closedDays').textContent = closed;
+                const thisMonth = new Date().getMonth();
+                const monthlyBookings = bookings.filter(b => new Date(b.Date).getMonth() === thisMonth).length;
+                document.getElementById('monthlyBookings').textContent = monthlyBookings;
+
+                // Calculate available rooms
+                const availableCount = calculateAvailableRooms(overrides, bookings);
+                document.getElementById('availableRooms').textContent = availableCount;
+
+                // Render bookings
+                renderBookings(bookings);
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('bookingsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem; color: #e74c3c;">
+                            <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                            Error loading data. Please check your token.
+                        </td>
+                    </tr>
+                `;
             }
+        }
+
+        function renderBookings(bookings) {
+            const tbody = document.getElementById('bookingsTableBody');
             
-            renderBookingsTable() {
-                const tbody = document.getElementById('bookingsTableBody');
+            if (bookings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No bookings found</td></tr>';
+                return;
+            }
+
+            // Sort by date (newest first) and take top 50
+            const sorted = [...bookings].sort((a, b) => 
+                new Date(b.Date) - new Date(a.Date)
+            ).slice(0, 50);
+
+            tbody.innerHTML = sorted.map(booking => {
+                const name = anonymizeName(booking['Customer Name']);
+                const email = anonymizeEmail(booking.Email);
+                const phone = booking.Phone ? anonymizePhone(booking.Phone) : 'N/A';
                 
-                if (this.bookings.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">
-                                No bookings found
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                
-                const sorted = [...this.bookings].sort((a, b) => 
-                    new Date(b['Booking Date']) - new Date(a['Booking Date'])
-                ).slice(0, 20);
-                
-                tbody.innerHTML = sorted.map(booking => `
+                return `
                     <tr>
                         <td style="font-family: monospace;">${booking['Booking ID'] || 'N/A'}</td>
                         <td>${booking.Date || ''}</td>
-                        <td>${booking['Customer Name'] || ''}</td>
-                        <td>${booking.Email || ''}</td>
+                        <td>${name}</td>
+                        <td><small>${email}<br>${phone}</small></td>
                         <td>${booking.Guests || 1}</td>
+                        <td>${booking.Plan || 'Standard'}</td>
                         <td style="font-weight: 600; color: #27ae60;">¥${(booking['Total Price'] || 0).toLocaleString()}</td>
                         <td><span class="badge badge-success">Confirmed</span></td>
-                        <td>${booking['Booking Date'] || ''}</td>
                     </tr>
-                `).join('');
-            }
-            
-            renderAvailabilityTable() {
-                const tbody = document.getElementById('availabilityTableBody');
-                
-                if (this.availabilityOverrides.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
-                                No availability overrides. All days are available.
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                
-                const sorted = [...this.availabilityOverrides].sort((a, b) => 
-                    new Date(a.Date) - new Date(b.Date)
-                );
-                
-                tbody.innerHTML = sorted.map(override => `
-                    <tr>
-                        <td>${override.Date}</td>
-                        <td>
-                            <span class="badge ${override.Status === 'Closed' ? 'badge-danger' : 
-                                              override.Status === 'Limited' ? 'badge-warning' : 
-                                              override.Status === 'Booked' ? 'badge-danger' : 'badge-success'}">
-                                ${override.Status || 'Available'}
-                            </span>
-                        </td>
-                        <td>${override.Price ? `¥${override.Price}` : 'Default'}</td>
-                        <td>${override.MaxBookings || 10}</td>
-                        <td>${override.Booked || 0}</td>
-                        <td>
-                            <button class="btn btn-outline" onclick="removeOverride('${override.Date}')" style="padding: 0.3rem 0.8rem;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
-            
-            async updateGitHubUI() {
-                const statusEl = document.getElementById('githubStatus');
-                const tokenInput = document.getElementById('githubToken');
-                
-                // Load saved token
-                const savedToken = this.githubSync.getToken();
-                if (savedToken) {
-                    tokenInput.value = savedToken;
-                }
-                
-                // Check connection
-                const connected = await this.githubSync.checkConnection();
-                
-                if (connected) {
-                    statusEl.innerHTML = '<span class="github-status-badge status-connected">✓ Connected</span>';
-                    
-                    // Get user info
-                    const user = await this.githubSync.getUserInfo();
-                    if (user) {
-                        statusEl.innerHTML += ` <span style="color: #666; font-size: 0.9rem;">as @${user.login}</span>`;
-                    }
-                } else {
-                    statusEl.innerHTML = '<span class="github-status-badge status-disconnected">✗ Disconnected</span>';
-                }
-            }
-            
-            async addOverride() {
-                const date = document.getElementById('overrideDate').value;
-                const status = document.getElementById('overrideStatus').value;
-                const price = document.getElementById('overridePrice').value;
-                
-                if (!date) {
-                    alert('Please select a date');
-                    return;
-                }
-                
-                const override = {
-                    'Date': date,
-                    'Status': status,
-                    'Price': price ? parseInt(price) : null,
-                    'MaxBookings': status === 'Closed' ? 0 : 2,
-                    'Booked': 0,
-                    'Available': status === 'Closed' ? 0 : 2
-                };
-                
-                this.availabilityOverrides = this.availabilityOverrides.filter(o => o.Date !== date);
-                this.availabilityOverrides.push(override);
-                this.availabilityOverrides.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-                
-                this.renderAvailabilityTable();
-                
-                document.getElementById('overrideDate').value = '';
-                document.getElementById('overridePrice').value = '';
-            }
-            
-            removeOverride(date) {
-                if (confirm(`Remove override for ${date}?`)) {
-                    this.availabilityOverrides = this.availabilityOverrides.filter(o => o.Date !== date);
-                    this.renderAvailabilityTable();
-                }
-            }
-            
-            async saveAvailability() {
-                try {
-                    // Push to GitHub if token exists
-                    if (this.githubSync.hasToken()) {
-                        await this.githubSync.pushAvailability(this.availabilityOverrides);
-                        alert('Availability saved and pushed to GitHub!');
-                    } else {
-                        // Just download locally
-                        const worksheet = XLSX.utils.json_to_sheet(this.availabilityOverrides);
-                        const workbook = XLSX.utils.book_new();
-                        XLSX.utils.book_append_sheet(workbook, worksheet, 'Availability');
-                        XLSX.writeFile(workbook, 'calendar-availability.xlsx');
-                        alert('Availability saved locally! Add GitHub token to auto-push.');
-                    }
-                    
-                    closeAvailabilityModal();
-                } catch (error) {
-                    console.error('Error saving:', error);
-                    alert('Error saving availability');
-                }
-            }
+                `;
+            }).join('');
         }
-        
-        // Global functions
-        let adminPanel;
-        
-        document.addEventListener('DOMContentLoaded', async () => {
-            adminPanel = new AdminPanel();
-            window.adminPanel = adminPanel;
-            window.githubSync = adminPanel.githubSync;
-        });
-        
-        function openAvailabilityModal() {
-            document.getElementById('availabilityModal').classList.add('active');
-            if (adminPanel) adminPanel.renderAvailabilityTable();
+
+        function calculateAvailableRooms(overrides, bookings) {
+            // Simple calculation - can be enhanced based on your logic
+            const today = new Date().toISOString().split('T')[0];
+            const todayBookings = bookings.filter(b => b.Date === today).length;
+            const maxRooms = 10; // Your total rooms
+            return Math.max(0, maxRooms - todayBookings);
         }
-        
-        function closeAvailabilityModal() {
-            document.getElementById('availabilityModal').classList.remove('active');
+
+        // Anonymization functions
+        function anonymizeName(name) {
+            if (!name) return '';
+            const parts = name.split(' ');
+            return parts.map(p => {
+                if (p.length <= 2) return p;
+                return p[0] + '*'.repeat(p.length - 2) + p[p.length - 1];
+            }).join(' ');
         }
-        
-        function addOverride() {
-            if (adminPanel) adminPanel.addOverride();
+
+        function anonymizeEmail(email) {
+            if (!email || !email.includes('@')) return email;
+            const [local, domain] = email.split('@');
+            if (local.length <= 2) return `${local}@${domain}`;
+            return local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] + '@' + domain;
         }
-        
-        function removeOverride(date) {
-            if (adminPanel) adminPanel.removeOverride(date);
+
+        function anonymizePhone(phone) {
+            if (!phone) return '';
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length < 4) return '*'.repeat(cleaned.length);
+            const last4 = cleaned.slice(-4);
+            return '*'.repeat(cleaned.length - 4) + last4;
         }
-        
-        function saveAvailability() {
-            if (adminPanel) adminPanel.saveAvailability();
-        }
-        
-        async function downloadFile(type) {
-            if (!adminPanel) return;
-            
-            let data, filename;
-            
-            if (type === 'availability') {
-                data = adminPanel.availabilityOverrides;
-                filename = 'calendar-availability.xlsx';
-            } else {
-                data = adminPanel.bookings;
-                filename = 'calendar-bookings.xlsx';
-            }
-            
-            const worksheet = XLSX.utils.json_to_sheet(data);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-            XLSX.writeFile(workbook, filename);
-        }
-        
-        function exportCSV() {
-            if (!adminPanel) return;
-            
-            const worksheet = XLSX.utils.json_to_sheet(adminPanel.bookings);
-            const csv = XLSX.utils.sheet_to_csv(worksheet);
-            
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'calendar-bookings.csv';
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
-        
-        function generateTemplates() {
-            const availabilityTemplate = [
-                { 'Date': '2024-12-25', 'Status': 'Closed', 'Price': '', 'Notes': 'Christmas Day', 'MaxBookings': 0, 'Booked': 0, 'Available': 0 },
-                { 'Date': '2024-12-31', 'Status': 'Limited', 'Price': 22000, 'Notes': 'New Year\'s Eve', 'MaxBookings': 10, 'Booked': 8, 'Available': 2 }
-            ];
-            
-            const bookingsTemplate = [
-                { 'Booking ID': 'SNOW-001', 'Date': '2024-03-20', 'Customer Name': 'John Smith', 'Email': 'john@example.com', 'Guests': 2, 'Total Price': 12800, 'Status': 'Confirmed', 'Booking Date': '2024-03-01' }
-            ];
-            
-            const wb1 = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb1, XLSX.utils.json_to_sheet(availabilityTemplate), 'Availability');
-            XLSX.writeFile(wb1, 'calendar-availability-template.xlsx');
-            
-            const wb2 = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb2, XLSX.utils.json_to_sheet(bookingsTemplate), 'Bookings');
-            XLSX.writeFile(wb2, 'calendar-bookings-template.xlsx');
-            
-            alert('Template files generated successfully!');
-        }
-        
-        // GitHub functions
-        function saveGitHubToken() {
-            const token = document.getElementById('githubToken').value;
-            if (token) {
-                githubSync.setToken(token);
-                alert('GitHub token saved successfully!');
-                adminPanel.updateGitHubUI();
-                testGitHubConnection();
-            } else {
-                alert('Please enter a token');
-            }
-        }
-        
-        function clearGitHubToken() {
-            if (confirm('Clear GitHub token?')) {
-                githubSync.clearToken();
-                document.getElementById('githubToken').value = '';
-                adminPanel.updateGitHubUI();
-                alert('Token cleared');
-            }
-        }
-        
-        async function testGitHubConnection() {
-            const resultDiv = document.getElementById('connectionResult');
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = 'Testing connection...';
-            resultDiv.style.color = '#666';
-            
-            const connected = await githubSync.checkConnection();
-            
-            if (connected) {
-                const user = await githubSync.getUserInfo();
-                resultDiv.innerHTML = `✓ Connected to GitHub as <strong>@${user.login}</strong>`;
-                resultDiv.style.color = '#27ae60';
-                adminPanel.updateGitHubUI();
-            } else {
-                resultDiv.innerHTML = '✗ Failed to connect. Check your token.';
-                resultDiv.style.color = '#e74c3c';
-            }
-        }
-        
-        async function forcePushBookings() {
-            if (!adminPanel) return;
-            
-            if (!githubSync.hasToken()) {
-                alert('Please add GitHub token first');
-                return;
-            }
-            
-            const result = await githubSync.pushBookings(adminPanel.bookings);
-            if (result) {
-                alert('Bookings pushed to GitHub successfully!');
-            } else {
-                alert('Failed to push bookings');
-            }
-        }
-        
-        async function forcePushAvailability() {
-            if (!adminPanel) return;
-            
-            if (!githubSync.hasToken()) {
-                alert('Please add GitHub token first');
-                return;
-            }
-            
-            const result = await githubSync.pushAvailability(adminPanel.availabilityOverrides);
-            if (result) {
-                alert('Availability pushed to GitHub successfully!');
-            } else {
-                alert('Failed to push availability');
-            }
-        }
-        
-        async function forcePushAll() {
-            if (!adminPanel) return;
-            
-            if (!githubSync.hasToken()) {
-                alert('Please add GitHub token first');
-                return;
-            }
-            
-            const result = await githubSync.pushAll(adminPanel.bookings, adminPanel.availabilityOverrides);
-            if (result) {
-                alert('All data pushed to GitHub successfully!');
-            } else {
-                alert('Failed to push data');
-            }
+
+        function exportAnonymizedCSV() {
+            // Implementation for CSV export with anonymized data
+            alert('CSV export feature coming soon');
         }
     </script>
 </body>
