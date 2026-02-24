@@ -104,8 +104,9 @@ class BookingSystem {
                 bookings: this.bookings.length
             });
             
-            // Log the actual data for debugging
-            console.log('📅 Availability from Excel:', this.availabilityOverrides);
+            // Log BOTH for debugging
+            console.log('📅 Availability from Excel:', JSON.stringify(this.availabilityOverrides, null, 2));
+            console.log('📅 Bookings from Excel:', JSON.stringify(this.bookings, null, 2));
             
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
