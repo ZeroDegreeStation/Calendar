@@ -1,5 +1,6 @@
 /**
  * SnowStation Integration - Links Calendar with Booking Form
+ * FIXED: Button state reset after successful booking
  */
 class SnowStationIntegration {
     constructor() {
@@ -273,6 +274,7 @@ class SnowStationIntegration {
         }
     }
 
+    // FIXED: handleBookingSubmission with proper button state management
     async handleBookingSubmission() {
         const name = document.getElementById('name')?.value;
         const email = document.getElementById('email')?.value;
@@ -311,20 +313,34 @@ class SnowStationIntegration {
         if (this.bookingSystem && this.bookingSystem.selectedDates.length > 0) {
             const btn = document.getElementById('completeBookingBtn');
             const originalText = btn.innerHTML;
+            
+            // Set loading state
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             btn.disabled = true;
             
-            const result = await this.bookingSystem.submitBooking({
-                name, email, phone, guests: parseInt(guests), requests
-            });
-            
-            if (result.success) {
-                this.resetForm();
-                this.showNotification(`Booking confirmed! Reference: ${result.bookingId}`, 'success');
-            } else {
-                this.showNotification('Booking failed. Please try again.', 'error');
+            try {
+                const result = await this.bookingSystem.submitBooking({
+                    name, email, phone, guests: parseInt(guests), requests
+                });
+                
+                if (result.success) {
+                    // Reset form and button
+                    this.resetForm();
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    this.showNotification(`Booking confirmed! Reference: ${result.bookingId}`, 'success');
+                } else {
+                    // Reset button on failure
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    this.showNotification('Booking failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Booking error:', error);
+                // Reset button on error
                 btn.innerHTML = originalText;
                 btn.disabled = false;
+                this.showNotification('An error occurred. Please try again.', 'error');
             }
         } else {
             this.showNotification('Please select dates from the calendar', 'error');

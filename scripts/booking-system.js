@@ -1,6 +1,6 @@
 /**
  * Booking System - Core calendar and booking logic
- * FIXED: Proper Excel file path and handleDateClick error
+ * FINAL FIXED: Proper Excel date matching for calendar display
  */
 class BookingSystem {
     constructor() {
@@ -105,8 +105,8 @@ class BookingSystem {
             });
             
             // Log the actual data for debugging
-            console.log('📅 Availability from Excel:', this.availabilityOverrides);
-            console.log('📅 Bookings from Excel:', this.bookings);
+            console.log('📅 Availability from Excel:', JSON.stringify(this.availabilityOverrides, null, 2));
+            console.log('📅 Bookings from Excel:', JSON.stringify(this.bookings, null, 2));
             
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
@@ -197,15 +197,21 @@ class BookingSystem {
     }
 
     /**
-     * Convert YYYY-MM-DD (from calendar) to MM/DD/YYYY (from Excel)
+     * Convert YYYY-MM-DD (from calendar) to multiple Excel formats for matching
      */
-    convertToExcelFormat(dateStr) {
-        if (!dateStr) return null;
+    convertToExcelFormats(dateStr) {
+        if (!dateStr) return [];
         const [year, month, day] = dateStr.split('-');
-        // Remove leading zeros from month and day
-        const monthNoZero = parseInt(month, 10).toString();
-        const dayNoZero = parseInt(day, 10).toString();
-        return `${monthNoZero}/${dayNoZero}/${year}`;
+        
+        // Generate multiple possible formats that might appear in Excel
+        const formats = [
+            `${month}/${day}/${year}`,           // 03/23/2026
+            `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`, // 3/23/2026
+            `${month}/${day}/${year.slice(-2)}`,  // 03/23/26
+            `${parseInt(month, 10)}/${parseInt(day, 10)}/${year.slice(-2)}` // 3/23/26
+        ];
+        
+        return formats;
     }
 
     applyStylesToCell(cell, dateStr) {
@@ -217,10 +223,8 @@ class BookingSystem {
         
         const isPast = cellDate < today;
         
-        // Convert calendar date to Excel format for lookup
-        const excelDateStr = this.convertToExcelFormat(dateStr);
-        const status = this.getDayStatus(excelDateStr);
-        const available = this.getAvailableSpots(excelDateStr);
+        // Get status and available spots
+        const { status, available } = this.getDayInfo(dateStr);
         
         // Remove all existing classes
         cell.classList.remove(
@@ -284,29 +288,53 @@ class BookingSystem {
         this.applyStylesToCell(info.el, info.date.toISOString().split('T')[0]);
     }
 
-    getDayStatus(excelDateStr) {
-        if (!excelDateStr) return 'unknown';
+    /**
+     * Get day info (status and available spots) by trying multiple date formats
+     */
+    getDayInfo(dateStr) {
+        if (!dateStr) return { status: 'unknown', available: 0 };
         
-        // Find matching override in Excel data (already in MM/DD/YYYY format)
-        const override = this.availabilityOverrides.find(o => o.Date === excelDateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const checkDate = new Date(dateStr);
+        checkDate.setHours(0, 0, 0, 0);
         
-        if (override) {
-            console.log(`📅 Date ${excelDateStr} found in Excel: ${override.Status}`);
-            return override.Status || 'Available';
+        if (checkDate < today) {
+            return { status: 'past', available: 0 };
         }
         
-        console.log(`📅 Date ${excelDateStr} not found in Excel, defaulting to Available`);
-        return 'Available';
+        // Generate all possible Excel formats
+        const possibleFormats = this.convertToExcelFormats(dateStr);
+        
+        // Try each format to find a match
+        for (const format of possibleFormats) {
+            const override = this.availabilityOverrides.find(o => o.Date === format);
+            if (override) {
+                console.log(`📅 Date ${dateStr} matched Excel format ${format}: ${override.Status}`);
+                const maxBookings = override.MaxBookings || this.defaultMaxBookings;
+                const booked = override.Booked || 0;
+                const available = Math.max(0, maxBookings - booked);
+                return {
+                    status: override.Status,
+                    available: available
+                };
+            }
+        }
+        
+        // No match found
+        console.log(`📅 Date ${dateStr} not found in Excel, defaulting to Available`);
+        return {
+            status: 'Available',
+            available: this.defaultMaxBookings
+        };
     }
 
-    getAvailableSpots(excelDateStr) {
-        const override = this.availabilityOverrides.find(o => o.Date === excelDateStr);
-        if (override) {
-            const maxBookings = override.MaxBookings || this.defaultMaxBookings;
-            const booked = override.Booked || 0;
-            return Math.max(0, maxBookings - booked);
-        }
-        return this.defaultMaxBookings;
+    getDayStatus(dateStr) {
+        return this.getDayInfo(dateStr).status;
+    }
+
+    getAvailableSpots(dateStr) {
+        return this.getDayInfo(dateStr).available;
     }
 
     isDateSelectable(dateInput) {
@@ -317,7 +345,6 @@ class BookingSystem {
         } else if (dateInput && dateInput.startStr) {
             dateStr = dateInput.startStr.split('T')[0];
         } else {
-            console.log('Invalid date input:', dateInput);
             return false;
         }
         
@@ -332,26 +359,21 @@ class BookingSystem {
         // Past dates are not selectable
         if (checkDate < today) return false;
         
-        // Convert to Excel format for lookup
-        const excelDateStr = this.convertToExcelFormat(dateStr);
-        const status = this.getDayStatus(excelDateStr);
-        const available = this.getAvailableSpots(excelDateStr);
+        const { status, available } = this.getDayInfo(dateStr);
         
         const statusLower = (status || '').toLowerCase();
         const isSelectable = statusLower === 'available' || 
                             statusLower === 'limited' || 
                             available > 0;
         
-        console.log(`📅 ${dateStr} (Excel: ${excelDateStr}): status=${status}, available=${available}, selectable=${isSelectable}`);
+        console.log(`📅 ${dateStr}: status=${status}, available=${available}, selectable=${isSelectable}`);
         
         return isSelectable;
     }
 
-    // FIXED: Added null check for info.el
     handleDateClick(info) {
         console.log('Date clicked:', info.dateStr);
         
-        // Check if info.el exists
         if (!info || !info.el) {
             console.error('Invalid click info:', info);
             return;
@@ -367,14 +389,12 @@ class BookingSystem {
         
         if (index === -1) {
             this.selectedDates.push(dateStr);
-            // FIXED: Only try to add class if el exists
             if (info.el) {
                 info.el.classList.add('fc-day-selected');
             }
             this.showNotification(`Date added: ${this.formatDate(dateStr)}`, 'success');
         } else {
             this.selectedDates.splice(index, 1);
-            // FIXED: Only try to remove class if el exists
             if (info.el) {
                 info.el.classList.remove('fc-day-selected');
             }
@@ -522,7 +542,10 @@ class BookingSystem {
             
             // Add to local cache
             for (const date of this.selectedDates) {
-                const excelDate = this.convertToExcelFormat(date);
+                // Convert to MM/DD/YYYY format for Excel
+                const [year, month, day] = date.split('-');
+                const excelDate = `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`;
+                
                 this.bookings.push({
                     'Booking ID': bookingId,
                     'Date': excelDate,
