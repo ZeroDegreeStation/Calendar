@@ -1,5 +1,6 @@
 /**
  * Excel Handler - Reads from private GitHub repo using API
+ * FIXED: Properly converts Excel serial numbers to readable dates
  */
 class ExcelHandler {
     constructor() {
@@ -73,6 +74,57 @@ class ExcelHandler {
         }
     }
 
+    /**
+     * Convert Excel serial date to JavaScript Date
+     * Excel serial date: days since 1899-12-30
+     */
+    excelSerialToDate(serial) {
+        if (!serial && serial !== 0) return null;
+        const excelEpoch = new Date(1899, 11, 30); // Excel epoch: 1899-12-30
+        const date = new Date(excelEpoch.getTime() + (serial * 86400000));
+        return date;
+    }
+
+    /**
+     * Format date as MM/DD/YYYY without leading zeros
+     */
+    formatDateMMDDYYYY(date) {
+        if (!date) return null;
+        const month = date.getMonth() + 1; // getMonth() returns 0-11
+        const day = date.getDate();
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
+    }
+
+    /**
+     * Convert any date value to MM/DD/YYYY string
+     */
+    normalizeDate(dateValue) {
+        if (!dateValue && dateValue !== 0) return null;
+        
+        // If it's already a string in MM/DD/YYYY format
+        if (typeof dateValue === 'string' && dateValue.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
+            return dateValue;
+        }
+        
+        // If it's an Excel serial number
+        if (typeof dateValue === 'number') {
+            const date = this.excelSerialToDate(dateValue);
+            return this.formatDateMMDDYYYY(date);
+        }
+        
+        // If it's a string in some other format, try to parse it
+        if (typeof dateValue === 'string') {
+            const parsed = new Date(dateValue);
+            if (!isNaN(parsed)) {
+                return this.formatDateMMDDYYYY(parsed);
+            }
+        }
+        
+        console.log('⚠️ Could not parse date:', dateValue);
+        return null;
+    }
+
     async loadAvailabilityOverrides(forceRefresh = false) {
         console.log('📊 Loading availability from private repo...');
         
@@ -102,15 +154,24 @@ class ExcelHandler {
             
             console.log(`📊 Loaded ${data.length} availability records`);
             
-            // Keep the original MM/DD/YYYY format for display
-            const processed = data.map(row => ({
-                Date: row.Date || row['Date'], // Keep as MM/DD/YYYY
-                Status: row.Status || 'Available',
-                Price: row.Price ? parseInt(row.Price) : null,
-                MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : 2,
-                Booked: row.Booked ? parseInt(row.Booked) : 0,
-                Notes: row.Notes || ''
-            })).filter(item => item.Date);
+            // Process and normalize dates
+            const processed = data.map(row => {
+                const rawDate = row.Date || row['Date'];
+                const normalizedDate = this.normalizeDate(rawDate);
+                
+                console.log(`📅 Converting date: ${rawDate} (${typeof rawDate}) → ${normalizedDate}`);
+                
+                return {
+                    Date: normalizedDate,
+                    Status: row.Status || 'Available',
+                    Price: row.Price ? parseInt(row.Price) : null,
+                    MaxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : 2,
+                    Booked: row.Booked ? parseInt(row.Booked) : 0,
+                    Notes: row.Notes || ''
+                };
+            }).filter(item => item.Date);
+            
+            console.log('✅ Processed availability:', processed);
             
             this.cache.availability = processed;
             this.cache.timestamp = Date.now();
@@ -151,21 +212,28 @@ class ExcelHandler {
             
             console.log(`📊 Loaded ${data.length} booking records`);
             
-            // Keep original format
-            const processed = data.map(row => ({
-                'Booking ID': row['Booking ID'] || '',
-                'Date': row.Date || row['Date'], // Keep as MM/DD/YYYY
-                'Customer Name': row['Customer Name'] || '',
-                'Email': row.Email || '',
-                'Phone': row.Phone || '',
-                'Guests': row.Guests ? parseInt(row.Guests) : 1,
-                'Plan': row.Plan || '',
-                'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
-                'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
-                'Status': row.Status || 'Confirmed',
-                'Booking Date': row['Booking Date'] || '',
-                'Special Requests': row['Special Requests'] || ''
-            })).filter(item => item.Date);
+            // Process and normalize dates
+            const processed = data.map(row => {
+                const rawDate = row.Date || row['Date'];
+                const normalizedDate = this.normalizeDate(rawDate);
+                
+                return {
+                    'Booking ID': row['Booking ID'] || '',
+                    'Date': normalizedDate,
+                    'Customer Name': row['Customer Name'] || '',
+                    'Email': row.Email || '',
+                    'Phone': row.Phone || '',
+                    'Guests': row.Guests ? parseInt(row.Guests) : 1,
+                    'Plan': row.Plan || '',
+                    'Plan Price': row['Plan Price'] ? parseInt(row['Plan Price']) : 0,
+                    'Total Price': row['Total Price'] ? parseInt(row['Total Price']) : 0,
+                    'Status': row.Status || 'Confirmed',
+                    'Booking Date': row['Booking Date'] || '',
+                    'Special Requests': row['Special Requests'] || ''
+                };
+            }).filter(item => item.Date);
+            
+            console.log('✅ Processed bookings:', processed);
             
             this.cache.bookings = processed;
             this.cache.timestamp = Date.now();
@@ -179,17 +247,14 @@ class ExcelHandler {
     }
 
     getDefaultAvailability() {
+        console.log('📅 Generating default availability data');
         const today = new Date();
         const defaults = [];
         
         for (let i = 0; i < 30; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
-            // Format as MM/DD/YYYY to match your Excel
-            const month = date.getMonth() + 1;
-            const day = date.getDate();
-            const year = date.getFullYear();
-            const dateStr = `${month}/${day}/${year}`;
+            const dateStr = this.formatDateMMDDYYYY(date);
             
             defaults.push({
                 Date: dateStr,
@@ -201,6 +266,7 @@ class ExcelHandler {
             });
         }
         
+        console.log('✅ Generated', defaults.length, 'default availability records');
         return defaults;
     }
 
