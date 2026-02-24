@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="styles/calendar.css">
     
     <style>
+        /* Ensure calendar container has height */
         #calendar {
             height: 600px;
             margin-bottom: 1.5rem;
@@ -25,6 +26,7 @@
             padding: 1rem;
         }
         
+        /* Loading indicator */
         .calendar-loading {
             display: flex;
             justify-content: center;
@@ -48,18 +50,41 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Mobile optimizations */
         @media (max-width: 768px) {
-            #calendar { height: 450px; }
-            input, select, textarea, button { font-size: 16px; }
+            #calendar {
+                height: 450px;
+            }
+            
+            input, select, textarea, button {
+                font-size: 16px; /* Prevent zoom on focus */
+            }
         }
         
         @media (max-width: 480px) {
-            #calendar { height: 400px; }
+            #calendar {
+                height: 400px;
+            }
         }
 
         @media (max-width: 360px) {
-            #calendar { height: 380px; }
+            #calendar {
+                height: 380px;
+            }
         }
+
+        /* Sync status indicator */
+        #syncStatus {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 0.3rem;
+            margin: 0.5rem 0;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        #syncStatus.synced { color: #27ae60; }
+        #syncStatus.local { color: #f39c12; }
+        #syncStatus.off { color: #95a5a6; }
     </style>
 </head>
 <body>
@@ -67,16 +92,28 @@
     <header class="main-header">
         <div class="nav-container">
             <a href="#home" class="logo">Snow<span>Station</span></a>
+            
             <button class="mobile-menu-btn" id="mobileMenuBtn">
                 <i class="fas fa-bars"></i>
             </button>
+            
             <nav class="main-nav" id="mainNav">
                 <ul class="nav-list">
-                    <li class="nav-item"><a href="#home" class="nav-link active">Home</a></li>
-                    <li class="nav-item"><a href="#stay-plans" class="nav-link">Stay Plans</a></li>
-                    <li class="nav-item"><a href="#calendar-section" class="nav-link">Availability</a></li>
-                    <li class="nav-item"><a href="#booking" class="nav-link">Booking</a></li>
-                    <li class="nav-item"><a href="#access" class="nav-link">Access</a></li>
+                    <li class="nav-item">
+                        <a href="#home" class="nav-link active">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#stay-plans" class="nav-link">Stay Plans</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#calendar-section" class="nav-link">Availability</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#booking" class="nav-link">Booking</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#access" class="nav-link">Access</a>
+                    </li>
                 </ul>
             </nav>
         </div>
@@ -85,10 +122,11 @@
     <!-- HERO SECTION -->
     <section id="home" class="hero-section">
         <p class="tagline">Serve Your Convenience</p>
+        
         <div class="hero-content">
             <h1>Welcome to the Guest House</h1>
             <h1><span class="highlight">Snow Station</span></h1>
-            <p>Located nearby Meiho Ski Resort, we provide exclusive booking for your convenience.</p>
+            <p>Located nearby Meiho Ski Resort, we provide exclusive booking for your convenience. Enjoy comfortable accommodations just minutes from the slopes, perfect for ski enthusiasts and winter vacationers.</p>
             <a href="#stay-plans" class="cta-button">View Our Stay Plans</a>
         </div>
     </section>
@@ -97,7 +135,7 @@
         <!-- STAY PLANS SECTION -->
         <section id="stay-plans">
             <h2 class="section-title">Stay Plans & Packages</h2>
-            <p style="text-align: center; max-width: 800px; margin: 0 auto 2rem; color: #666;">Choose from our specially curated stay plans designed for ski enthusiasts.</p>
+            <p style="text-align: center; max-width: 800px; margin: 0 auto 2rem; color: #666;">Choose from our specially curated stay plans designed for ski enthusiasts. All plans include breakfast and ski storage.</p>
             
             <div class="stay-plans">
                 <div class="plans-container">
@@ -116,12 +154,14 @@
                                 <li><i class="fas fa-check"></i> Hot Tub Access</li>
                                 <li><i class="fas fa-check"></i> Free WiFi</li>
                                 <li><i class="fas fa-check"></i> Parking</li>
+                                <li><i class="fas fa-times"></i> Ski Lift Discount</li>
+                                <li><i class="fas fa-times"></i> Dinner Package</li>
                             </ul>
                             <button class="cta-button select-plan-btn" data-plan="weekend-getaway" data-price="12800" data-plan-name="Weekend Getaway">Select This Plan</button>
                         </div>
                     </div>
                     
-                    <!-- Ski Adventure -->
+                    <!-- Ski Adventure (Popular) -->
                     <div class="plan-card popular">
                         <div class="popular-badge">MOST POPULAR</div>
                         <div class="plan-header">
@@ -137,6 +177,8 @@
                                 <li><i class="fas fa-check"></i> Hot Tub & Sauna</li>
                                 <li><i class="fas fa-check"></i> 15% Ski Lift Discount</li>
                                 <li><i class="fas fa-check"></i> Free Shuttle</li>
+                                <li><i class="fas fa-check"></i> Welcome Drink</li>
+                                <li><i class="fas fa-times"></i> Dinner Package</li>
                             </ul>
                             <button class="cta-button select-plan-btn" data-plan="ski-adventure" data-price="18500" data-plan-name="Ski Adventure">Select This Plan</button>
                         </div>
@@ -157,6 +199,8 @@
                                 <li><i class="fas fa-check"></i> All Facilities Access</li>
                                 <li><i class="fas fa-check"></i> 20% Ski Lift Discount</li>
                                 <li><i class="fas fa-check"></i> Free Shuttle</li>
+                                <li><i class="fas fa-check"></i> Kids' Ski Lesson</li>
+                                <li><i class="fas fa-check"></i> Dinner Option</li>
                             </ul>
                             <button class="cta-button select-plan-btn" data-plan="family-package" data-price="32000" data-plan-name="Family Ski Package">Select This Plan</button>
                         </div>
@@ -169,34 +213,62 @@
         <section id="calendar-section">
             <h2 class="section-title">Check Availability & Book</h2>
             
+            <!-- CALENDAR SECTION -->
             <div class="calendar-section">
                 <div class="calendar-header">
                     <div class="calendar-title">
                         <i class="fas fa-calendar-alt"></i>
                         <h2>Select Your Stay Dates</h2>
                     </div>
+                    <!-- Sync Status Indicator -->
+                    <div id="syncStatus" class="off">
+                        <i class="fas fa-circle" id="syncStatusDot" style="font-size: 0.5rem;"></i>
+                        <span id="syncStatusText">Checking sync...</span>
+                    </div>
                 </div>
                 
+                <!-- LEGEND -->
                 <div class="legend">
-                    <div class="legend-item"><span class="legend-color available"></span><span>Available (2 spots)</span></div>
-                    <div class="legend-item"><span class="legend-color limited"></span><span>Limited (1 spot left)</span></div>
-                    <div class="legend-item"><span class="legend-color booked"></span><span>Fully Booked / Closed</span></div>
-                    <div class="legend-item"><span class="legend-color selected"></span><span>Your Selection</span></div>
-                    <div class="legend-item"><span class="legend-color past"></span><span>Past Date</span></div>
+                    <div class="legend-item">
+                        <span class="legend-color available"></span>
+                        <span>Available (2 spots)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color limited"></span>
+                        <span>Limited (1 spot left)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color booked"></span>
+                        <span>Fully Booked / Closed</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color selected"></span>
+                        <span>Your Selection</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color past"></span>
+                        <span>Past Date</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color other-month"></span>
+                        <span>Previous/Next Month</span>
+                    </div>
                 </div>
                 
+                <!-- CALENDAR CONTAINER with loading indicator -->
                 <div id="calendar">
                     <div class="calendar-loading">
                         <i class="fas fa-spinner"></i> Loading calendar...
                     </div>
                 </div>
                 
+                <!-- LAST UPDATED TIMESTAMP -->
                 <div id="calendarLastUpdated" style="text-align: right; font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
                     Loading availability...
                 </div>
             </div>
             
-            <!-- BOOKING FORM -->
+            <!-- BOOKING FORM SECTION -->
             <div id="booking">
                 <div class="booking-container">
                     <!-- GUEST INFORMATION -->
@@ -234,13 +306,13 @@
                             
                             <div class="form-group">
                                 <label><i class="fas fa-calendar"></i> Check-in Date *</label>
-                                <input type="date" id="checkin" name="checkin" required>
+                                <input type="date" id="checkin" name="checkin" required placeholder="Select check-in date">
                                 <span id="checkin-hint" class="date-hint"></span>
                             </div>
                             
                             <div class="form-group">
                                 <label><i class="fas fa-calendar"></i> Check-out Date *</label>
-                                <input type="date" id="checkout" name="checkout" required>
+                                <input type="date" id="checkout" name="checkout" required placeholder="Select check-out date">
                                 <span id="checkout-hint" class="date-hint"></span>
                             </div>
                             
@@ -259,7 +331,7 @@
                             
                             <div class="form-group">
                                 <label><i class="fas fa-comment"></i> Special Requests</label>
-                                <textarea id="message" name="message" placeholder="Any special requirements..."></textarea>
+                                <textarea id="message" name="message" placeholder="Any special requirements, dietary restrictions, or questions..."></textarea>
                             </div>
                         </form>
                     </div>
@@ -271,10 +343,17 @@
                             Payment Information
                         </h3>
                         
+                        <!-- SELECTED PLAN DISPLAY -->
                         <div id="selectedPlanInfo" style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; border-left: 3px solid #3498db;">
                             <span style="color: #666;">No plan selected</span>
                         </div>
                         
+                        <!-- SELECTED DATES DISPLAY -->
+                        <div id="selectedDatesDisplay" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
+                            <div id="selectedDatesRange" style="display: flex; align-items: center; gap: 1rem;"></div>
+                        </div>
+                        
+                        <!-- TOTAL SUMMARY -->
                         <div class="total-summary">
                             <div class="total-row">
                                 <span>Room Rate (<span id="nightCount">0</span> nights):</span>
@@ -296,7 +375,7 @@
                         
                         <!-- PAYMENT METHODS -->
                         <div class="payment-options">
-                            <h4 style="margin-bottom: 1rem;">Select Payment Method</h4>
+                            <h4 style="margin-bottom: 1rem; color: #2c3e50;">Select Payment Method</h4>
                             
                             <div class="payment-method" data-method="credit-card">
                                 <input type="radio" name="paymentMethod" id="creditCard" value="credit-card">
@@ -320,6 +399,17 @@
                                 </label>
                             </div>
                             
+                            <div class="payment-method" data-method="bank-transfer">
+                                <input type="radio" name="paymentMethod" id="bankTransfer" value="bank-transfer">
+                                <label for="bankTransfer">
+                                    <i class="fas fa-university payment-icon"></i>
+                                    <div>
+                                        <div style="font-weight: 600;">Bank Transfer</div>
+                                        <div style="font-size: 0.85rem; color: #666;">Pay within 3 days</div>
+                                    </div>
+                                </label>
+                            </div>
+                            
                             <div class="payment-method" data-method="pay-at-hotel">
                                 <input type="radio" name="paymentMethod" id="payAtHotel" value="pay-at-hotel">
                                 <label for="payAtHotel">
@@ -334,20 +424,24 @@
                         
                         <!-- CREDIT CARD DETAILS -->
                         <div class="payment-details" id="creditCardDetails">
-                            <h4>Card Details</h4>
+                            <h4 style="margin-bottom: 1rem;">Card Details</h4>
+                            
                             <div class="form-group">
                                 <label>Card Number</label>
                                 <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
                             </div>
+                            
                             <div class="form-group">
                                 <label>Name on Card</label>
                                 <input type="text" id="cardName" placeholder="As shown on card">
                             </div>
+                            
                             <div class="card-input-group">
                                 <div class="form-group">
                                     <label>Expiry Date</label>
                                     <input type="text" id="expiryDate" placeholder="MM/YY" maxlength="5">
                                 </div>
+                                
                                 <div class="form-group">
                                     <label>CVV</label>
                                     <input type="text" id="cvv" placeholder="123" maxlength="3">
@@ -355,30 +449,51 @@
                             </div>
                         </div>
                         
+                        <!-- PAYPAL DETAILS -->
+                        <div class="payment-details" id="paypalDetails">
+                            <p style="color: #666;">You will be redirected to PayPal's secure payment page after submitting your booking.</p>
+                        </div>
+                        
+                        <!-- BANK TRANSFER DETAILS -->
+                        <div class="payment-details" id="bankTransferDetails">
+                            <h4 style="margin-bottom: 1rem;">Bank Transfer Information</h4>
+                            <div style="background: white; padding: 1rem; border-radius: 6px;">
+                                <p><strong>Bank:</strong> Snow Country Bank</p>
+                                <p><strong>Branch:</strong> Meiho Ski Resort Branch (123)</p>
+                                <p><strong>Account:</strong> 1234567</p>
+                                <p><strong>Name:</strong> Snow Station Guest House</p>
+                                <p style="color: #e74c3c; font-size: 0.85rem; margin-top: 0.5rem;">
+                                    <i class="fas fa-exclamation-circle"></i> Please include your booking reference number
+                                </p>
+                            </div>
+                        </div>
+                        
                         <!-- PAY AT HOTEL DETAILS -->
                         <div class="payment-details" id="payAtHotelDetails">
-                            <p>Your reservation will be confirmed immediately. Payment upon check-in.</p>
-                            <p style="color: #e74c3c; font-size: 0.85rem;">
+                            <p style="color: #666;">Your reservation will be confirmed immediately. Payment upon check-in using cash or credit card.</p>
+                            <p style="color: #e74c3c; font-size: 0.85rem; margin-top: 0.5rem;">
                                 <i class="fas fa-exclamation-circle"></i> A credit card is required to secure your booking
                             </p>
                         </div>
                         
+                        <!-- TERMS AND CONDITIONS -->
                         <div class="form-group" style="margin-top: 2rem;">
                             <div style="display: flex; align-items: flex-start;">
                                 <input type="checkbox" id="terms" style="margin-right: 0.8rem; margin-top: 0.2rem;">
                                 <label for="terms" style="font-size: 0.9rem;">
                                     I agree to the <a href="#" style="color: #3498db;">Terms & Conditions</a> and 
-                                    <a href="#" style="color: #3498db;">Cancellation Policy</a>.
+                                    <a href="#" style="color: #3498db;">Cancellation Policy</a>. I understand that a 30% deposit is required.
                                 </label>
                             </div>
                         </div>
                         
+                        <!-- COMPLETE BOOKING BUTTON -->
                         <button type="button" class="cta-button pay-now-btn" id="completeBookingBtn">
-                            <i class="fas fa-lock"></i> Complete Booking
+                            <i class="fas fa-lock"></i> Complete Booking & Pay Now
                         </button>
                         
                         <p style="text-align: center; margin-top: 1rem; color: #666; font-size: 0.85rem;">
-                            <i class="fas fa-shield-alt"></i> Secure booking
+                            <i class="fas fa-shield-alt"></i> Secure payment • SSL encrypted
                         </p>
                     </div>
                 </div>
@@ -388,20 +503,22 @@
         <!-- ACCESS SECTION -->
         <section id="access">
             <h2 class="section-title">Access</h2>
+            
             <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 5px 20px rgba(0,0,0,0.08);">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                     <div>
-                        <h3>Location</h3>
-                        <p><i class="fas fa-map-marker-alt" style="color: #3498db;"></i> 123 Ski Hill Road, Meiho, Japan</p>
-                        <p><i class="fas fa-train" style="color: #3498db;"></i> 10 minutes from Meiho Station</p>
-                        <p><i class="fas fa-bus" style="color: #3498db;"></i> Free shuttle to Meiho Ski Resort</p>
+                        <h3 style="color: #2c3e50; margin-bottom: 1rem;">Location</h3>
+                        <p><i class="fas fa-map-marker-alt" style="color: #3498db; margin-right: 0.8rem;"></i> 123 Ski Hill Road, Meiho, Japan</p>
+                        <p><i class="fas fa-train" style="color: #3498db; margin-right: 0.8rem;"></i> 10 minutes from Meiho Station</p>
+                        <p><i class="fas fa-bus" style="color: #3498db; margin-right: 0.8rem;"></i> Free shuttle to Meiho Ski Resort</p>
+                        <p><i class="fas fa-car" style="color: #3498db; margin-right: 0.8rem;"></i> Free parking available</p>
                     </div>
                     <div>
-                        <h3>Contact</h3>
-                        <p><i class="fas fa-phone" style="color: #3498db;"></i> +81 123-456-7890</p>
-                        <p><i class="fas fa-envelope" style="color: #3498db;"></i> info@snowstation.com</p>
-                        <p><i class="fas fa-clock" style="color: #3498db;"></i> Check-in: 15:00 - 22:00</p>
-                        <p><i class="fas fa-clock" style="color: #3498db;"></i> Check-out: 10:00</p>
+                        <h3 style="color: #2c3e50; margin-bottom: 1rem;">Contact</h3>
+                        <p><i class="fas fa-phone" style="color: #3498db; margin-right: 0.8rem;"></i> +81 123-456-7890</p>
+                        <p><i class="fas fa-envelope" style="color: #3498db; margin-right: 0.8rem;"></i> info@snowstation.com</p>
+                        <p><i class="fas fa-clock" style="color: #3498db; margin-right: 0.8rem;"></i> Check-in: 15:00 - 22:00</p>
+                        <p><i class="fas fa-clock" style="color: #3498db; margin-right: 0.8rem;"></i> Check-out: 10:00</p>
                     </div>
                 </div>
             </div>
@@ -425,11 +542,81 @@
         </div>
     </div>
 
+    <!-- EMAIL MODAL -->
+    <div class="email-modal" id="emailModal">
+        <div class="email-modal-content">
+            <button class="close-modal" id="closeEmailModal">&times;</button>
+            
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <i class="fas fa-envelope-circle-check" style="font-size: 3rem; color: #27ae60;"></i>
+                <h2 style="color: #2c3e50; margin-top: 1rem;">Sending Confirmation Emails</h2>
+                <p style="color: #666;">We're sending booking confirmation emails to you and our team.</p>
+            </div>
+            
+            <!-- PROGRESS -->
+            <div class="email-progress">
+                <div class="progress-step completed">1</div>
+                <div class="progress-line completed"></div>
+                <div class="progress-step active" id="step2">2</div>
+                <div class="progress-line" id="line2"></div>
+                <div class="progress-step" id="step3">3</div>
+            </div>
+            
+            <div style="text-align: center; margin: 2rem 0;">
+                <p id="progressText">Processing your booking...</p>
+            </div>
+            
+            <!-- EMAIL PREVIEW -->
+            <div class="email-preview">
+                <h4 style="margin-bottom: 1rem;">Emails Being Sent:</h4>
+                
+                <div class="email-address">
+                    <i class="fas fa-user"></i>
+                    <div>
+                        <div style="font-weight: 600;" id="customerEmail">customer@example.com</div>
+                        <div style="font-size: 0.85rem; color: #666;">Booking confirmation & receipt</div>
+                    </div>
+                </div>
+                
+                <div class="email-address">
+                    <i class="fas fa-building"></i>
+                    <div>
+                        <div style="font-weight: 600;">reservations@snowstation.com</div>
+                        <div style="font-size: 0.85rem; color: #666;">New booking notification</div>
+                    </div>
+                </div>
+                
+                <div class="email-address">
+                    <i class="fas fa-bell"></i>
+                    <div>
+                        <div style="font-weight: 600;">owner@snowstation.com</div>
+                        <div style="font-size: 0.85rem; color: #666;">Owner notification</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SUCCESS MESSAGE -->
+            <div id="successMessage" style="text-align: center; margin-top: 2rem; display: none;">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #27ae60;"></i>
+                <h3 style="color: #2c3e50; margin: 1rem 0;">Booking Confirmed!</h3>
+                <p style="color: #666; margin-bottom: 1.5rem;">Confirmation emails have been sent successfully.</p>
+                <button class="cta-button success-btn" id="finishBookingBtn">Return to Homepage</button>
+            </div>
+        </div>
+    </div>
+
     <!-- FOOTER -->
     <footer>
         <div class="footer-content">
             <div class="footer-logo">Snow<span>Station</span></div>
             <p>Near Meiho Ski Resort • Serving your convenience since 2020</p>
+            
+            <div style="margin: 2rem 0;">
+                <a href="#" style="color: white; margin: 0 1rem;"><i class="fas fa-envelope"></i> info@snowstation.com</a>
+                <span style="color: rgba(255,255,255,0.3);">|</span>
+                <a href="#" style="color: white; margin: 0 1rem;"><i class="fas fa-phone"></i> +81 123-456-7890</a>
+            </div>
+            
             <div class="copyright">
                 &copy; 2024 Guest House Snow Station. All rights reserved.
             </div>
@@ -445,14 +632,43 @@
     <script src="scripts/booking-system.js"></script>
     <script src="scripts/snowstation-integration.js"></script>
     
+    <!-- MAIN INITIALIZATION SCRIPT -->
     <script>
+        // Sync status indicator
+        function updateSyncStatus() {
+            const statusEl = document.getElementById('syncStatus');
+            const dotEl = document.getElementById('syncStatusDot');
+            const textEl = document.getElementById('syncStatusText');
+            
+            if (!statusEl || !window.githubSync) return;
+            
+            const hasToken = window.githubSync.hasReadToken && window.githubSync.hasReadToken();
+            
+            if (hasToken) {
+                statusEl.className = 'synced';
+                dotEl.style.color = '#27ae60';
+                textEl.textContent = 'Auto-save enabled';
+            } else {
+                statusEl.className = 'local';
+                dotEl.style.color = '#f39c12';
+                textEl.textContent = 'Saved locally';
+            }
+        }
+
+        // Initialize the booking system
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing Snow Station Booking System...');
+            
             const calendarEl = document.getElementById('calendar');
             
             try {
                 window.bookingSystem = new BookingSystem();
                 console.log('✅ BookingSystem instance created');
+                
+                // Update sync status after a delay
+                setTimeout(updateSyncStatus, 2000);
+                setInterval(updateSyncStatus, 30000);
+                
             } catch (error) {
                 console.error('❌ Failed to initialize BookingSystem:', error);
                 if (calendarEl) {
@@ -460,42 +676,113 @@
                 }
             }
         });
+
+        // Debug function (can be removed in production)
+        window.debugCalendar = function() {
+            if (window.bookingSystem) {
+                console.log('📅 Current overrides:', window.bookingSystem.availabilityOverrides);
+                console.log('📅 Selected dates:', window.bookingSystem.selectedDates);
+                
+                // Test tomorrow's date
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const dateStr = tomorrow.toISOString().split('T')[0];
+                const status = window.bookingSystem.getDayStatus(dateStr);
+                const selectable = window.bookingSystem.isDateSelectable({ startStr: dateStr });
+                console.log(`📅 Tomorrow (${dateStr}): status=${status}, selectable=${selectable}`);
+            }
+        };
     </script>
     
     <!-- MOBILE MENU SCRIPT -->
     <script>
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const mainNav = document.getElementById('mainNav');
-        
-        if (mobileMenuBtn && mainNav) {
-            mobileMenuBtn.addEventListener('click', function() {
-                mainNav.classList.toggle('active');
-                this.innerHTML = mainNav.classList.contains('active') 
+        (function() {
+            'use strict';
+            
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mainNav = document.getElementById('mainNav');
+            
+            if (!mobileMenuBtn || !mainNav) return;
+            
+            function toggleMenu(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                const isActive = mainNav.classList.toggle('active');
+                mobileMenuBtn.innerHTML = isActive 
                     ? '<i class="fas fa-times"></i>' 
                     : '<i class="fas fa-bars"></i>';
-            });
-        }
-        
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                if (targetId === '#') return;
-                
-                const targetElement = document.querySelector(targetId);
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
+            }
+            
+            mobileMenuBtn.addEventListener('click', toggleMenu);
+            mobileMenuBtn.addEventListener('touchstart', toggleMenu, { passive: false });
+            
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
                     
-                    if (mainNav && mainNav.classList.contains('active')) {
-                        mainNav.classList.remove('active');
-                        mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        requestAnimationFrame(() => {
+                            window.scrollTo({
+                                top: targetElement.offsetTop - 80,
+                                behavior: 'smooth'
+                            });
+                        });
+                        
+                        if (mainNav.classList.contains('active')) {
+                            mainNav.classList.remove('active');
+                            mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                        }
                     }
+                });
+                
+                anchor.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+                    
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        requestAnimationFrame(() => {
+                            window.scrollTo({
+                                top: targetElement.offsetTop - 80,
+                                behavior: 'smooth'
+                            });
+                        });
+                        
+                        if (mainNav.classList.contains('active')) {
+                            mainNav.classList.remove('active');
+                            mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                        }
+                    }
+                }, { passive: false });
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(e) {
+                if (mainNav.classList.contains('active') && 
+                    !mainNav.contains(e.target) && 
+                    !mobileMenuBtn.contains(e.target)) {
+                    mainNav.classList.remove('active');
+                    mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
                 }
             });
-        });
+            
+            document.addEventListener('touchstart', function(e) {
+                if (mainNav.classList.contains('active') && 
+                    !mainNav.contains(e.target) && 
+                    !mobileMenuBtn.contains(e.target)) {
+                    mainNav.classList.remove('active');
+                    mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                }
+            }, { passive: true });
+        })();
     </script>
 </body>
 </html>

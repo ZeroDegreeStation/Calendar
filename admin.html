@@ -33,6 +33,30 @@
             padding: 2rem;
             margin-bottom: 2rem;
             box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-title i {
+            font-size: 2rem;
+            color: #3498db;
+        }
+
+        .admin-title h1 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+        }
+
+        .admin-title p {
+            color: #666;
+            margin-top: 0.3rem;
         }
 
         .privacy-notice {
@@ -42,6 +66,14 @@
             margin-bottom: 2rem;
             border-radius: 8px;
             font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .privacy-notice i {
+            color: #3498db;
+            font-size: 1.2rem;
         }
 
         .token-section {
@@ -52,30 +84,36 @@
             border: 1px solid #d4e6f1;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-        }
-
-        .stat-card h3 {
-            color: #666;
-            font-size: 0.95rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-card p {
-            font-size: 2rem;
-            font-weight: 700;
+        .token-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
             color: #2c3e50;
+        }
+
+        .token-section h3 i {
+            color: #3498db;
+        }
+
+        .token-input-group {
+            display: flex;
+            gap: 10px;
+            margin: 1rem 0;
+        }
+
+        .token-input-group input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .token-input-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
         }
 
         .btn {
@@ -100,18 +138,93 @@
             background: #2980b9;
         }
 
-        .token-input-group {
-            display: flex;
-            gap: 10px;
-            margin: 1rem 0;
+        .btn-outline {
+            background: white;
+            border: 1px solid #ddd;
+            color: #666;
         }
 
-        .token-input-group input {
-            flex: 1;
+        .btn-outline:hover {
+            background: #f8f9fa;
+            border-color: #999;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .status-message {
+            margin-top: 0.8rem;
             padding: 0.8rem;
-            border: 1px solid #ddd;
             border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .status-success {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+            border-left: 3px solid #27ae60;
+        }
+
+        .status-error {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            border-left: 3px solid #e74c3c;
+        }
+
+        .token-help {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid #d4e6f1;
+        }
+
+        .token-help a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .token-help a:hover {
+            text-decoration: underline;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .stat-card h3 {
+            color: #666;
             font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-card h3 i {
+            color: #3498db;
+        }
+
+        .stat-card p {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
         }
 
         .table-container {
@@ -120,6 +233,18 @@
             padding: 1.5rem;
             box-shadow: 0 5px 20px rgba(0,0,0,0.08);
             overflow-x: auto;
+        }
+
+        .table-container h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+        }
+
+        .table-container h2 i {
+            color: #3498db;
         }
 
         table {
@@ -133,11 +258,13 @@
             text-align: left;
             font-weight: 600;
             color: #2c3e50;
+            white-space: nowrap;
         }
 
         td {
             padding: 1rem;
             border-bottom: 1px solid #f0f0f0;
+            white-space: nowrap;
         }
 
         .badge {
@@ -153,30 +280,19 @@
         }
 
         .anonymized-note {
-            color: #999;
-            font-style: italic;
-            font-size: 0.9rem;
             margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            color: #666;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.8rem;
         }
 
-        .status-message {
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-
-        .status-success {
-            background: rgba(39, 174, 96, 0.1);
-            color: #27ae60;
-        }
-
-        .status-error {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
+        .anonymized-note i {
+            color: #3498db;
         }
 
         .back-link {
@@ -185,51 +301,93 @@
             gap: 0.5rem;
             color: #666;
             text-decoration: none;
-            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
         }
 
         .back-link:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .loading-spinner i {
+            font-size: 2rem;
             color: #3498db;
+            margin-bottom: 1rem;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 3rem;
+            color: #e74c3c;
+        }
+
+        .error-message i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <a href="index.html" class="back-link">
-            <i class="fas fa-arrow-left"></i> Back to Website
-        </a>
-
+        <!-- Header -->
         <div class="admin-header">
-            <h1><i class="fas fa-snowflake" style="color: #3498db;"></i> Snow Station Admin</h1>
-            <p>Manage your guest house bookings (Public View - Data Anonymized)</p>
+            <div class="admin-title">
+                <i class="fas fa-snowflake"></i>
+                <div>
+                    <h1>Snow Station Admin</h1>
+                    <p>Manage your guest house bookings</p>
+                </div>
+            </div>
+            <a href="index.html" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Website
+            </a>
         </div>
 
+        <!-- Privacy Notice -->
         <div class="privacy-notice">
-            <i class="fas fa-shield-alt" style="color: #3498db; margin-right: 0.5rem;"></i>
+            <i class="fas fa-shield-alt"></i>
             <strong>Privacy Protection:</strong> All personal data is anonymized in this public view. 
-            Full customer details are only accessible in the private admin interface.
+            Full customer details are only accessible in the private repository.
         </div>
 
         <!-- Token Configuration -->
-        <div class="token-section" id="tokenSection">
-            <h3><i class="fab fa-github"></i> GitHub Private Repo Access</h3>
+        <div class="token-section">
+            <h3>
+                <i class="fab fa-github"></i>
+                GitHub Private Repo Access
+            </h3>
             <p>Enter a GitHub token with read access to your private data repository.</p>
+            
             <div class="token-input-group">
                 <input type="password" id="githubToken" placeholder="github_pat_xxxxxxxxxxxx" value="">
                 <button class="btn btn-primary" onclick="saveToken()">
                     <i class="fas fa-save"></i> Save Token
                 </button>
+                <button class="btn btn-outline" onclick="clearToken()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
             </div>
+            
             <div id="tokenStatus" class="status-message"></div>
-            <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                <i class="fas fa-info-circle"></i> 
+            
+            <div class="token-help">
+                <i class="fas fa-info-circle"></i>
                 Token is stored locally in your browser and never sent to our servers.
                 <a href="#" onclick="window.open('https://github.com/settings/tokens/new?scopes=repo&description=Calendar%20Read%20Token', '_blank')">Create a token</a>
-            </p>
+                with <code>repo</code> scope.
+            </div>
         </div>
 
         <!-- Statistics -->
-        <div class="stats-grid" id="statsGrid">
+        <div class="stats-grid">
             <div class="stat-card">
                 <h3><i class="fas fa-calendar-check"></i> Total Bookings</h3>
                 <p id="totalBookings">-</p>
@@ -250,40 +408,41 @@
 
         <!-- Recent Bookings -->
         <div class="table-container">
-            <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.8rem;">
-                <i class="fas fa-list" style="color: #3498db;"></i>
+            <h2>
+                <i class="fas fa-list"></i>
                 Recent Bookings (Anonymized)
             </h2>
             
-            <table id="bookingsTable">
-                <thead>
-                    <tr>
-                        <th>Booking ID</th>
-                        <th>Date</th>
-                        <th>Customer</th>
-                        <th>Contact</th>
-                        <th>Guests</th>
-                        <th>Plan</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="bookingsTableBody">
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 3rem; color: #666;">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
-                            Loading bookings...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div id="bookingsTableContainer">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Contact</th>
+                            <th>Guests</th>
+                            <th>Plan</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookingsTableBody">
+                        <tr>
+                            <td colspan="8" class="loading-spinner">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <div>Loading bookings...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             
             <div class="anonymized-note">
                 <i class="fas fa-user-secret"></i>
-                Customer names and contact details are anonymized for privacy.
+                Customer names and contact details are anonymized for privacy. 
                 <span style="margin-left: auto; font-size: 0.85rem;">
-                    <i class="fas fa-download"></i> 
-                    <a href="#" onclick="exportAnonymizedCSV()" style="color: #3498db;">Export CSV (Anonymized)</a>
+                    Showing last 50 bookings
                 </span>
             </div>
         </div>
@@ -296,6 +455,7 @@
         let githubSync;
         let excelHandler;
 
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', async () => {
             githubSync = new GitHubSync();
             excelHandler = new ExcelHandler();
@@ -306,35 +466,91 @@
                 document.getElementById('githubToken').value = '••••••••' + savedToken.slice(-4);
                 excelHandler.setToken(savedToken);
                 loadData();
+                showStatus('Token loaded from storage', 'success');
             }
         });
 
+        // Save token function
         function saveToken() {
-            const token = document.getElementById('githubToken').value;
-            const statusEl = document.getElementById('tokenStatus');
+            const tokenInput = document.getElementById('githubToken');
+            const token = tokenInput.value.trim();
             
             if (!token) {
-                statusEl.textContent = 'Please enter a token';
-                statusEl.className = 'status-message status-error';
+                showStatus('Please enter a token', 'error');
                 return;
             }
 
             // Save token
-            githubSync.setReadToken(token);
-            excelHandler.setToken(token);
-            
-            statusEl.textContent = '✅ Token saved! Loading data...';
-            statusEl.className = 'status-message status-success';
-            
-            // Mask token in input
-            document.getElementById('githubToken').value = '••••••••' + token.slice(-4);
-            
-            // Load data
-            loadData();
+            if (githubSync.setReadToken(token)) {
+                excelHandler.setToken(token);
+                
+                // Mask token in input
+                tokenInput.value = '••••••••' + token.slice(-4);
+                
+                showStatus('Token saved successfully! Loading data...', 'success');
+                
+                // Reload data
+                loadData();
+            } else {
+                showStatus('Failed to save token', 'error');
+            }
         }
 
+        // Clear token function
+        function clearToken() {
+            if (confirm('Clear saved token? This will remove access to private repository data.')) {
+                localStorage.removeItem('github_read_token');
+                githubSync.readToken = null;
+                excelHandler.setToken(null);
+                document.getElementById('githubToken').value = '';
+                showStatus('Token cleared', 'success');
+                
+                // Clear displayed data
+                document.getElementById('totalBookings').textContent = '-';
+                document.getElementById('totalRevenue').textContent = '-';
+                document.getElementById('monthlyBookings').textContent = '-';
+                document.getElementById('availableRooms').textContent = '-';
+                
+                document.getElementById('bookingsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="8" class="loading-spinner">
+                            <i class="fas fa-info-circle"></i>
+                            <div>Enter a token to view data</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('tokenStatus');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message status-' + type;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.className = 'status-message';
+            }, 5000);
+        }
+
+        // Load data from private repo
         async function loadData() {
+            const tbody = document.getElementById('bookingsTableBody');
+            
             try {
+                // Show loading state
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <div>Loading bookings...</div>
+                        </td>
+                    </tr>
+                `;
+
+                // Load data
                 const [overrides, bookings] = await Promise.all([
                     excelHandler.loadAvailabilityOverrides(),
                     excelHandler.loadBookings()
@@ -347,34 +563,47 @@
                 document.getElementById('totalRevenue').textContent = `¥${totalRevenue.toLocaleString()}`;
                 
                 const thisMonth = new Date().getMonth();
-                const monthlyBookings = bookings.filter(b => new Date(b.Date).getMonth() === thisMonth).length;
+                const monthlyBookings = bookings.filter(b => {
+                    const bookingDate = new Date(b.Date);
+                    return bookingDate.getMonth() === thisMonth;
+                }).length;
                 document.getElementById('monthlyBookings').textContent = monthlyBookings;
 
-                // Calculate available rooms
-                const availableCount = calculateAvailableRooms(overrides, bookings);
-                document.getElementById('availableRooms').textContent = availableCount;
+                // Calculate available rooms (simple example)
+                const today = new Date().toISOString().split('T')[0];
+                const todayBookings = bookings.filter(b => b.Date === today).length;
+                const maxRooms = 10; // Adjust based on your actual rooms
+                document.getElementById('availableRooms').textContent = Math.max(0, maxRooms - todayBookings);
 
                 // Render bookings
                 renderBookings(bookings);
 
             } catch (error) {
                 console.error('Error loading data:', error);
-                document.getElementById('bookingsTableBody').innerHTML = `
+                tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 2rem; color: #e74c3c;">
-                            <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
-                            Error loading data. Please check your token.
+                        <td colspan="8" class="error-message">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <div>Error loading data. Please check your token.</div>
                         </td>
                     </tr>
                 `;
             }
         }
 
+        // Render bookings table with anonymized data
         function renderBookings(bookings) {
             const tbody = document.getElementById('bookingsTableBody');
             
-            if (bookings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No bookings found</td></tr>';
+            if (!bookings || bookings.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">
+                            <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                            No bookings found
+                        </td>
+                    </tr>
+                `;
                 return;
             }
 
@@ -384,6 +613,7 @@
             ).slice(0, 50);
 
             tbody.innerHTML = sorted.map(booking => {
+                // Anonymize personal data
                 const name = anonymizeName(booking['Customer Name']);
                 const email = anonymizeEmail(booking.Email);
                 const phone = booking.Phone ? anonymizePhone(booking.Phone) : 'N/A';
@@ -391,9 +621,12 @@
                 return `
                     <tr>
                         <td style="font-family: monospace;">${booking['Booking ID'] || 'N/A'}</td>
-                        <td>${booking.Date || ''}</td>
+                        <td>${formatDate(booking.Date)}</td>
                         <td>${name}</td>
-                        <td><small>${email}<br>${phone}</small></td>
+                        <td>
+                            <small>${email}</small><br>
+                            <small style="color: #999;">${phone}</small>
+                        </td>
                         <td>${booking.Guests || 1}</td>
                         <td>${booking.Plan || 'Standard'}</td>
                         <td style="font-weight: 600; color: #27ae60;">¥${(booking['Total Price'] || 0).toLocaleString()}</td>
@@ -403,12 +636,19 @@
             }).join('');
         }
 
-        function calculateAvailableRooms(overrides, bookings) {
-            // Simple calculation - can be enhanced based on your logic
-            const today = new Date().toISOString().split('T')[0];
-            const todayBookings = bookings.filter(b => b.Date === today).length;
-            const maxRooms = 10; // Your total rooms
-            return Math.max(0, maxRooms - todayBookings);
+        // Helper function to format date
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            } catch (e) {
+                return dateStr;
+            }
         }
 
         // Anonymization functions
@@ -434,11 +674,6 @@
             if (cleaned.length < 4) return '*'.repeat(cleaned.length);
             const last4 = cleaned.slice(-4);
             return '*'.repeat(cleaned.length - 4) + last4;
-        }
-
-        function exportAnonymizedCSV() {
-            // Implementation for CSV export with anonymized data
-            alert('CSV export feature coming soon');
         }
     </script>
 </body>

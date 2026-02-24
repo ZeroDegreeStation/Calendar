@@ -86,7 +86,7 @@ class BookingSystem {
     async loadData() {
         try {
             // Pass token to excelHandler
-            if (this.githubSync.hasReadToken()) {
+            if (this.githubSync && this.githubSync.hasReadToken()) {
                 this.excelHandler.setToken(this.githubSync.getTokenForReading());
             }
             
@@ -103,6 +103,11 @@ class BookingSystem {
                 bookings: this.bookings.length
             });
             
+            // Log first few overrides for debugging
+            if (this.availabilityOverrides.length > 0) {
+                console.log('Sample override:', this.availabilityOverrides[0]);
+            }
+            
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
                 statusEl.textContent = `Loaded: ${this.availabilityOverrides.length} overrides, ${this.bookings.length} bookings`;
@@ -116,8 +121,39 @@ class BookingSystem {
 
     loadDemoData() {
         console.log('📊 Loading demo data for testing');
+        const today = new Date();
+        
+        // Generate demo availability
         this.availabilityOverrides = [];
+        for (let i = 0; i < 30; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            const dateStr = date.toISOString().split('T')[0];
+            
+            let status = 'Available';
+            let booked = 0;
+            
+            // Create some variety
+            if (i % 5 === 0) {
+                status = 'Limited';
+                booked = 1;
+            }
+            if (i % 7 === 0) {
+                status = 'Booked';
+                booked = 2;
+            }
+            
+            this.availabilityOverrides.push({
+                Date: dateStr,
+                Status: status,
+                Price: 12800,
+                MaxBookings: 2,
+                Booked: booked
+            });
+        }
+        
         this.bookings = [];
+        console.log('✅ Demo data loaded');
     }
 
     initCalendar() {
@@ -136,14 +172,22 @@ class BookingSystem {
             height: 'auto',
             firstDay: 0,
             selectable: true,
-            select: this.handleDateSelect,
-            dateClick: this.handleDateClick,
+            select: this.handleDateSelect.bind(this),
+            dateClick: this.handleDateClick.bind(this),
             selectAllow: (info) => this.isDateSelectable(info),
             dayCellDidMount: (info) => this.styleDateCell(info),
-            datesSet: () => this.refreshVisibleCells()
+            datesSet: () => this.refreshVisibleCells(),
+            // Mobile optimizations
+            longPressDelay: 100,
+            eventLongPressDelay: 100,
+            selectLongPressDelay: 100,
+            // Make all days clickable by default
+            selectOverlap: true,
+            unselectAuto: false
         });
         
         this.calendar.render();
+        console.log('✅ Calendar rendered');
     }
 
     refreshVisibleCells() {
@@ -154,13 +198,22 @@ class BookingSystem {
     }
 
     applyStylesToCell(cell, dateStr) {
-        const today = new Date().toISOString().split('T')[0];
-        const isPast = dateStr < today;
-        const status = this.getDayStatus(dateStr);
-        const bookingCount = this.getBookingCount(dateStr);
-        const maxBookings = this.getMaxBookings(dateStr);
-        const available = Math.max(0, maxBookings - bookingCount);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         
+        const cellDate = new Date(dateStr);
+        cellDate.setHours(0, 0, 0, 0);
+        
+        const isPast = cellDate < today;
+        const status = this.getDayStatus(dateStr);
+        const available = this.getAvailableSpots(dateStr);
+        
+        // Debug log for first few dates
+        if (dateStr.includes('2024') || dateStr.includes('2025')) {
+            console.log(`Cell ${dateStr}: status=${status}, available=${available}, isPast=${isPast}`);
+        }
+        
+        // Remove all existing classes
         cell.classList.remove(
             'fc-day-available', 'fc-day-limited', 'fc-day-booked', 
             'fc-day-past', 'fc-day-closed'
@@ -168,12 +221,19 @@ class BookingSystem {
         
         if (isPast) {
             cell.classList.add('fc-day-past');
-        } else if (status.class === 'closed' || status.class === 'booked') {
-            cell.classList.add('fc-day-booked');
         } else {
-            cell.classList.add(`fc-day-${status.class}`);
+            // Add appropriate class based on status
+            if (status === 'closed' || status === 'booked' || status === 'Booked') {
+                cell.classList.add('fc-day-booked');
+            } else if (status === 'limited' || status === 'Limited') {
+                cell.classList.add('fc-day-limited');
+            } else {
+                // Default to available
+                cell.classList.add('fc-day-available');
+            }
         }
         
+        // Update badge
         const existingBadge = cell.querySelector('.day-badge');
         if (existingBadge) existingBadge.remove();
         
@@ -181,19 +241,28 @@ class BookingSystem {
             const badge = document.createElement('div');
             badge.className = 'day-badge';
             
-            if (status.class === 'closed') {
+            if (status === 'closed' || status === 'Closed') {
                 badge.textContent = 'Closed';
-            } else if (status.class === 'booked' || available <= 0) {
+                badge.style.backgroundColor = '#8E8E93';
+                badge.style.color = 'white';
+            } else if (status === 'booked' || status === 'Booked' || available <= 0) {
                 badge.textContent = 'Full';
-            } else if (status.class === 'limited' || available === 1) {
+                badge.style.backgroundColor = '#FF3B30';
+                badge.style.color = 'white';
+            } else if (status === 'limited' || status === 'Limited' || available === 1) {
                 badge.textContent = '1 left';
-            } else if (status.class === 'available') {
+                badge.style.backgroundColor = '#FF9F0A';
+                badge.style.color = 'white';
+            } else {
                 badge.textContent = `${available} left`;
+                badge.style.backgroundColor = '#34C759';
+                badge.style.color = 'white';
             }
             
             cell.appendChild(badge);
         }
         
+        // Add selected class if needed
         if (this.selectedDates && this.selectedDates.includes(dateStr)) {
             cell.classList.add('fc-day-selected');
         } else {
@@ -206,31 +275,57 @@ class BookingSystem {
     }
 
     getDayStatus(dateStr) {
-        if (new Date(dateStr) < new Date(new Date().toISOString().split('T')[0])) {
-            return { class: 'past' };
-        }
+        if (!dateStr) return 'unknown';
         
-        const override = this.availabilityOverrides.find(o => o.Date === dateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const checkDate = new Date(dateStr);
+        checkDate.setHours(0, 0, 0, 0);
+        
+        if (checkDate < today) return 'past';
+        
+        // Find override - try exact match first (YYYY-MM-DD)
+        let override = this.availabilityOverrides.find(o => o.Date === dateStr);
+        
+        // If not found, try converting formats
+        if (!override) {
+            // Try MM/DD/YYYY format
+            const [year, month, day] = dateStr.split('-');
+            const mmddyyyy = `${month}/${day}/${year}`;
+            override = this.availabilityOverrides.find(o => o.Date === mmddyyyy);
+            
+            // Try without leading zeros
+            if (!override) {
+                const monthNoZero = parseInt(month, 10).toString();
+                const dayNoZero = parseInt(day, 10).toString();
+                const mdyyyy = `${monthNoZero}/${dayNoZero}/${year}`;
+                override = this.availabilityOverrides.find(o => o.Date === mdyyyy);
+            }
+        }
         
         if (override) {
-            if (override.Status === 'Closed') return { class: 'closed' };
-            if (override.Status === 'Booked') return { class: 'booked' };
-            if (override.Status === 'Limited') return { class: 'limited' };
-            if (override.Status === 'Available') return { class: 'available' };
+            // Return the status as lowercase for consistent comparison
+            const status = override.Status || 'Available';
+            return status.toLowerCase();
         }
         
-        const bookingCount = this.getBookingCount(dateStr);
-        if (bookingCount >= this.defaultMaxBookings) return { class: 'booked' };
-        if (bookingCount >= 1) return { class: 'limited' };
-        return { class: 'available' };
+        // Default to available
+        return 'available';
+    }
+
+    getAvailableSpots(dateStr) {
+        const override = this.availabilityOverrides.find(o => o.Date === dateStr);
+        if (override) {
+            const maxBookings = override.MaxBookings || this.defaultMaxBookings;
+            const booked = override.Booked || 0;
+            return Math.max(0, maxBookings - booked);
+        }
+        return this.defaultMaxBookings;
     }
 
     getBookingCount(dateStr) {
-        const uniqueBookings = new Set();
-        this.bookings
-            .filter(b => b.Date === dateStr && b.Status === 'Confirmed')
-            .forEach(b => uniqueBookings.add(b['Booking ID']));
-        return uniqueBookings.size;
+        const override = this.availabilityOverrides.find(o => o.Date === dateStr);
+        return override?.Booked || 0;
     }
 
     getMaxBookings(dateStr) {
@@ -246,17 +341,20 @@ class BookingSystem {
     }
 
     handleDateClick(info) {
-        const dateStr = info.dateStr;
+        console.log('Date clicked:', info.dateStr);
         
         if (!this.isDateSelectable(info)) {
-            this.showNotification('This date is not available', 'error');
+            this.showNotification('This date is not available for booking', 'error');
             return;
         }
         
+        const dateStr = info.dateStr;
         const index = this.selectedDates.indexOf(dateStr);
+        
         if (index === -1) {
             this.selectedDates.push(dateStr);
             info.el.classList.add('fc-day-selected');
+            this.showNotification(`Date added: ${this.formatDate(dateStr)}`, 'success');
         } else {
             this.selectedDates.splice(index, 1);
             info.el.classList.remove('fc-day-selected');
@@ -276,24 +374,33 @@ class BookingSystem {
     }
 
     handleDateSelect(info) {
+        console.log('Date range selected:', info.startStr, 'to', info.endStr);
+        
         const start = info.startStr.split('T')[0];
         const end = info.endStr.split('T')[0];
         
         this.clearDateSelection(false);
         
         let current = new Date(start);
-        while (current.toISOString().split('T')[0] < end) {
+        const endDate = new Date(end);
+        let addedCount = 0;
+        
+        while (current < endDate) {
             const dateStr = current.toISOString().split('T')[0];
             if (this.isDateSelectable({ startStr: dateStr })) {
                 this.selectedDates.push(dateStr);
-                const dayCell = document.querySelector(`[data-date="${dateStr}"]`);
-                if (dayCell) dayCell.classList.add('fc-day-selected');
+                addedCount++;
             }
             current.setDate(current.getDate() + 1);
         }
         
         this.selectedDates.sort();
+        this.updateSelectedCells();
         this.updateBookingSummary();
+        
+        if (addedCount > 0) {
+            this.showNotification(`Selected ${addedCount} nights`, 'success');
+        }
         
         const event = new CustomEvent('datesSelected', { 
             detail: { 
@@ -303,6 +410,17 @@ class BookingSystem {
             } 
         });
         document.dispatchEvent(event);
+    }
+
+    updateSelectedCells() {
+        document.querySelectorAll('.fc-day-selected').forEach(el => {
+            el.classList.remove('fc-day-selected');
+        });
+        
+        this.selectedDates.forEach(dateStr => {
+            const cell = document.querySelector(`[data-date="${dateStr}"]`);
+            if (cell) cell.classList.add('fc-day-selected');
+        });
     }
 
     getCheckoutDate() {
@@ -318,6 +436,15 @@ class BookingSystem {
             el.classList.remove('fc-day-selected');
         });
         this.updateBookingSummary();
+        
+        const event = new CustomEvent('datesSelected', { 
+            detail: { 
+                dates: [],
+                checkin: null,
+                checkout: null
+            } 
+        });
+        document.dispatchEvent(event);
     }
 
     updateBookingSummary() {
@@ -354,6 +481,7 @@ class BookingSystem {
     }
 
     formatDate(dateStr) {
+        if (!dateStr) return '';
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
@@ -364,7 +492,7 @@ class BookingSystem {
             
             // Validate availability
             for (const date of this.selectedDates) {
-                if (this.getBookingCount(date) >= this.getMaxBookings(date)) {
+                if (!this.isDateSelectable({ startStr: date })) {
                     this.showNotification(`Date ${date} is no longer available`, 'error');
                     return { success: false };
                 }
@@ -397,9 +525,11 @@ class BookingSystem {
             // Show success
             this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
-            // Trigger GitHub sync in background
-            if (this.githubSync) {
-                this.syncToGitHub().catch(console.warn);
+            // Trigger GitHub sync
+            if (this.githubSync && this.githubSync.hasReadToken()) {
+                this.syncToGitHubWithRetry(3).catch(console.warn);
+            } else {
+                console.log('ℹ️ No GitHub token - booking saved locally only');
             }
             
             return { success: true, bookingId };
@@ -411,12 +541,29 @@ class BookingSystem {
         }
     }
 
-    async syncToGitHub() {
-        return this.githubSync.pushBookings(this.bookings);
+    async syncToGitHubWithRetry(maxRetries = 3) {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                if (i > 0) {
+                    console.log(`🔄 Retry ${i + 1}/${maxRetries}...`);
+                    await new Promise(r => setTimeout(r, 1000 * i));
+                }
+                
+                const success = await this.githubSync.pushBookings(this.bookings);
+                if (success) return true;
+                
+            } catch (error) {
+                console.warn(`⚠️ Sync attempt ${i + 1} failed:`, error);
+            }
+        }
+        return false;
     }
 
     generateBookingId() {
-        return 'SNOW-' + Math.floor(100000 + Math.random() * 900000);
+        const prefix = 'SNOW';
+        const timestamp = Date.now().toString().slice(-6);
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `${prefix}-${timestamp}${random}`;
     }
 
     refreshCalendarData() {
@@ -429,16 +576,16 @@ class BookingSystem {
         const currentDate = this.calendar.getDate();
         this.calendar.destroy();
         this.initCalendar();
-        this.calendar.gotoDate(currentDate);
+        if (currentDate) this.calendar.gotoDate(currentDate);
     }
 
     setupEventListeners() {
-        // Optional periodic refresh
+        // Refresh every 5 minutes
         setInterval(() => {
             if (!this.isLoading) {
                 this.resyncFromExcel(false).catch(console.warn);
             }
-        }, 300000); // 5 minutes
+        }, 300000);
     }
 
     async resyncFromExcel(showNotification = false) {
@@ -453,20 +600,39 @@ class BookingSystem {
     }
 
     showNotification(message, type = 'info', duration = 3000) {
+        console.log(`[${type}] ${message}`);
+        
         const notification = document.createElement('div');
         notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
             padding: 1rem 1.5rem;
-            background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#3498db'};
+            background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : '#3498db'};
             color: white;
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 9999;
             animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            max-width: 90%;
+            word-break: break-word;
         `;
-        notification.textContent = message;
+        
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+        
+        notification.innerHTML = `
+            <i class="fas ${icons[type] || icons.info}"></i>
+            <span>${message}</span>
+        `;
+        
         document.body.appendChild(notification);
         setTimeout(() => notification.remove(), duration);
     }
