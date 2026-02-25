@@ -190,19 +190,19 @@
   },
   {
     "date": "2026-03-18",
-    "status": "Available",
+    "status": "Limited",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
+    "booked": 1,
+    "available": 1,
     "price": null,
     "notes": ""
   },
   {
     "date": "2026-03-19",
-    "status": "Limited",
+    "status": "Available",
     "maxBookings": 2,
-    "booked": 1,
-    "available": 1,
+    "booked": 0,
+    "available": 2,
     "price": null,
     "notes": ""
   },
