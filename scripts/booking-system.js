@@ -1,6 +1,6 @@
 /**
  * Booking System - Core calendar and booking logic
- * FIXED: Simplified date matching for Excel dates (MM/DD/YYYY)
+ * UPDATED: Added refresh button and public JSON fetching
  */
 class BookingSystem {
     constructor() {
@@ -23,6 +23,9 @@ class BookingSystem {
         this.isLoading = false;
         this.pendingResync = false;
         
+        // NEW: Add refresh button handling
+        this.refreshInProgress = false;
+        
         // Bind methods
         this.handleDateClick = this.handleDateClick.bind(this);
         this.handleDateSelect = this.handleDateSelect.bind(this);
@@ -32,6 +35,8 @@ class BookingSystem {
         this.updateBookingSummary = this.updateBookingSummary.bind(this);
         this.refreshCalendarData = this.refreshCalendarData.bind(this);
         this.resyncFromExcel = this.resyncFromExcel.bind(this);
+        // NEW: Bind refresh method
+        this.manualRefresh = this.manualRefresh.bind(this);
         
         this.init();
     }
@@ -40,9 +45,13 @@ class BookingSystem {
         try {
             this.showCalendarLoading('Loading calendar data...');
             
-            await this.loadData();
+            // Try to load from public JSON first, fall back to Excel
+            await this.loadPublicData();
+            
             this.initCalendar();
             this.setupEventListeners();
+            // NEW: Setup refresh button
+            this.setupRefreshButton();
             
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
@@ -54,6 +63,117 @@ class BookingSystem {
         } catch (error) {
             console.error('❌ Failed to initialize BookingSystem:', error);
             this.showCalendarError('Failed to initialize calendar');
+        }
+    }
+
+    // NEW: Load from public JSON (no token needed)
+    async loadPublicData() {
+        try {
+            const baseUrl = 'https://raw.githubusercontent.com/ZeroDegreeStation/Calendar/main/public-data';
+            const response = await fetch(`${baseUrl}/availability.json?t=${Date.now()}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                // Convert to the format your calendar expects
+                this.availabilityOverrides = data.map(item => ({
+                    Date: this.convertToExcelFormat(item.date),
+                    Status: item.status,
+                    MaxBookings: item.maxBookings,
+                    Booked: item.booked
+                }));
+                console.log(`📊 Loaded ${this.availabilityOverrides.length} records from public JSON`);
+                return;
+            }
+        } catch (e) {
+            console.log('Public JSON not available, falling back to Excel');
+        }
+        
+        // Fallback to original Excel loading
+        await this.loadData();
+    }
+
+    // Keep original loadData for fallback
+    async loadData() {
+        try {
+            if (this.githubSync && this.githubSync.hasReadToken()) {
+                this.excelHandler.setToken(this.githubSync.getTokenForReading());
+            }
+            
+            const [overrides, bookings] = await Promise.all([
+                this.excelHandler.loadAvailabilityOverrides(),
+                this.excelHandler.loadBookings()
+            ]);
+            
+            this.availabilityOverrides = overrides || [];
+            this.bookings = bookings || [];
+            
+            console.log('📊 Data loaded from Excel:', {
+                overrides: this.availabilityOverrides.length,
+                bookings: this.bookings.length
+            });
+            
+        } catch (error) {
+            console.error('Error loading data:', error);
+            this.loadDemoData();
+        }
+    }
+
+    // NEW: Manual refresh button handler
+    async manualRefresh() {
+        if (this.refreshInProgress) return;
+        
+        const refreshBtn = document.getElementById('refreshCalendarBtn');
+        if (!refreshBtn) return;
+        
+        try {
+            this.refreshInProgress = true;
+            
+            // Show loading state
+            const originalHtml = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            refreshBtn.disabled = true;
+            
+            // Trigger GitHub Action via workflow_dispatch
+            await fetch('https://api.github.com/repos/ZeroDegreeStation/Calendar/dispatches', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json',
+                    // Note: This uses a public token with minimal scope just for triggering
+                    'Authorization': 'token ' + (this.githubSync.getTokenForReading() || '')
+                },
+                body: JSON.stringify({
+                    event_type: 'workflow_dispatch'
+                })
+            });
+            
+            // Wait a moment then reload data
+            setTimeout(async () => {
+                await this.loadPublicData();
+                this.refreshCalendarData();
+                
+                // Reset button
+                refreshBtn.innerHTML = originalHtml;
+                refreshBtn.disabled = false;
+                this.refreshInProgress = false;
+                
+                this.showNotification('Calendar refreshed!', 'success');
+            }, 3000);
+            
+        } catch (error) {
+            console.error('Refresh failed:', error);
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            refreshBtn.disabled = false;
+            this.refreshInProgress = false;
+            this.showNotification('Refresh failed', 'error');
+        }
+    }
+
+    // NEW: Setup refresh button listener
+    setupRefreshButton() {
+        const refreshBtn = document.getElementById('refreshCalendarBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', this.manualRefresh);
         }
     }
 
@@ -72,50 +192,13 @@ class BookingSystem {
         const calendarEl = document.getElementById('calendar');
         if (calendarEl) {
             calendarEl.innerHTML = `
-                <div class="calendar-error">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <h3>Error</h3>
-                    <p>${message}</p>
-                    <button onclick="window.location.reload()">
-                        <i class="fas fa-sync-alt"></i> Refresh
+                <div class="calendar-loading">
+                    <i class="fas fa-exclamation-circle"></i> ${message}
+                    <button onclick="window.bookingSystem?.manualRefresh()" style="display: block; margin: 1rem auto; padding: 0.5rem 1rem; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-sync-alt"></i> Try Again
                     </button>
                 </div>
             `;
-        }
-    }
-
-    async loadData() {
-        try {
-            // Pass token to excelHandler
-            if (this.githubSync && this.githubSync.hasReadToken()) {
-                this.excelHandler.setToken(this.githubSync.getTokenForReading());
-            }
-            
-            const [overrides, bookings] = await Promise.all([
-                this.excelHandler.loadAvailabilityOverrides(),
-                this.excelHandler.loadBookings()
-            ]);
-            
-            this.availabilityOverrides = overrides || [];
-            this.bookings = bookings || [];
-            
-            console.log('📊 Data loaded:', {
-                overrides: this.availabilityOverrides.length,
-                bookings: this.bookings.length
-            });
-            
-            // Log BOTH for debugging
-            console.log('📅 Availability from Excel:', JSON.stringify(this.availabilityOverrides, null, 2));
-            console.log('📅 Bookings from Excel:', JSON.stringify(this.bookings, null, 2));
-            
-            const statusEl = document.getElementById('calendarLastUpdated');
-            if (statusEl) {
-                statusEl.textContent = `Loaded: ${this.availabilityOverrides.length} overrides, ${this.bookings.length} bookings`;
-            }
-            
-        } catch (error) {
-            console.error('Error loading data:', error);
-            this.loadDemoData();
         }
     }
 
@@ -123,7 +206,6 @@ class BookingSystem {
         console.log('📊 Loading demo data for testing');
         const today = new Date();
         
-        // Generate demo availability
         this.availabilityOverrides = [];
         for (let i = 0; i < 30; i++) {
             const date = new Date(today);
@@ -196,13 +278,9 @@ class BookingSystem {
         });
     }
 
-    /**
-     * Convert YYYY-MM-DD (from calendar) to MM/DD/YYYY (Excel format)
-     */
     convertToExcelFormat(dateStr) {
         if (!dateStr) return null;
         const [year, month, day] = dateStr.split('-');
-        // Remove leading zeros to match Excel format (e.g., 3/23/2026 not 03/23/2026)
         const monthNoZero = parseInt(month, 10).toString();
         const dayNoZero = parseInt(day, 10).toString();
         return `${monthNoZero}/${dayNoZero}/${year}`;
@@ -217,7 +295,6 @@ class BookingSystem {
         
         const isPast = cellDate < today;
         
-        // Convert to Excel format for lookup
         const excelDateStr = this.convertToExcelFormat(dateStr);
         const override = this.availabilityOverrides.find(o => o.Date === excelDateStr);
         
@@ -230,12 +307,8 @@ class BookingSystem {
             const maxBookings = override.MaxBookings || this.defaultMaxBookings;
             booked = override.Booked || 0;
             available = Math.max(0, maxBookings - booked);
-            console.log(`📅 Date ${dateStr} (Excel: ${excelDateStr}): found with status ${status}, booked=${booked}, available=${available}`);
-        } else {
-            console.log(`📅 Date ${dateStr} (Excel: ${excelDateStr}): not found, defaulting to Available`);
         }
         
-        // Remove all existing classes
         cell.classList.remove(
             'fc-day-available', 'fc-day-limited', 'fc-day-booked', 
             'fc-day-past', 'fc-day-closed'
@@ -254,7 +327,6 @@ class BookingSystem {
             }
         }
         
-        // Update badge
         const existingBadge = cell.querySelector('.day-badge');
         if (existingBadge) existingBadge.remove();
         
@@ -285,7 +357,6 @@ class BookingSystem {
             cell.appendChild(badge);
         }
         
-        // Add selected class if needed
         if (this.selectedDates && this.selectedDates.includes(dateStr)) {
             cell.classList.add('fc-day-selected');
         } else {
@@ -504,7 +575,6 @@ class BookingSystem {
         try {
             console.log('📝 Processing booking...', bookingData);
             
-            // Validate availability
             for (const date of this.selectedDates) {
                 if (!this.isDateSelectable(date)) {
                     this.showNotification(`Date ${date} is no longer available`, 'error');
@@ -514,7 +584,6 @@ class BookingSystem {
             
             const bookingId = this.generateBookingId();
             
-            // Add to local cache
             for (const date of this.selectedDates) {
                 const [year, month, day] = date.split('-');
                 const excelDate = `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`;
@@ -535,18 +604,13 @@ class BookingSystem {
                 });
             }
             
-            // Clear selection and refresh
             this.clearDateSelection(false);
             this.refreshCalendarData();
             
-            // Show success
             this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
-            // Trigger GitHub sync
             if (this.githubSync && this.githubSync.hasReadToken()) {
                 this.syncToGitHubWithRetry(3).catch(console.warn);
-            } else {
-                console.log('ℹ️ No GitHub token - booking saved locally only');
             }
             
             return { success: true, bookingId };
@@ -608,7 +672,7 @@ class BookingSystem {
         if (this.isLoading) return;
         this.isLoading = true;
         try {
-            await this.loadData();
+            await this.loadPublicData();
             this.refreshCalendarData();
         } finally {
             this.isLoading = false;
