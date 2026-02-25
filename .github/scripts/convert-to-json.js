@@ -26,7 +26,7 @@ function normalizeDate(dateVal) {
 fs.mkdirSync('public-data', { recursive: true });
 
 // Load availability (static rules)
-let availabilityMap = new Map(); // date -> { status, maxBookings, price, notes }
+let availabilityMap = new Map(); // date -> { status, maxBookings, price, notes, staticBooked }
 
 const availPath = path.join('..', 'private-data', 'data', 'calendar-availability.xlsx');
 if (fs.existsSync(availPath)) {
@@ -38,13 +38,18 @@ if (fs.existsSync(availPath)) {
   data.forEach(row => {
     const date = normalizeDate(row.Date || row['Date']);
     if (date) {
+      // Store the static booked count from availability file
+      const staticBooked = row.Booked ? parseInt(row.Booked) : 0;
+      
       availabilityMap.set(date, {
         status: row.Status || 'Available',
         price: row.Price ? parseInt(row.Price) : null,
         maxBookings: row.MaxBookings ? parseInt(row.MaxBookings) : 2,
-        booked: 0, // Will be filled from bookings
+        staticBooked: staticBooked,  // Booked from static file
         notes: row.Notes || ''
       });
+      
+      console.log(`📅 ${date}: Static status=${row.Status}, staticBooked=${staticBooked}`);
     }
   });
   
@@ -52,7 +57,7 @@ if (fs.existsSync(availPath)) {
 }
 
 // Load bookings (dynamic)
-let bookingsByDate = new Map(); // date -> count of bookings
+let dynamicBookingsByDate = new Map(); // date -> count of bookings from bookings file
 
 const bookingsPath = path.join('..', 'private-data', 'data', 'calendar-bookings.xlsx');
 if (fs.existsSync(bookingsPath)) {
@@ -64,12 +69,17 @@ if (fs.existsSync(bookingsPath)) {
   data.forEach(row => {
     const date = normalizeDate(row.Date || row['Date']);
     if (date) {
-      const currentCount = bookingsByDate.get(date) || 0;
-      bookingsByDate.set(date, currentCount + 1);
+      const currentCount = dynamicBookingsByDate.get(date) || 0;
+      dynamicBookingsByDate.set(date, currentCount + 1);
     }
   });
   
-  console.log(`✅ Loaded ${bookingsByDate.size} dates with bookings`);
+  // Log booking counts
+  dynamicBookingsByDate.forEach((count, date) => {
+    console.log(`📋 ${date}: ${count} dynamic bookings`);
+  });
+  
+  console.log(`✅ Loaded ${dynamicBookingsByDate.size} dates with dynamic bookings`);
 }
 
 // Combine both sources
@@ -78,7 +88,7 @@ const combined = [];
 // Get all unique dates from both sources
 const allDates = new Set([
   ...availabilityMap.keys(),
-  ...bookingsByDate.keys()
+  ...dynamicBookingsByDate.keys()
 ]);
 
 // For next 90 days (to ensure future dates are covered)
@@ -95,17 +105,26 @@ allDates.forEach(date => {
   const availability = availabilityMap.get(date) || {
     status: 'Available',
     maxBookings: 2,
-    booked: 0
+    staticBooked: 0,
+    price: null,
+    notes: ''
   };
   
-  const bookedCount = bookingsByDate.get(date) || 0;
+  const dynamicBooked = dynamicBookingsByDate.get(date) || 0;
   
-  // Calculate final status based on availability rules + bookings
+  // CRITICAL: Add staticBooked from availability + dynamicBooked from bookings
+  const totalBooked = availability.staticBooked + dynamicBooked;
+  const availableSpots = availability.maxBookings - totalBooked;
+  
+  // Determine final status
   let finalStatus = availability.status;
-  const availableSpots = availability.maxBookings - bookedCount;
   
-  // Override status based on bookings if needed
-  if (availability.status === 'Available' || availability.status === 'Limited') {
+  // If status is Closed, it overrides everything
+  if (availability.status === 'Closed') {
+    finalStatus = 'Closed';
+  } 
+  // Otherwise calculate based on availability
+  else {
     if (availableSpots <= 0) {
       finalStatus = 'Booked';
     } else if (availableSpots === 1) {
@@ -115,11 +134,13 @@ allDates.forEach(date => {
     }
   }
   
+  console.log(`📅 ${date}: staticBooked=${availability.staticBooked}, dynamicBooked=${dynamicBooked}, total=${totalBooked}, available=${availableSpots}, finalStatus=${finalStatus}`);
+  
   combined.push({
     date: date,
     status: finalStatus,
     maxBookings: availability.maxBookings,
-    booked: bookedCount,
+    booked: totalBooked,
     available: Math.max(0, availableSpots),
     price: availability.price,
     notes: availability.notes
@@ -130,7 +151,7 @@ allDates.forEach(date => {
 combined.sort((a, b) => a.date.localeCompare(b.date));
 
 // Save combined data
-fs.writeFileSync('public-data/availability.json', JSON.stringify(combined));
+fs.writeFileSync('public-data/availability.json', JSON.stringify(combined, null, 2));
 console.log(`✅ Saved ${combined.length} combined availability records`);
 
 // Also save raw bookings for admin (anonymized)
@@ -168,7 +189,7 @@ if (fs.existsSync(bookingsPath)) {
     recentBookings: anonymized.slice(-20).reverse()
   };
   
-  fs.writeFileSync('public-data/bookings-summary.json', JSON.stringify(stats));
+  fs.writeFileSync('public-data/bookings-summary.json', JSON.stringify(stats, null, 2));
   console.log(`✅ Saved ${anonymized.length} anonymized bookings`);
 }
 
