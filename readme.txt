@@ -19,7 +19,3 @@ Calendar/ (Public Repository)
 ├── 📁 styles/
 │   ├── 📄 home.css                    # Main styles
 │   └── 📄 calendar.css                # Calendar styles
-│
-└── 📁 data/                           # ⚠️ OPTIONAL: Can be removed
-    ├── 📄 calendar-availability.xlsx  # May still exist but not used for writes
-    └── 📄 calendar-bookings.xlsx       # Read-only copies if needed
