@@ -69,26 +69,32 @@ class BookingSystem {
     // NEW: Load from public JSON (no token needed)
     async loadPublicData() {
         try {
+            // Add timestamp to force fresh fetch (avoid browser cache)
             const baseUrl = 'https://raw.githubusercontent.com/ZeroDegreeStation/Calendar/main/public-data';
             const response = await fetch(`${baseUrl}/availability.json?t=${Date.now()}`);
             
             if (response.ok) {
                 const data = await response.json();
-                // Convert to the format your calendar expects
                 this.availabilityOverrides = data.map(item => ({
                     Date: this.convertToExcelFormat(item.date),
                     Status: item.status,
                     MaxBookings: item.maxBookings,
                     Booked: item.booked
                 }));
-                console.log(`📊 Loaded ${this.availabilityOverrides.length} records from public JSON`);
+                
+                // Update timestamp display
+                const lastUpdatedEl = document.getElementById('lastUpdated');
+                if (lastUpdatedEl) {
+                    lastUpdatedEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+                }
+                
+                console.log(`📊 Loaded ${this.availabilityOverrides.length} records`);
                 return;
             }
         } catch (e) {
             console.log('Public JSON not available, falling back to Excel');
         }
         
-        // Fallback to original Excel loading
         await this.loadData();
     }
 
@@ -133,39 +139,31 @@ class BookingSystem {
             refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
             refreshBtn.disabled = true;
             
-            // Trigger GitHub Action via workflow_dispatch
-            await fetch('https://api.github.com/repos/ZeroDegreeStation/Calendar/dispatches', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/vnd.github.v3+json',
-                    'Content-Type': 'application/json',
-                    // Note: This uses a public token with minimal scope just for triggering
-                    'Authorization': 'token ' + (this.githubSync.getTokenForReading() || '')
-                },
-                body: JSON.stringify({
-                    event_type: 'workflow_dispatch'
-                })
-            });
+            // Simply fetch the latest JSON from GitHub (no Action trigger needed)
+            await this.loadPublicData();
             
-            // Wait a moment then reload data
-            setTimeout(async () => {
-                await this.loadPublicData();
-                this.refreshCalendarData();
-                
-                // Reset button
-                refreshBtn.innerHTML = originalHtml;
-                refreshBtn.disabled = false;
-                this.refreshInProgress = false;
-                
-                this.showNotification('Calendar refreshed!', 'success');
-            }, 3000);
+            // Refresh the calendar display
+            this.refreshCalendarData();
+            
+            // Update last updated timestamp if you have one
+            const lastUpdatedEl = document.getElementById('lastUpdated');
+            if (lastUpdatedEl) {
+                lastUpdatedEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+            }
+            
+            // Reset button
+            refreshBtn.innerHTML = originalHtml;
+            refreshBtn.disabled = false;
+            this.refreshInProgress = false;
+            
+            this.showNotification('Calendar refreshed with latest data!', 'success');
             
         } catch (error) {
             console.error('Refresh failed:', error);
-            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Calendar';
             refreshBtn.disabled = false;
             this.refreshInProgress = false;
-            this.showNotification('Refresh failed', 'error');
+            this.showNotification('Refresh failed - try again', 'error');
         }
     }
 
