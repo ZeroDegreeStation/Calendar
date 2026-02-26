@@ -1,14 +1,9 @@
 name: Process Booking & Sync Calendar
 
 on:
-  # Triggered when user makes a booking
   repository_dispatch:
     types: [new-booking]
-  
-  # Allow manual trigger (for refresh button)
   workflow_dispatch:
-  
-  # Daily backup at 2 AM
   schedule:
     - cron: '0 2 * * *'
 
@@ -32,6 +27,14 @@ jobs:
           repository: ZeroDegreeStation/Calendar-Data
           token: ${{ secrets.CALENDAR_DATA_REPO_TOKEN }}
           path: private-data
+      
+      # ADD THIS DEBUG STEP
+      - name: Verify private repo checkout
+        run: |
+          echo "🔍 Checking private-data folder:"
+          ls -la private-data/ || echo "❌ private-data folder not found!"
+          echo "📁 Contents of private-data (if exists):"
+          ls -la private-data/data/ || echo "📂 data folder not found"
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
