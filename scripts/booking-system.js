@@ -3,6 +3,7 @@
  * UPDATED: Combines static availability with dynamic bookings
  * UPDATED: Enforces max 2 bookings per day
  * UPDATED: Auto-refresh after GitHub sync
+ * UPDATED: Loads from public JSON first (no token needed)
  */
 class BookingSystem {
     constructor() {
@@ -38,6 +39,7 @@ class BookingSystem {
         this.resyncFromExcel = this.resyncFromExcel.bind(this);
         this.manualRefresh = this.manualRefresh.bind(this);
         this.refreshAfterSync = this.refreshAfterSync.bind(this);
+        this.loadPublicData = this.loadPublicData.bind(this);
         
         this.init();
     }
@@ -99,34 +101,77 @@ class BookingSystem {
         }
     }
 
+    // NEW: Load from public JSON (no token needed)
+    async loadPublicData() {
+        try {
+            // Add timestamp to force fresh fetch (avoid browser cache)
+            const baseUrl = 'https://raw.githubusercontent.com/ZeroDegreeStation/Calendar/main/public-data';
+            const response = await fetch(`${baseUrl}/availability.json?t=${Date.now()}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Convert public JSON format to internal format
+                this.availabilityRules = [];
+                this.bookings = [];
+                
+                // Store in combinedAvailability directly
+                this.combinedAvailability = data.map(item => ({
+                    Date: item.date,
+                    Status: item.status,
+                    Available: item.available,
+                    MaxBookings: item.maxBookings,
+                    Booked: item.booked,
+                    Price: item.price,
+                    Notes: item.notes || ''
+                }));
+                
+                // Update timestamp display
+                const lastUpdatedEl = document.getElementById('lastUpdated');
+                if (lastUpdatedEl) {
+                    lastUpdatedEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+                }
+                
+                console.log(`📊 Loaded ${this.combinedAvailability.length} records from public JSON`);
+                return true;
+            }
+        } catch (e) {
+            console.log('Public JSON not available, falling back to Excel');
+        }
+        
+        return false;
+    }
+
     async loadData() {
         try {
-            // Pass token to excelHandler if available
-            if (this.githubSync && this.githubSync.hasReadToken()) {
-                this.excelHandler.setToken(this.githubSync.getTokenForReading());
+            // Try public JSON first (no token needed)
+            const publicDataLoaded = await this.loadPublicData();
+            
+            if (!publicDataLoaded) {
+                console.log('📊 Falling back to Excel with token...');
+                
+                // Fall back to Excel with token
+                if (this.githubSync && this.githubSync.hasReadToken()) {
+                    this.excelHandler.setToken(this.githubSync.getTokenForReading());
+                }
+                
+                const [availabilityRules, bookings] = await Promise.all([
+                    this.excelHandler.loadAvailabilityOverrides(),
+                    this.excelHandler.loadBookings()
+                ]);
+                
+                this.availabilityRules = availabilityRules || [];
+                this.bookings = bookings || [];
+                
+                console.log('📊 Data loaded from Excel:', {
+                    availabilityRules: this.availabilityRules.length,
+                    bookings: this.bookings.length
+                });
             }
-            
-            // Load both files in parallel
-            const [availabilityRules, bookings] = await Promise.all([
-                this.excelHandler.loadAvailabilityOverrides(), // Static rules
-                this.excelHandler.loadBookings()               // Dynamic bookings
-            ]);
-            
-            this.availabilityRules = availabilityRules || [];
-            this.bookings = bookings || [];
-            
-            console.log('📊 Data loaded:', {
-                availabilityRules: this.availabilityRules.length,
-                bookings: this.bookings.length
-            });
-            
-            // Log for debugging
-            console.log('📅 Availability Rules:', this.availabilityRules.slice(0, 5));
-            console.log('📅 Bookings:', this.bookings.slice(0, 5));
             
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
-                statusEl.textContent = `Loaded: ${this.availabilityRules.length} rules, ${this.bookings.length} bookings`;
+                statusEl.textContent = `Loaded: ${this.combinedAvailability?.length || 0} availability records`;
             }
             
         } catch (error) {
@@ -137,6 +182,11 @@ class BookingSystem {
 
     // Combine static availability rules with dynamic bookings
     combineAvailabilityData() {
+        // If we already have combined data from public JSON, skip
+        if (this.combinedAvailability.length > 0 && this.availabilityRules.length === 0) {
+            return;
+        }
+        
         console.log('🔄 Combining availability rules with bookings...');
         
         // Create a map of dates from availability rules
@@ -245,7 +295,6 @@ class BookingSystem {
         });
         
         console.log('✅ Combined availability calculated with max 2 per day');
-        console.log('📅 Sample:', this.combinedAvailability.slice(0, 5));
     }
 
     loadDemoData() {
@@ -714,9 +763,15 @@ class BookingSystem {
             // Wait a moment for GitHub to process
             await new Promise(resolve => setTimeout(resolve, 2000));
             
-            // Reload data from GitHub
-            await this.loadData();
-            this.combineAvailabilityData();
+            // Try to load public data first, then fall back to Excel
+            const publicDataLoaded = await this.loadPublicData();
+            
+            if (!publicDataLoaded) {
+                // Reload data from Excel
+                await this.loadData();
+                this.combineAvailabilityData();
+            }
+            
             this.refreshCalendarData();
             
             // Update timestamp
@@ -771,7 +826,6 @@ class BookingSystem {
     }
 
     refreshCalendarData() {
-        this.combineAvailabilityData();
         this.refreshVisibleCells();
     }
 
