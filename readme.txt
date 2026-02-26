@@ -7,6 +7,7 @@ Calendar/ (Public Repository)
 ├── 📁 .github/
 │   └── 📁 workflows/
 │       └── 📄 process-booking.yml    # GitHub Actions workflow (triggers private repo update)
+│       └── 📄 static.yml             # GitHub Actions workflow (deploy github page)
 │   └── 📁 scripts/
 │       └── 📄 add-booking.js         # Node.js script that processes Excel files
 │
