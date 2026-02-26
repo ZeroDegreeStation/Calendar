@@ -4,36 +4,68 @@ const path = require('path');
 
 console.log('📊 Converting Excel to JSON...');
 
-// Helper to normalize date
 function normalizeDate(dateVal) {
-  if (!dateVal && dateVal !== 0) return null;
-  
-  if (typeof dateVal === 'number') {
-    const excelEpoch = new Date(1899, 11, 30);
-    const date = new Date(excelEpoch.getTime() + (dateVal * 86400000));
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const year = date.getFullYear();
-    return `${month}/${day}/${year}`;
+  if (!dateVal && dateVal !== 0) {
+    console.log('⚠️ Null or undefined date');
+    return null;
   }
   
+  console.log(`🔄 Processing date:`, dateVal, `(type: ${typeof dateVal})`);
+  
+  // Handle Excel serial number
+  if (typeof dateVal === 'number') {
+    try {
+      // Excel serial date conversion
+      // Excel dates start from 1900-01-00 (day 1 = 1900-01-01)
+      const excelEpoch = new Date(1899, 11, 30); // 1899-12-30
+      const date = new Date(excelEpoch.getTime() + (dateVal * 86400000));
+      
+      console.log(`  Excel serial ${dateVal} →`, date.toDateString());
+      
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const year = date.getFullYear();
+      const result = `${month}/${day}/${year}`;
+      console.log(`  → ${result}`);
+      return result;
+    } catch (e) {
+      console.log(`❌ Error converting Excel serial:`, e);
+      return null;
+    }
+  }
+  
+  // Handle string dates
   if (typeof dateVal === 'string') {
     // Try MM/DD/YYYY
     const mdyMatch = dateVal.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (mdyMatch) {
-      return dateVal; // Already correct format
+      console.log(`  String MM/DD/YYYY: ${dateVal}`);
+      return dateVal;
     }
     
     // Try YYYY-MM-DD
     const ymdMatch = dateVal.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
     if (ymdMatch) {
       const [_, year, month, day] = ymdMatch;
-      return `${parseInt(month)}/${parseInt(day)}/${year}`;
+      const result = `${parseInt(month)}/${parseInt(day)}/${year}`;
+      console.log(`  Converted YYYY-MM-DD to: ${result}`);
+      return result;
+    }
+    
+    // Try Excel string format that might have time
+    const excelStringMatch = dateVal.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (excelStringMatch) {
+      const [_, month, day, year] = excelStringMatch;
+      const result = `${parseInt(month)}/${parseInt(day)}/${year}`;
+      console.log(`  Extracted from Excel string: ${result}`);
+      return result;
     }
   }
   
+  console.log(`❌ Could not parse date:`, dateVal);
   return null;
 }
+
 
 // Create public-data directory
 fs.mkdirSync('public-data', { recursive: true });
