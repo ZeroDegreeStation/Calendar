@@ -1,93 +1,182 @@
-name: Process Booking & Sync Calendar
+name: Process Booking
 
 on:
-  # Triggered when user makes a booking
   repository_dispatch:
     types: [new-booking]
-  
-  # Allow manual trigger (for refresh button)
-  workflow_dispatch:
-  
-  # Daily backup at 2 AM
-  schedule:
-    - cron: '0 2 * * *'
 
 jobs:
-  process-and-sync:
+  process-and-store-booking:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      contents: write
     
     steps:
-      - name: Checkout public repo
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: public-repo
-      
       - name: Checkout private data repo
         uses: actions/checkout@v3
         with:
           repository: ZeroDegreeStation/Calendar-Data
           token: ${{ secrets.CALENDAR_DATA_REPO_TOKEN }}
-          path: private-data
+          path: data-repo
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
       
-      - name: Install xlsx
-        run: npm install xlsx
-        working-directory: public-repo
+      - name: Debug - Show received data
+        run: |
+          echo "📦 Received booking data:"
+          echo '${{ toJson(github.event.client_payload) }}'
       
-      - name: Process booking (if triggered by booking)
-        if: github.event_name == 'repository_dispatch'
+      - name: Create package.json and install xlsx locally
+        run: |
+          # Create a package.json file
+          echo '{
+            "name": "booking-processor",
+            "version": "1.0.0",
+            "dependencies": {
+              "xlsx": "latest"
+            }
+          }' > package.json
+          
+          # Install xlsx locally (not globally)
+          npm install
+          
+          echo "✅ xlsx installed locally"
+      
+      - name: Process booking data
         env:
           BOOKING_DATA: ${{ toJson(github.event.client_payload) }}
         run: |
-          cd public-repo
-          node .github/scripts/add-booking.js
+          # Save booking data to a file
+          echo '${{ toJson(github.event.client_payload) }}' > booking.json
+          
+          # Create the Node.js script
+          cat > add-booking.js << 'EOF'
+          const XLSX = require('xlsx');
+          const fs = require('fs');
+          const path = require('path');
+
+          console.log('📝 Starting booking processing...');
+          console.log('Current directory:', process.cwd());
+          console.log('Files in current directory:', fs.readdirSync('.'));
+
+          // Read booking data
+          let bookingData;
+          try {
+            const rawData = fs.readFileSync('booking.json', 'utf8');
+            bookingData = JSON.parse(rawData);
+            console.log('✅ Booking data loaded:', bookingData.bookingId);
+          } catch (error) {
+            console.error('❌ Error reading booking.json:', error);
+            // Try to get from env as fallback
+            bookingData = JSON.parse(process.env.BOOKING_DATA || '{}');
+          }
+
+          if (!bookingData.bookingId) {
+            console.error('❌ No booking ID received');
+            process.exit(1);
+          }
+
+          // Path to Excel file
+          const excelFilePath = path.join('data-repo', 'data', 'calendar-bookings.xlsx');
+          console.log('📁 Excel file path:', excelFilePath);
+
+          // Check if data-repo exists
+          if (!fs.existsSync('data-repo')) {
+            console.error('❌ data-repo directory not found');
+            process.exit(1);
+          }
+
+          let workbook;
+          let bookings = [];
+
+          try {
+            // Read existing file if it exists
+            if (fs.existsSync(excelFilePath)) {
+              console.log('📖 Reading existing Excel file...');
+              workbook = XLSX.readFile(excelFilePath);
+              const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+              bookings = XLSX.utils.sheet_to_json(worksheet);
+              console.log(`📊 Found ${bookings.length} existing bookings`);
+            } else {
+              console.log('📁 Creating new Excel file...');
+              workbook = XLSX.utils.book_new();
+            }
+          } catch (error) {
+            console.error('❌ Error reading Excel:', error);
+            workbook = XLSX.utils.book_new();
+          }
+
+          // Create new booking record
+          const newBooking = {
+            'Booking ID': bookingData.bookingId || 'UNKNOWN',
+            'Date': bookingData.date || '',
+            'Customer Name': bookingData.name || '',
+            'Email': bookingData.email || '',
+            'Phone': bookingData.phone || '',
+            'Guests': bookingData.guests || 1,
+            'Plan': bookingData.plan || '',
+            'Plan Price': bookingData.planPrice || 0,
+            'Total Price': bookingData.totalPrice || 0,
+            'Status': 'Confirmed',
+            'Booking Date': new Date().toLocaleDateString('en-US'),
+            'Special Requests': bookingData.requests || ''
+          };
+
+          console.log('➕ Adding new booking:', newBooking['Booking ID']);
+          console.log('Booking details:', JSON.stringify(newBooking, null, 2));
+
+          // Add to bookings
+          bookings.push(newBooking);
+
+          // Create worksheet
+          const worksheet = XLSX.utils.json_to_sheet(bookings);
+
+          // Clear existing sheets
+          if (workbook.SheetNames.length > 0) {
+            workbook.SheetNames.forEach(name => delete workbook.Sheets[name]);
+            workbook.SheetNames = [];
+          }
+
+          // Add new sheet
+          XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
+
+          // Ensure directory exists
+          const dataDir = path.dirname(excelFilePath);
+          if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+          }
+
+          // Write file
+          XLSX.writeFile(workbook, excelFilePath);
+          console.log(`✅ Successfully wrote Excel file`);
+
+          // Verify file was created
+          if (fs.existsSync(excelFilePath)) {
+            const stats = fs.statSync(excelFilePath);
+            console.log(`📊 Excel file size: ${stats.size} bytes`);
+          }
+
+          console.log(`✅ Successfully added booking: ${newBooking['Booking ID']}`);
+          console.log(`📊 Total bookings: ${bookings.length}`);
+          EOF
+
+          # Run the script
+          node add-booking.js
       
-      - name: Commit and push booking to private repo
-        if: github.event_name == 'repository_dispatch'
+      - name: Commit and push changes
         run: |
-          cd private-data
+          cd data-repo
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add data/
-          if ! git diff --quiet && git diff --staged --quiet; then
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
             git commit -m "Add booking: ${{ github.event.client_payload.bookingId }}"
             git push
-            echo "✅ Booking saved to private repo"
+            echo "✅ Changes pushed to private repo"
           fi
       
-      - name: Generate public JSON files
-        run: |
-          cd public-repo
-          node .github/scripts/convert-to-json.js
-      
-      - name: Commit and push public data
-        run: |
-          cd public-repo
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-          
-          git add public-data/
-          
-          if git diff --quiet --staged public-data/; then
-            echo "No changes to public data"
-          else
-            if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-              COMMIT_MSG="Update after booking: ${{ github.event.client_payload.bookingId }}"
-            elif [ "${{ github.event_name }}" == "schedule" ]; then
-              COMMIT_MSG="Daily calendar sync"
-            else
-              COMMIT_MSG="Manual refresh"
-            fi
-            
-            git commit -m "$COMMIT_MSG [skip ci]"
-            git push
-            echo "✅ Public data updated"
-          fi
+      - name: Notify success
+        run: echo "✅ Booking successfully processed and stored"
