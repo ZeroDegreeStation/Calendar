@@ -1,6 +1,8 @@
 /**
  * Excel Handler - Reads from private GitHub repo using API
  * FIXED: Properly converts Excel serial numbers to readable dates
+ * UPDATED: Better error handling and date parsing
+ * UPDATED: Clear cache method for fresh loads
  */
 class ExcelHandler {
     constructor() {
@@ -58,6 +60,7 @@ class ExcelHandler {
             const data = await response.json();
             
             if (data.content) {
+                // Decode base64 to binary
                 const content = atob(data.content.replace(/\n/g, ''));
                 const buffer = new Uint8Array(content.length);
                 for (let i = 0; i < content.length; i++) {
@@ -80,7 +83,8 @@ class ExcelHandler {
      */
     excelSerialToDate(serial) {
         if (!serial && serial !== 0) return null;
-        const excelEpoch = new Date(1899, 11, 30); // Excel epoch: 1899-12-30
+        // Excel incorrectly treats 1900 as leap year, so adjust
+        const excelEpoch = new Date(1899, 11, 30);
         const date = new Date(excelEpoch.getTime() + (serial * 86400000));
         return date;
     }
@@ -90,39 +94,55 @@ class ExcelHandler {
      */
     formatDateMMDDYYYY(date) {
         if (!date) return null;
-        const month = date.getMonth() + 1; // getMonth() returns 0-11
+        const month = date.getMonth() + 1;
         const day = date.getDate();
         const year = date.getFullYear();
         return `${month}/${day}/${year}`;
     }
 
     /**
-     * Convert any date value to MM/DD/YYYY string
+     * Parse date string in multiple formats
      */
-    normalizeDate(dateValue) {
+    parseDate(dateValue) {
         if (!dateValue && dateValue !== 0) return null;
-        
-        // If it's already a string in MM/DD/YYYY format
-        if (typeof dateValue === 'string' && dateValue.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
-            return dateValue;
-        }
         
         // If it's an Excel serial number
         if (typeof dateValue === 'number') {
-            const date = this.excelSerialToDate(dateValue);
-            return this.formatDateMMDDYYYY(date);
+            return this.excelSerialToDate(dateValue);
         }
         
-        // If it's a string in some other format, try to parse it
+        // If it's a string, try to parse it
         if (typeof dateValue === 'string') {
+            // Try MM/DD/YYYY format
+            const mdyMatch = dateValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (mdyMatch) {
+                const [_, month, day, year] = mdyMatch;
+                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            }
+            
+            // Try YYYY-MM-DD format
+            const ymdMatch = dateValue.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            if (ymdMatch) {
+                const [_, year, month, day] = ymdMatch;
+                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            }
+            
+            // Try generic Date parsing
             const parsed = new Date(dateValue);
             if (!isNaN(parsed)) {
-                return this.formatDateMMDDYYYY(parsed);
+                return parsed;
             }
         }
         
-        console.log('⚠️ Could not parse date:', dateValue);
         return null;
+    }
+
+    /**
+     * Convert any date value to MM/DD/YYYY string
+     */
+    normalizeDate(dateValue) {
+        const date = this.parseDate(dateValue);
+        return date ? this.formatDateMMDDYYYY(date) : null;
     }
 
     async loadAvailabilityOverrides(forceRefresh = false) {
@@ -159,8 +179,6 @@ class ExcelHandler {
                 const rawDate = row.Date || row['Date'];
                 const normalizedDate = this.normalizeDate(rawDate);
                 
-                console.log(`📅 Converting date: ${rawDate} (${typeof rawDate}) → ${normalizedDate}`);
-                
                 return {
                     Date: normalizedDate,
                     Status: row.Status || 'Available',
@@ -171,7 +189,7 @@ class ExcelHandler {
                 };
             }).filter(item => item.Date);
             
-            console.log('✅ Processed availability:', processed);
+            console.log(`✅ Processed ${processed.length} availability records`);
             
             this.cache.availability = processed;
             this.cache.timestamp = Date.now();
@@ -233,7 +251,7 @@ class ExcelHandler {
                 };
             }).filter(item => item.Date);
             
-            console.log('✅ Processed bookings:', processed);
+            console.log(`✅ Processed ${processed.length} booking records`);
             
             this.cache.bookings = processed;
             this.cache.timestamp = Date.now();
@@ -251,7 +269,7 @@ class ExcelHandler {
         const today = new Date();
         const defaults = [];
         
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 90; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
             const dateStr = this.formatDateMMDDYYYY(date);
@@ -266,7 +284,7 @@ class ExcelHandler {
             });
         }
         
-        console.log('✅ Generated', defaults.length, 'default availability records');
+        console.log(`✅ Generated ${defaults.length} default availability records`);
         return defaults;
     }
 

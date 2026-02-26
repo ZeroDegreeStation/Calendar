@@ -1,6 +1,8 @@
 /**
  * Booking System - Core calendar and booking logic
- * FIXED: Simplified date matching for Excel dates (MM/DD/YYYY)
+ * UPDATED: Combines static availability with dynamic bookings
+ * UPDATED: Enforces max 2 bookings per day
+ * UPDATED: Auto-refresh after GitHub sync
  */
 class BookingSystem {
     constructor() {
@@ -10,18 +12,20 @@ class BookingSystem {
         this.githubSync = new GitHubSync();
         
         this.calendar = null;
-        this.availabilityOverrides = [];
-        this.bookings = [];
+        this.availabilityRules = [];      // Static rules from calendar-availability.xlsx
+        this.bookings = [];                // Dynamic bookings from calendar-bookings.xlsx
+        this.combinedAvailability = [];    // Combined result for display
         this.selectedDates = [];
         this.selectedPlan = null;
         this.planPrice = 0;
         this.planName = '';
         
         this.defaultPrice = 12800;
-        this.defaultMaxBookings = 2;
+        this.defaultMaxBookings = 2;       // Max 2 bookings per day
         
         this.isLoading = false;
         this.pendingResync = false;
+        this.lastSyncTime = null;           // Track last sync time
         
         // Bind methods
         this.handleDateClick = this.handleDateClick.bind(this);
@@ -32,6 +36,8 @@ class BookingSystem {
         this.updateBookingSummary = this.updateBookingSummary.bind(this);
         this.refreshCalendarData = this.refreshCalendarData.bind(this);
         this.resyncFromExcel = this.resyncFromExcel.bind(this);
+        this.manualRefresh = this.manualRefresh.bind(this);
+        this.refreshAfterSync = this.refreshAfterSync.bind(this);
         
         this.init();
     }
@@ -41,8 +47,17 @@ class BookingSystem {
             this.showCalendarLoading('Loading calendar data...');
             
             await this.loadData();
+            this.combineAvailabilityData();
             this.initCalendar();
             this.setupEventListeners();
+            this.setupRefreshButton();
+            
+            // Set up periodic refresh every 5 minutes
+            setInterval(() => {
+                if (!this.isLoading) {
+                    this.resyncFromExcel(false).catch(console.warn);
+                }
+            }, 300000); // 5 minutes
             
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
@@ -76,8 +91,8 @@ class BookingSystem {
                     <i class="fas fa-exclamation-circle"></i>
                     <h3>Error</h3>
                     <p>${message}</p>
-                    <button onclick="window.location.reload()">
-                        <i class="fas fa-sync-alt"></i> Refresh
+                    <button onclick="window.bookingSystem?.manualRefresh()" style="display: block; margin: 1rem auto; padding: 0.5rem 1rem; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-sync-alt"></i> Try Again
                     </button>
                 </div>
             `;
@@ -86,31 +101,32 @@ class BookingSystem {
 
     async loadData() {
         try {
-            // Pass token to excelHandler
+            // Pass token to excelHandler if available
             if (this.githubSync && this.githubSync.hasReadToken()) {
                 this.excelHandler.setToken(this.githubSync.getTokenForReading());
             }
             
-            const [overrides, bookings] = await Promise.all([
-                this.excelHandler.loadAvailabilityOverrides(),
-                this.excelHandler.loadBookings()
+            // Load both files in parallel
+            const [availabilityRules, bookings] = await Promise.all([
+                this.excelHandler.loadAvailabilityOverrides(), // Static rules
+                this.excelHandler.loadBookings()               // Dynamic bookings
             ]);
             
-            this.availabilityOverrides = overrides || [];
+            this.availabilityRules = availabilityRules || [];
             this.bookings = bookings || [];
             
             console.log('📊 Data loaded:', {
-                overrides: this.availabilityOverrides.length,
+                availabilityRules: this.availabilityRules.length,
                 bookings: this.bookings.length
             });
             
-            // Log BOTH for debugging
-            console.log('📅 Availability from Excel:', JSON.stringify(this.availabilityOverrides, null, 2));
-            console.log('📅 Bookings from Excel:', JSON.stringify(this.bookings, null, 2));
+            // Log for debugging
+            console.log('📅 Availability Rules:', this.availabilityRules.slice(0, 5));
+            console.log('📅 Bookings:', this.bookings.slice(0, 5));
             
             const statusEl = document.getElementById('calendarLastUpdated');
             if (statusEl) {
-                statusEl.textContent = `Loaded: ${this.availabilityOverrides.length} overrides, ${this.bookings.length} bookings`;
+                statusEl.textContent = `Loaded: ${this.availabilityRules.length} rules, ${this.bookings.length} bookings`;
             }
             
         } catch (error) {
@@ -119,12 +135,125 @@ class BookingSystem {
         }
     }
 
+    // Combine static availability rules with dynamic bookings
+    combineAvailabilityData() {
+        console.log('🔄 Combining availability rules with bookings...');
+        
+        // Create a map of dates from availability rules
+        const availabilityMap = new Map();
+        
+        // First, add all availability rules
+        this.availabilityRules.forEach(rule => {
+            if (rule.Date) {
+                availabilityMap.set(rule.Date, {
+                    status: rule.Status || 'Available',
+                    maxBookings: rule.MaxBookings || this.defaultMaxBookings,
+                    staticBooked: rule.Booked || 0,
+                    price: rule.Price || null,
+                    notes: rule.Notes || ''
+                });
+            }
+        });
+        
+        // Count bookings per date (dynamic bookings)
+        const bookingCountMap = new Map();
+        this.bookings.forEach(booking => {
+            if (booking.Date) {
+                const count = bookingCountMap.get(booking.Date) || 0;
+                bookingCountMap.set(booking.Date, count + 1);
+            }
+        });
+        
+        console.log('📊 Booking counts per date:', Object.fromEntries(bookingCountMap));
+        
+        // Get all unique dates (from rules + next 90 days)
+        const allDates = new Set();
+        
+        // Add dates from availability rules
+        availabilityMap.forEach((_, date) => allDates.add(date));
+        
+        // Add next 90 days for future availability
+        const today = new Date();
+        for (let i = 0; i < 90; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const year = date.getFullYear();
+            const dateStr = `${month}/${day}/${year}`;
+            allDates.add(dateStr);
+        }
+        
+        // Combine the data
+        this.combinedAvailability = [];
+        
+        allDates.forEach(dateStr => {
+            const rule = availabilityMap.get(dateStr) || {
+                status: 'Available',
+                maxBookings: this.defaultMaxBookings,
+                staticBooked: 0,
+                price: null,
+                notes: ''
+            };
+            
+            const dynamicBookings = bookingCountMap.get(dateStr) || 0;
+            
+            // CRITICAL: Total booked = static (from rules) + dynamic (from bookings)
+            const totalBooked = rule.staticBooked + dynamicBookings;
+            
+            // CRITICAL: Available spots = maxBookings (usually 2) - totalBooked
+            const availableSpots = Math.max(0, rule.maxBookings - totalBooked);
+            
+            // Determine final status based on availability
+            let finalStatus = rule.status;
+            
+            // If status is 'Closed', it overrides everything
+            if (rule.status === 'Closed') {
+                finalStatus = 'Closed';
+            } 
+            // Otherwise calculate based on available spots
+            else {
+                if (availableSpots <= 0) {
+                    finalStatus = 'Booked'; // No spots left
+                } else if (availableSpots === 1) {
+                    finalStatus = 'Limited'; // 1 spot left
+                } else {
+                    finalStatus = 'Available'; // 2+ spots left
+                }
+            }
+            
+            this.combinedAvailability.push({
+                Date: dateStr,
+                Status: finalStatus,
+                Available: availableSpots,
+                MaxBookings: rule.maxBookings,
+                Booked: totalBooked,
+                Price: rule.price,
+                Notes: rule.notes
+            });
+        });
+        
+        // Sort by date
+        this.combinedAvailability.sort((a, b) => {
+            const [aMonth, aDay, aYear] = a.Date.split('/').map(Number);
+            const [bMonth, bDay, bYear] = b.Date.split('/').map(Number);
+            
+            const aDate = new Date(aYear, aMonth - 1, aDay);
+            const bDate = new Date(bYear, bMonth - 1, bDay);
+            
+            return aDate - bDate;
+        });
+        
+        console.log('✅ Combined availability calculated with max 2 per day');
+        console.log('📅 Sample:', this.combinedAvailability.slice(0, 5));
+    }
+
     loadDemoData() {
         console.log('📊 Loading demo data for testing');
         const today = new Date();
         
-        // Generate demo availability
-        this.availabilityOverrides = [];
+        // Generate demo availability rules
+        this.availabilityRules = [];
         for (let i = 0; i < 30; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
@@ -145,16 +274,18 @@ class BookingSystem {
                 booked = 2;
             }
             
-            this.availabilityOverrides.push({
+            this.availabilityRules.push({
                 Date: dateStr,
                 Status: status,
                 Price: 12800,
                 MaxBookings: 2,
-                Booked: booked
+                Booked: booked,
+                Notes: ''
             });
         }
         
         this.bookings = [];
+        this.combineAvailabilityData();
         console.log('✅ Demo data loaded');
     }
 
@@ -202,12 +333,12 @@ class BookingSystem {
     convertToExcelFormat(dateStr) {
         if (!dateStr) return null;
         const [year, month, day] = dateStr.split('-');
-        // Remove leading zeros to match Excel format (e.g., 3/23/2026 not 03/23/2026)
         const monthNoZero = parseInt(month, 10).toString();
         const dayNoZero = parseInt(day, 10).toString();
         return `${monthNoZero}/${dayNoZero}/${year}`;
     }
 
+    // Apply styles based on combined availability
     applyStylesToCell(cell, dateStr) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -219,20 +350,16 @@ class BookingSystem {
         
         // Convert to Excel format for lookup
         const excelDateStr = this.convertToExcelFormat(dateStr);
-        const override = this.availabilityOverrides.find(o => o.Date === excelDateStr);
+        
+        // Find in combined availability
+        const availability = this.combinedAvailability.find(a => a.Date === excelDateStr);
         
         let status = 'Available';
         let available = this.defaultMaxBookings;
-        let booked = 0;
         
-        if (override) {
-            status = override.Status || 'Available';
-            const maxBookings = override.MaxBookings || this.defaultMaxBookings;
-            booked = override.Booked || 0;
-            available = Math.max(0, maxBookings - booked);
-            console.log(`📅 Date ${dateStr} (Excel: ${excelDateStr}): found with status ${status}, booked=${booked}, available=${available}`);
-        } else {
-            console.log(`📅 Date ${dateStr} (Excel: ${excelDateStr}): not found, defaulting to Available`);
+        if (availability) {
+            status = availability.Status;
+            available = availability.Available;
         }
         
         // Remove all existing classes
@@ -245,9 +372,11 @@ class BookingSystem {
             cell.classList.add('fc-day-past');
         } else {
             const statusLower = (status || '').toLowerCase();
-            if (statusLower === 'closed' || statusLower === 'booked') {
+            if (statusLower === 'closed') {
+                cell.classList.add('fc-day-closed');
+            } else if (statusLower === 'booked' || available <= 0) {
                 cell.classList.add('fc-day-booked');
-            } else if (statusLower === 'limited') {
+            } else if (statusLower === 'limited' || available === 1) {
                 cell.classList.add('fc-day-limited');
             } else {
                 cell.classList.add('fc-day-available');
@@ -258,30 +387,31 @@ class BookingSystem {
         const existingBadge = cell.querySelector('.day-badge');
         if (existingBadge) existingBadge.remove();
         
-        if (!isPast) {
+        if (!isPast && status !== 'Closed') {
             const badge = document.createElement('div');
             badge.className = 'day-badge';
             
-            const statusLower = (status || '').toLowerCase();
-            
-            if (statusLower === 'closed') {
-                badge.textContent = 'Closed';
-                badge.style.backgroundColor = '#8E8E93';
-                badge.style.color = 'white';
-            } else if (statusLower === 'booked' || available <= 0) {
+            if (status === 'Booked' || available <= 0) {
                 badge.textContent = 'Full';
                 badge.style.backgroundColor = '#FF3B30';
                 badge.style.color = 'white';
-            } else if (statusLower === 'limited' || available === 1) {
+            } else if (status === 'Limited' || available === 1) {
                 badge.textContent = '1 left';
                 badge.style.backgroundColor = '#FF9F0A';
                 badge.style.color = 'white';
-            } else {
+            } else if (status === 'Available' && available >= 2) {
                 badge.textContent = `${available} left`;
                 badge.style.backgroundColor = '#34C759';
                 badge.style.color = 'white';
             }
             
+            cell.appendChild(badge);
+        } else if (!isPast && status === 'Closed') {
+            const badge = document.createElement('div');
+            badge.className = 'day-badge';
+            badge.textContent = 'Closed';
+            badge.style.backgroundColor = '#8E8E93';
+            badge.style.color = 'white';
             cell.appendChild(badge);
         }
         
@@ -297,23 +427,21 @@ class BookingSystem {
         this.applyStylesToCell(info.el, info.date.toISOString().split('T')[0]);
     }
 
+    // Get day status from combined availability
     getDayStatus(dateStr) {
         const excelDateStr = this.convertToExcelFormat(dateStr);
-        const override = this.availabilityOverrides.find(o => o.Date === excelDateStr);
-        return override ? override.Status : 'Available';
+        const availability = this.combinedAvailability.find(a => a.Date === excelDateStr);
+        return availability ? availability.Status : 'Available';
     }
 
+    // Get available spots from combined availability
     getAvailableSpots(dateStr) {
         const excelDateStr = this.convertToExcelFormat(dateStr);
-        const override = this.availabilityOverrides.find(o => o.Date === excelDateStr);
-        if (override) {
-            const maxBookings = override.MaxBookings || this.defaultMaxBookings;
-            const booked = override.Booked || 0;
-            return Math.max(0, maxBookings - booked);
-        }
-        return this.defaultMaxBookings;
+        const availability = this.combinedAvailability.find(a => a.Date === excelDateStr);
+        return availability ? availability.Available : this.defaultMaxBookings;
     }
 
+    // Check if date is selectable
     isDateSelectable(dateInput) {
         let dateStr;
         if (typeof dateInput === 'string') {
@@ -338,9 +466,9 @@ class BookingSystem {
         const available = this.getAvailableSpots(dateStr);
         
         const statusLower = (status || '').toLowerCase();
-        const isSelectable = statusLower === 'available' || 
-                            statusLower === 'limited' || 
-                            available > 0;
+        
+        // Can select only if status is 'Available' or 'Limited' AND available spots > 0
+        const isSelectable = (statusLower === 'available' || statusLower === 'limited') && available > 0;
         
         return isSelectable;
     }
@@ -504,7 +632,7 @@ class BookingSystem {
         try {
             console.log('📝 Processing booking...', bookingData);
             
-            // Validate availability
+            // Validate each selected date is still available
             for (const date of this.selectedDates) {
                 if (!this.isDateSelectable(date)) {
                     this.showNotification(`Date ${date} is no longer available`, 'error');
@@ -535,16 +663,26 @@ class BookingSystem {
                 });
             }
             
-            // Clear selection and refresh
+            // Recalculate availability with new bookings
+            this.combineAvailabilityData();
+            
+            // Clear selection and refresh display
             this.clearDateSelection(false);
             this.refreshCalendarData();
             
             // Show success
             this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
-            // Trigger GitHub sync
+            // Trigger GitHub sync and refresh after completion
             if (this.githubSync && this.githubSync.hasReadToken()) {
-                this.syncToGitHubWithRetry(3).catch(console.warn);
+                this.showNotification('Syncing with GitHub...', 'info', 2000);
+                
+                const syncResult = await this.syncToGitHubWithRetry(3);
+                
+                if (syncResult) {
+                    // Refresh from GitHub after successful sync
+                    await this.refreshAfterSync();
+                }
             } else {
                 console.log('ℹ️ No GitHub token - booking saved locally only');
             }
@@ -558,6 +696,52 @@ class BookingSystem {
         }
     }
 
+    // Refresh data from GitHub after sync
+    async refreshAfterSync() {
+        try {
+            console.log('🔄 Refreshing calendar from GitHub after sync...');
+            
+            // Show loading state on refresh button
+            const refreshBtn = document.getElementById('refreshCalendarBtn');
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+                refreshBtn.disabled = true;
+            }
+            
+            // Clear cache to force fresh load
+            this.excelHandler.clearCache();
+            
+            // Wait a moment for GitHub to process
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Reload data from GitHub
+            await this.loadData();
+            this.combineAvailabilityData();
+            this.refreshCalendarData();
+            
+            // Update timestamp
+            this.lastSyncTime = new Date();
+            const lastUpdatedEl = document.getElementById('calendarLastUpdated');
+            if (lastUpdatedEl) {
+                lastUpdatedEl.textContent = `Last sync: ${this.lastSyncTime.toLocaleTimeString()}`;
+            }
+            
+            // Show success
+            this.showNotification('Calendar updated with latest data', 'success');
+            
+        } catch (error) {
+            console.error('❌ Error refreshing after sync:', error);
+            this.showNotification('Auto-refresh failed', 'error');
+        } finally {
+            // Reset button
+            const refreshBtn = document.getElementById('refreshCalendarBtn');
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Calendar';
+                refreshBtn.disabled = false;
+            }
+        }
+    }
+
     async syncToGitHubWithRetry(maxRetries = 3) {
         for (let i = 0; i < maxRetries; i++) {
             try {
@@ -567,7 +751,10 @@ class BookingSystem {
                 }
                 
                 const success = await this.githubSync.pushBookings(this.bookings);
-                if (success) return true;
+                if (success) {
+                    console.log('✅ GitHub sync successful');
+                    return true;
+                }
                 
             } catch (error) {
                 console.warn(`⚠️ Sync attempt ${i + 1} failed:`, error);
@@ -584,6 +771,7 @@ class BookingSystem {
     }
 
     refreshCalendarData() {
+        this.combineAvailabilityData();
         this.refreshVisibleCells();
     }
 
@@ -597,19 +785,62 @@ class BookingSystem {
     }
 
     setupEventListeners() {
-        setInterval(() => {
-            if (!this.isLoading) {
-                this.resyncFromExcel(false).catch(console.warn);
-            }
-        }, 300000);
+        // Already using setInterval in init()
+    }
+
+    setupRefreshButton() {
+        const refreshBtn = document.getElementById('refreshCalendarBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.manualRefresh());
+        }
+    }
+
+    async manualRefresh() {
+        if (this.isLoading) return;
+        
+        const refreshBtn = document.getElementById('refreshCalendarBtn');
+        if (!refreshBtn) return;
+        
+        try {
+            this.isLoading = true;
+            const originalHtml = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            refreshBtn.disabled = true;
+            
+            await this.resyncFromExcel(true);
+            
+        } catch (error) {
+            console.error('Refresh failed:', error);
+            this.showNotification('Refresh failed', 'error');
+        } finally {
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Calendar';
+            refreshBtn.disabled = false;
+            this.isLoading = false;
+        }
     }
 
     async resyncFromExcel(showNotification = false) {
         if (this.isLoading) return;
         this.isLoading = true;
         try {
+            console.log('🔄 Resyncing from Excel...');
+            
+            // Clear cache to force fresh load
+            this.excelHandler.clearCache();
+            
             await this.loadData();
+            this.combineAvailabilityData();
             this.refreshCalendarData();
+            
+            this.lastSyncTime = new Date();
+            const lastUpdatedEl = document.getElementById('calendarLastUpdated');
+            if (lastUpdatedEl) {
+                lastUpdatedEl.textContent = `Last sync: ${this.lastSyncTime.toLocaleTimeString()}`;
+            }
+            
+            if (showNotification) {
+                this.showNotification('Calendar refreshed', 'success');
+            }
         } finally {
             this.isLoading = false;
         }

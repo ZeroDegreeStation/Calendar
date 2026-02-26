@@ -220,10 +220,18 @@
                         <i class="fas fa-calendar-alt"></i>
                         <h2>Select Your Stay Dates</h2>
                     </div>
-                    <!-- Sync Status Indicator -->
-                    <div id="syncStatus" class="off">
-                        <i class="fas fa-circle" id="syncStatusDot" style="font-size: 0.5rem;"></i>
-                        <span id="syncStatusText">Checking sync...</span>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <!-- Last Updated Timestamp -->
+                        <span id="lastUpdated" style="font-size: 0.8rem; color: #666;"></span>
+                        <!-- Refresh Button -->
+                        <button id="refreshCalendarBtn" class="btn btn-outline" style="padding: 0.5rem 1rem; background: white; border: 1px solid #ddd; border-radius: 20px; cursor: pointer;">
+                            <i class="fas fa-sync-alt"></i> Refresh Calendar
+                        </button>
+                        <!-- Sync Status Indicator -->
+                        <div id="syncStatus" class="off">
+                            <i class="fas fa-circle" id="syncStatusDot" style="font-size: 0.5rem;"></i>
+                            <span id="syncStatusText">Checking sync...</span>
+                        </div>
                     </div>
                 </div>
                 

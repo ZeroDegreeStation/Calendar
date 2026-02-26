@@ -1,5 +1,7 @@
 /**
  * GitHub Sync - Triggers workflow and manages read token
+ * UPDATED: Added embedded token fallback for all devices
+ * UPDATED: Better success verification
  */
 class GitHubSync {
     constructor() {
@@ -9,9 +11,20 @@ class GitHubSync {
             dataRepo: 'Calendar-Data'
         };
         
-        this.readToken = this.loadReadToken();
+        // Try localStorage first (admin override), fall back to embedded token
+        this.readToken = this.loadReadToken() || this.getEmbeddedToken();
         
         console.log('✅ GitHubSync initialized');
+        console.log('🔑 Token source:', this.loadReadToken() ? 'localStorage' : 'embedded');
+    }
+
+    // Embedded token for all users
+    getEmbeddedToken() {
+        // REPLACE WITH YOUR ACTUAL LIMITED PAT
+        // This token should have ONLY:
+        // - Access to public ZeroDegreeStation/Calendar repo
+        // - Permissions: contents:write, metadata:read
+        return 'github_pat_YOUR_LIMITED_TOKEN_HERE';
     }
 
     loadReadToken() {
@@ -84,8 +97,6 @@ class GitHubSync {
             
             console.log('Sending payload to GitHub API...');
             
-            // IMPORTANT: For repository_dispatch, you need authentication!
-            // Use the same token for both reading and triggering workflows
             const response = await fetch(
                 `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/dispatches`,
                 {
@@ -93,7 +104,7 @@ class GitHubSync {
                     headers: {
                         'Accept': 'application/vnd.github.v3+json',
                         'Content-Type': 'application/json',
-                        'Authorization': `token ${this.readToken}`, // Add token here!
+                        'Authorization': `token ${this.readToken}`,
                     },
                     body: JSON.stringify(payload)
                 }
