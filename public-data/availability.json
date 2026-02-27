@@ -1,19 +1,10 @@
 [
   {
-    "date": "2/26/2026",
-    "status": "Available",
-    "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
-    "price": null,
-    "notes": ""
-  },
-  {
     "date": "2/27/2026",
-    "status": "Available",
+    "status": "Booked",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
+    "booked": 2,
+    "available": 0,
     "price": null,
     "notes": ""
   },
@@ -190,28 +181,28 @@
   },
   {
     "date": "3/19/2026",
-    "status": "Available",
+    "status": "Limited",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
+    "booked": 1,
+    "available": 1,
     "price": null,
     "notes": ""
   },
   {
     "date": "3/20/2026",
-    "status": "Available",
+    "status": "Booked",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
+    "booked": 2,
+    "available": 0,
     "price": null,
     "notes": ""
   },
   {
     "date": "3/21/2026",
-    "status": "Available",
+    "status": "Booked",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
+    "booked": 2,
+    "available": 0,
     "price": null,
     "notes": ""
   },
@@ -226,57 +217,57 @@
   },
   {
     "date": "3/23/2026",
-    "status": "Available",
+    "status": "Limited",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
-    "price": null,
-    "notes": ""
+    "booked": 1,
+    "available": 1,
+    "price": 18500,
+    "notes": "Peak Season"
   },
   {
     "date": "3/24/2026",
-    "status": "Available",
+    "status": "Limited",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
-    "price": null,
-    "notes": ""
+    "booked": 1,
+    "available": 1,
+    "price": 18500,
+    "notes": "Peak Season"
   },
   {
     "date": "3/25/2026",
-    "status": "Available",
+    "status": "Limited",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
-    "price": null,
-    "notes": ""
+    "booked": 1,
+    "available": 1,
+    "price": 18500,
+    "notes": "Maintenance"
   },
   {
     "date": "3/26/2026",
-    "status": "Available",
+    "status": "Booked",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
-    "price": null,
-    "notes": ""
+    "booked": 2,
+    "available": 0,
+    "price": 18500,
+    "notes": "Maintenance"
   },
   {
     "date": "3/27/2026",
-    "status": "Available",
+    "status": "Closed",
     "maxBookings": 2,
     "booked": 0,
     "available": 2,
     "price": null,
-    "notes": ""
+    "notes": "Peak Season"
   },
   {
     "date": "3/28/2026",
-    "status": "Available",
+    "status": "Limited",
     "maxBookings": 2,
-    "booked": 0,
-    "available": 2,
-    "price": null,
-    "notes": ""
+    "booked": 1,
+    "available": 1,
+    "price": 18500,
+    "notes": "Peak Season"
   },
   {
     "date": "3/29/2026",
@@ -802,6 +793,15 @@
   },
   {
     "date": "5/26/2026",
+    "status": "Available",
+    "maxBookings": 2,
+    "booked": 0,
+    "available": 2,
+    "price": null,
+    "notes": ""
+  },
+  {
+    "date": "5/27/2026",
     "status": "Available",
     "maxBookings": 2,
     "booked": 0,

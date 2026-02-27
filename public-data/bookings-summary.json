@@ -1,0 +1,71 @@
+{
+  "totalBookings": 8,
+  "totalRevenue": 146500,
+  "lastUpdated": "2026-02-27T01:52:51.516Z",
+  "recentBookings": [
+    {
+      "bookingId": "SNOW-587632997",
+      "date": "3/19/2026",
+      "name": "l***l",
+      "guests": 2,
+      "plan": "Weekend Getaway",
+      "totalPrice": 12800
+    },
+    {
+      "bookingId": "SNOW-351180023",
+      "date": "3/20/2026",
+      "name": "a",
+      "guests": 3,
+      "plan": "Family Ski Package",
+      "totalPrice": 32000
+    },
+    {
+      "bookingId": "SNOW-294884927",
+      "date": "2/27/2026",
+      "name": "a",
+      "guests": 2,
+      "plan": "Family Ski Package",
+      "totalPrice": 32000
+    },
+    {
+      "bookingId": "SNOW-128112638",
+      "date": "2/27/2026",
+      "name": "t",
+      "guests": 2,
+      "plan": "Ski Adventure",
+      "totalPrice": 18500
+    },
+    {
+      "bookingId": "SNOW-004",
+      "date": "3/26/2026",
+      "name": "J**n S****2",
+      "guests": 2,
+      "plan": "Weekend Getaway",
+      "totalPrice": 12800
+    },
+    {
+      "bookingId": "SNOW-003",
+      "date": "3/21/2026",
+      "name": "J**n S****2",
+      "guests": 2,
+      "plan": "Weekend Getaway",
+      "totalPrice": 12800
+    },
+    {
+      "bookingId": "SNOW-002",
+      "date": "3/21/2026",
+      "name": "J**n S***h",
+      "guests": 2,
+      "plan": "Weekend Getaway",
+      "totalPrice": 12800
+    },
+    {
+      "bookingId": "SNOW-001",
+      "date": "3/20/2026",
+      "name": "J**n S***h",
+      "guests": 2,
+      "plan": "Weekend Getaway",
+      "totalPrice": 12800
+    }
+  ]
+}
