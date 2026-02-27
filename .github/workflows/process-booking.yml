@@ -7,12 +7,19 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   process-and-sync:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
+    outputs:
+      data_updated: ${{ steps.check_changes.outputs.updated }}
     
     steps:
       - name: Checkout public repo
@@ -98,3 +105,43 @@ jobs:
             git push
             echo "✅ Public data updated"
           fi
+
+  # NEW: Deploy job - runs ONLY after process-and-sync completes successfully
+  deploy:
+    needs: process-and-sync
+    if: always() && (needs.process-and-sync.outputs.data_updated == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v4
+        with:
+          repository: ZeroDegreeStation/Calendar
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: public-repo
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          static_site_generator: next
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'public-repo'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+      
+      - name: Notify deployment
+        run: |
+          echo "✅ Site deployed to: ${{ steps.deployment.outputs.page_url }}"
+          echo "📅 Deployed at: $(date)"
