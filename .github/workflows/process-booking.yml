@@ -60,7 +60,11 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add data/
-          if ! git diff --quiet && git diff --staged --quiet; then
+          
+          # Check if there are changes to commit
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "ℹ️ No changes to commit"
+          else
             git commit -m "Add booking: ${{ github.event.client_payload.bookingId }}"
             git push
             echo "✅ Booking saved to private repo"
@@ -90,7 +94,7 @@ jobs:
               COMMIT_MSG="Manual refresh"
             fi
             
-            git commit -m "$COMMIT_MSG [skip ci]"
+            git commit -m "$COMMIT_MSG"
             git push
             echo "✅ Public data updated"
           fi
