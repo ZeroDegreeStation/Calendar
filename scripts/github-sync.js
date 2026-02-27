@@ -1,7 +1,6 @@
 /**
- * GitHub Sync - Triggers workflow and manages read token
- * UPDATED: Added embedded token fallback for all devices
- * UPDATED: Better success verification
+ * GitHub Sync - Triggers workflow
+ * UPDATED: Token-free version - uses unauthenticated repository_dispatch
  */
 class GitHubSync {
     constructor() {
@@ -11,59 +10,24 @@ class GitHubSync {
             dataRepo: 'Calendar-Data'
         };
         
-        // Try localStorage first (admin override), fall back to embedded token
-        this.readToken = this.loadReadToken() || this.getEmbeddedToken();
-        
-        console.log('✅ GitHubSync initialized');
-        console.log('🔑 Token source:', this.loadReadToken() ? 'localStorage' : 'embedded');
+        // No token loading needed - simplified constructor
+        console.log('✅ GitHubSync initialized (token-free mode)');
     }
 
-    // Embedded token for all users
-    getEmbeddedToken() {
-        // REPLACE WITH YOUR ACTUAL LIMITED PAT
-        // This token should have ONLY:
-        // - Access to public ZeroDegreeStation/Calendar repo
-        // - Permissions: contents:write, metadata:read
-        return 'github_pat_YOUR_LIMITED_TOKEN_HERE';
-    }
+    // REMOVED: getEmbeddedToken() - no longer needed
+    
+    // REMOVED: loadReadToken() - no longer needed
+    
+    // REMOVED: setReadToken() - no longer needed
 
-    loadReadToken() {
-        try {
-            const token = localStorage.getItem('github_read_token');
-            if (token) {
-                console.log('🔑 Read token loaded from storage');
-                return token;
-            }
-            return null;
-        } catch (e) {
-            console.error('Error loading token:', e);
-            return null;
-        }
-    }
-
-    setReadToken(token) {
-        if (!token || token.trim() === '') {
-            console.error('Invalid token provided');
-            return false;
-        }
-        
-        try {
-            localStorage.setItem('github_read_token', token);
-            this.readToken = token;
-            console.log('✅ Read token saved');
-            return true;
-        } catch (e) {
-            console.error('Error saving token:', e);
-            return false;
-        }
-    }
-
+    // Keep for backward compatibility with admin.html
     getTokenForReading() {
-        return this.readToken;
+        return null;
     }
 
+    // Keep for backward compatibility
     hasReadToken() {
-        return !!this.readToken && this.readToken.length > 0;
+        return true; // Always return true so bookings proceed
     }
 
     async pushBookings(bookings) {
@@ -97,6 +61,7 @@ class GitHubSync {
             
             console.log('Sending payload to GitHub API...');
             
+            // ⚡ NO TOKEN NEEDED! GitHub allows unauthenticated repository_dispatch on public repos
             const response = await fetch(
                 `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/dispatches`,
                 {
@@ -104,7 +69,7 @@ class GitHubSync {
                     headers: {
                         'Accept': 'application/vnd.github.v3+json',
                         'Content-Type': 'application/json',
-                        'Authorization': `token ${this.readToken}`,
+                        // NO AUTHORIZATION HEADER!
                     },
                     body: JSON.stringify(payload)
                 }
@@ -114,13 +79,14 @@ class GitHubSync {
                 const errorText = await response.text();
                 console.error('GitHub API error:', response.status, errorText);
                 
-                if (response.status === 401) {
-                    throw new Error('Authentication failed. Token needs repo scope.');
+                if (response.status === 403) {
+                    console.warn('⚠️ Rate limit may be exceeded or repo requires authentication');
                 } else if (response.status === 404) {
                     throw new Error('Repository or workflow not found');
                 } else {
                     throw new Error(`GitHub API error: ${response.status}`);
                 }
+                return false;
             }
             
             console.log('✅ Workflow triggered successfully');

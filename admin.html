@@ -76,123 +76,7 @@
             font-size: 1.2rem;
         }
 
-        .token-section {
-            background: #f0f8ff;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-            border: 1px solid #d4e6f1;
-        }
-
-        .token-section h3 {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            margin-bottom: 1rem;
-            color: #2c3e50;
-        }
-
-        .token-section h3 i {
-            color: #3498db;
-        }
-
-        .token-input-group {
-            display: flex;
-            gap: 10px;
-            margin: 1rem 0;
-        }
-
-        .token-input-group input {
-            flex: 1;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 0.95rem;
-        }
-
-        .token-input-group input:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
-        }
-
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: #3498db;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2980b9;
-        }
-
-        .btn-outline {
-            background: white;
-            border: 1px solid #ddd;
-            color: #666;
-        }
-
-        .btn-outline:hover {
-            background: #f8f9fa;
-            border-color: #999;
-        }
-
-        .btn-danger {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-
-        .status-message {
-            margin-top: 0.8rem;
-            padding: 0.8rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-
-        .status-success {
-            background: rgba(39, 174, 96, 0.1);
-            color: #27ae60;
-            border-left: 3px solid #27ae60;
-        }
-
-        .status-error {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
-            border-left: 3px solid #e74c3c;
-        }
-
-        .token-help {
-            font-size: 0.85rem;
-            color: #666;
-            margin-top: 0.8rem;
-            padding-top: 0.8rem;
-            border-top: 1px solid #d4e6f1;
-        }
-
-        .token-help a {
-            color: #3498db;
-            text-decoration: none;
-        }
-
-        .token-help a:hover {
-            text-decoration: underline;
-        }
+        /* REMOVED: token-section styles */
 
         .stats-grid {
             display: grid;
@@ -358,33 +242,7 @@
             Full customer details are only accessible in the private repository.
         </div>
 
-        <!-- Token Configuration -->
-        <div class="token-section">
-            <h3>
-                <i class="fab fa-github"></i>
-                GitHub Private Repo Access
-            </h3>
-            <p>Enter a GitHub token with read access to your private data repository.</p>
-            
-            <div class="token-input-group">
-                <input type="password" id="githubToken" placeholder="github_pat_xxxxxxxxxxxx" value="">
-                <button class="btn btn-primary" onclick="saveToken()">
-                    <i class="fas fa-save"></i> Save Token
-                </button>
-                <button class="btn btn-outline" onclick="clearToken()">
-                    <i class="fas fa-trash"></i> Clear
-                </button>
-            </div>
-            
-            <div id="tokenStatus" class="status-message"></div>
-            
-            <div class="token-help">
-                <i class="fas fa-info-circle"></i>
-                Token is stored locally in your browser and never sent to our servers.
-                <a href="#" onclick="window.open('https://github.com/settings/tokens/new?scopes=repo&description=Calendar%20Read%20Token', '_blank')">Create a token</a>
-                with <code>repo</code> scope.
-            </div>
-        </div>
+        <!-- REMOVED: Token Configuration Section -->
 
         <!-- Statistics -->
         <div class="stats-grid">
@@ -460,80 +318,11 @@
             githubSync = new GitHubSync();
             excelHandler = new ExcelHandler();
             
-            // Check for existing token
-            const savedToken = githubSync.getTokenForReading();
-            if (savedToken) {
-                document.getElementById('githubToken').value = '••••••••' + savedToken.slice(-4);
-                excelHandler.setToken(savedToken);
-                loadData();
-                showStatus('Token loaded from storage', 'success');
-            }
+            // No token check needed - just load data
+            loadData();
         });
 
-        // Save token function
-        function saveToken() {
-            const tokenInput = document.getElementById('githubToken');
-            const token = tokenInput.value.trim();
-            
-            if (!token) {
-                showStatus('Please enter a token', 'error');
-                return;
-            }
-
-            // Save token
-            if (githubSync.setReadToken(token)) {
-                excelHandler.setToken(token);
-                
-                // Mask token in input
-                tokenInput.value = '••••••••' + token.slice(-4);
-                
-                showStatus('Token saved successfully! Loading data...', 'success');
-                
-                // Reload data
-                loadData();
-            } else {
-                showStatus('Failed to save token', 'error');
-            }
-        }
-
-        // Clear token function
-        function clearToken() {
-            if (confirm('Clear saved token? This will remove access to private repository data.')) {
-                localStorage.removeItem('github_read_token');
-                githubSync.readToken = null;
-                excelHandler.setToken(null);
-                document.getElementById('githubToken').value = '';
-                showStatus('Token cleared', 'success');
-                
-                // Clear displayed data
-                document.getElementById('totalBookings').textContent = '-';
-                document.getElementById('totalRevenue').textContent = '-';
-                document.getElementById('monthlyBookings').textContent = '-';
-                document.getElementById('availableRooms').textContent = '-';
-                
-                document.getElementById('bookingsTableBody').innerHTML = `
-                    <tr>
-                        <td colspan="8" class="loading-spinner">
-                            <i class="fas fa-info-circle"></i>
-                            <div>Enter a token to view data</div>
-                        </td>
-                    </tr>
-                `;
-            }
-        }
-
-        // Show status message
-        function showStatus(message, type) {
-            const statusEl = document.getElementById('tokenStatus');
-            statusEl.textContent = message;
-            statusEl.className = 'status-message status-' + type;
-            
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                statusEl.textContent = '';
-                statusEl.className = 'status-message';
-            }, 5000);
-        }
+        // REMOVED: saveToken(), clearToken(), showStatus() functions
 
         // Load data from private repo
         async function loadData() {
@@ -584,7 +373,7 @@
                     <tr>
                         <td colspan="8" class="error-message">
                             <i class="fas fa-exclamation-circle"></i>
-                            <div>Error loading data. Please check your token.</div>
+                            <div>Error loading data. Please check connection.</div>
                         </td>
                     </tr>
                 `;

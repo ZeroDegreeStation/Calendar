@@ -153,12 +153,7 @@ class BookingSystem {
             
             if (!publicDataLoaded) {
                 console.log('📊 Falling back to Excel with token...');
-                
-                // Fall back to Excel with token
-                if (this.githubSync && this.githubSync.hasReadToken()) {
-                    this.excelHandler.setToken(this.githubSync.getTokenForReading());
-                }
-                
+                            
                 const [availabilityRules, bookings] = await Promise.all([
                     this.excelHandler.loadAvailabilityOverrides(),
                     this.excelHandler.loadBookings()
@@ -727,7 +722,7 @@ class BookingSystem {
             this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
             // Trigger GitHub sync and refresh after completion
-            if (this.githubSync && this.githubSync.hasReadToken()) {
+            if (this.githubSync) {
                 this.showNotification('Syncing with GitHub...', 'info', 2000);
                 
                 const syncResult = await this.syncToGitHubWithRetry(3);
@@ -737,7 +732,7 @@ class BookingSystem {
                     await this.refreshAfterSync();
                 }
             } else {
-                console.log('ℹ️ No GitHub token - booking saved locally only');
+                console.log('ℹ️ GitHubSync not available');
             }
             
             return { success: true, bookingId };
