@@ -24,7 +24,7 @@ class GitHubSync {
         // This token should have ONLY:
         // - Access to public ZeroDegreeStation/Calendar repo
         // - Permissions: contents:write, metadata:read
-        return 'github_pat_YOUR_LIMITED_TOKEN_HERE';
+        return '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';
     }
 
     loadReadToken() {
