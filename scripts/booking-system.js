@@ -865,11 +865,23 @@ class BookingSystem {
             refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
             refreshBtn.disabled = true;
             
+            console.log('🔄 Manual refresh triggered');
+            
             await this.resyncFromExcel(true);
+            
+            // Add a subtle highlight effect to show refresh completed
+            const calendarEl = document.getElementById('calendar');
+            calendarEl.style.transition = 'background-color 0.5s';
+            calendarEl.style.backgroundColor = '#e8f4fd';
+            setTimeout(() => {
+                calendarEl.style.backgroundColor = '';
+            }, 500);
+            
+            this.showNotification('✅ Calendar refreshed!', 'success');
             
         } catch (error) {
             console.error('Refresh failed:', error);
-            this.showNotification('Refresh failed', 'error');
+            this.showNotification('❌ Refresh failed', 'error');
         } finally {
             refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Calendar';
             refreshBtn.disabled = false;
