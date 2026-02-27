@@ -648,12 +648,19 @@
             const dotEl = document.getElementById('syncStatusDot');
             const textEl = document.getElementById('syncStatusText');
             
-            if (!statusEl) return;
+            if (!statusEl || !window.githubSync) return;
             
-            // Always show as synced since we don't need tokens
-            statusEl.className = 'synced';
-            dotEl.style.color = '#27ae60';
-            textEl.textContent = 'Auto-sync enabled';
+            const hasToken = window.githubSync.hasReadToken && window.githubSync.hasReadToken();
+            
+            if (hasToken) {
+                statusEl.className = 'synced';
+                dotEl.style.color = '#27ae60';
+                textEl.textContent = 'Auto-save enabled';
+            } else {
+                statusEl.className = 'local';
+                dotEl.style.color = '#f39c12';
+                textEl.textContent = 'Saved locally';
+            }
         }
 
         // Initialize the booking system
