@@ -104,18 +104,15 @@ class BookingSystem {
     // NEW: Load from public JSON (no token needed)
     async loadPublicData() {
         try {
-            // Add timestamp to force fresh fetch (avoid browser cache)
+            // Add timestamp to force fresh fetch EVERY time
+            const timestamp = Date.now();
             const baseUrl = 'https://raw.githubusercontent.com/ZeroDegreeStation/Calendar/main/public-data';
-            const response = await fetch(`${baseUrl}/availability.json?t=${Date.now()}`);
+            const response = await fetch(`${baseUrl}/availability.json?t=${timestamp}`);
             
             if (response.ok) {
                 const data = await response.json();
                 
-                // Convert public JSON format to internal format
-                this.availabilityRules = [];
-                this.bookings = [];
-                
-                // Store in combinedAvailability directly
+                // Store in combinedAvailability
                 this.combinedAvailability = data.map(item => ({
                     Date: item.date,
                     Status: item.status,
@@ -126,19 +123,26 @@ class BookingSystem {
                     Notes: item.notes || ''
                 }));
                 
+                console.log('📊 Loaded from public JSON:', {
+                    total: this.combinedAvailability.length,
+                    nonGreen: this.combinedAvailability.filter(d => d.Status !== 'Available').length,
+                    sample: this.combinedAvailability.slice(0, 3)
+                });
+                
                 // Update timestamp display
                 const lastUpdatedEl = document.getElementById('lastUpdated');
                 if (lastUpdatedEl) {
                     lastUpdatedEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
                 }
                 
-                console.log(`📊 Loaded ${this.combinedAvailability.length} records from public JSON`);
+                // Force calendar to refresh with new data
+                this.refreshCalendarData();
+                
                 return true;
             }
         } catch (e) {
             console.log('Public JSON not available, falling back to Excel');
         }
-        
         return false;
     }
 
