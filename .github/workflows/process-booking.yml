@@ -81,7 +81,20 @@ jobs:
         run: |
           cd public-repo
           node .github/scripts/convert-to-json.js
-      
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          cd public-repo
+          git add public-data/
+          if git diff --quiet --staged public-data/; then
+            echo "No changes to public data"
+            echo "updated=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected in public data"
+            echo "updated=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Commit and push public data
         run: |
           cd public-repo
