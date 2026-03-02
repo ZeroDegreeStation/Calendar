@@ -1,8 +1,16 @@
 {
-  "totalBookings": 13,
-  "totalRevenue": 325700,
-  "lastUpdated": "2026-03-02T06:15:28.324Z",
+  "totalBookings": 14,
+  "totalRevenue": 338500,
+  "lastUpdated": "2026-03-02T06:40:45.718Z",
   "recentBookings": [
+    {
+      "bookingId": "SNOW-631075285",
+      "date": "3/9/2026",
+      "name": "n*****y",
+      "guests": 2,
+      "plan": "Weekend Getaway",
+      "totalPrice": 12800
+    },
     {
       "bookingId": "SNOW-113761295",
       "date": "3/7/2026",
