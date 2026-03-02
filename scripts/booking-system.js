@@ -719,6 +719,7 @@ class BookingSystem {
                 name: bookingData.name,
                 email: bookingData.email,
                 phone: bookingData.phone || '',
+                nights: this.selectedDates.length,
                 guests: bookingData.guests || 1,
                 plan: this.planName,
                 planPrice: this.planPrice,
@@ -726,32 +727,53 @@ class BookingSystem {
                 requests: bookingData.requests || ''
             };
             
-            // Send to Netlify function (non-blocking - don't await)
-            fetch('/.netlify/functions/create-booking', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bookingForNetlify)
-            }).then(res => {
-                if (res.ok) {
-                    console.log('✅ Netlify function triggered');
+            // ============= UPDATED: Send to Netlify function and handle response =============
+            try {
+                const response = await fetch('/.netlify/functions/create-booking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bookingForNetlify)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Recalculate availability with new bookings
+                    this.combineAvailabilityData();
+                    
+                    // Clear selection and refresh display
+                    this.clearDateSelection(false);
+                    this.refreshCalendarData();
+                    
+                    // Show success with email confirmation message
+                    this.showNotification(`✅ Booking confirmed! Check your email. Reference: ${bookingId}`, 'success', 5000);
+                    
+                    return { success: true, bookingId };
+                    
                 } else {
-                    console.warn('⚠️ Netlify function failed');
+                    // Booking failed - show error message
+                    let errorMessage = result.error || 'Booking failed. Please try again.';
+                    
+                    if (result.code === 'NO_AVAILABILITY') {
+                        errorMessage = '❌ Sorry, these dates are no longer available. Please select different dates.';
+                    } else if (result.code === 'GITHUB_ERROR') {
+                        errorMessage = '❌ Booking system temporarily unavailable. Please try again later.';
+                    }
+                    
+                    this.showNotification(errorMessage, 'error', 7000);
+                    
+                    // Refresh calendar to show latest availability
+                    this.refreshCalendarData();
+                    
+                    return { success: false };
                 }
-            }).catch(err => {
-                console.warn('⚠️ Could not reach Netlify function:', err);
-            });
-            
-            // Recalculate availability with new bookings
-            this.combineAvailabilityData();
-            
-            // Clear selection and refresh display
-            this.clearDateSelection(false);
-            this.refreshCalendarData();
-    
-            // Show success with email confirmation message (UPDATED)
-            this.showNotification(`✅ Booking confirmed! Check your email for details. Reference: ${bookingId}`, 'success', 5000);
-
-            return { success: true, bookingId };
+                
+            } catch (error) {
+                console.error('❌ Netlify function error:', error);
+                this.showNotification('❌ Booking failed. Please check your connection and try again.', 'error', 5000);
+                return { success: false };
+            }
+            // ============= END UPDATED SECTION =============
             
         } catch (error) {
             console.error('❌ Error submitting booking:', error);

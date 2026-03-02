@@ -1,6 +1,47 @@
 const nodemailer = require('nodemailer');
 const fetch = require('node-fetch');
 
+// Function to check current availability from public JSON
+async function checkAvailability(date, nights = 1) {
+  try {
+    const response = await fetch(
+      `https://raw.githubusercontent.com/ZeroDegreeStation/Calendar/main/public-data/availability.json?t=${Date.now()}`
+    );
+    
+    if (!response.ok) {
+      console.log('⚠️ Could not fetch availability data, proceeding anyway');
+      return true;
+    }
+    
+    const availability = await response.json();
+    
+    // Parse dates to check
+    const [month, day, year] = date.split('/').map(Number);
+    const startDate = new Date(year, month - 1, day);
+    
+    for (let i = 0; i < nights; i++) {
+      const checkDate = new Date(startDate);
+      checkDate.setDate(startDate.getDate() + i);
+      
+      const checkMonth = checkDate.getMonth() + 1;
+      const checkDay = checkDate.getDate();
+      const checkYear = checkDate.getFullYear();
+      const dateStr = `${checkMonth}/${checkDay}/${checkYear}`;
+      
+      const dayData = availability.find(a => a.date === dateStr);
+      if (dayData && dayData.available <= 0) {
+        console.log(`❌ Date ${dateStr} is full`);
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking availability:', error);
+    return true; // If error, proceed (GitHub Action will catch)
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -10,6 +51,24 @@ exports.handler = async (event) => {
     const bookingData = JSON.parse(event.body);
     
     console.log('📦 Processing booking:', bookingData.bookingId);
+    console.log('Date:', bookingData.date);
+    console.log('Nights:', bookingData.nights || 1);
+
+    // ============= CHECK AVAILABILITY FIRST =============
+    const isAvailable = await checkAvailability(bookingData.date, bookingData.nights || 1);
+    
+    if (!isAvailable) {
+      console.log('❌ Booking rejected - no availability');
+      return {
+        statusCode: 409, // Conflict
+        body: JSON.stringify({ 
+          success: false,
+          error: 'Sorry, these dates are no longer available. Please select different dates.',
+          code: 'NO_AVAILABILITY'
+        })
+      };
+    }
+    // ============= END AVAILABILITY CHECK =============
 
     // 1. Trigger GitHub Action
     const githubResponse = await fetch(
@@ -28,7 +87,22 @@ exports.handler = async (event) => {
       }
     );
 
-    // 2. Setup email transporter
+    if (!githubResponse.ok) {
+      const errorText = await githubResponse.text();
+      console.error('GitHub API error:', githubResponse.status, errorText);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ 
+          success: false,
+          error: 'Booking system temporarily unavailable. Please try again.',
+          code: 'GITHUB_ERROR'
+        })
+      };
+    }
+
+    console.log('✅ GitHub Action triggered successfully');
+
+    // 2. SEND EMAIL VIA GMAIL (only if availability check passed)
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
@@ -46,76 +120,93 @@ exports.handler = async (event) => {
       return date.toISOString().split('T')[0];
     })();
 
-    // Common booking details for email
-    const bookingDetails = `
-      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0;">Booking Details</h3>
-        <p><strong>Booking ID:</strong> ${bookingData.bookingId}</p>
-        <p><strong>Customer:</strong> ${bookingData.name}</p>
-        <p><strong>Email:</strong> ${bookingData.email}</p>
-        <p><strong>Phone:</strong> ${bookingData.phone || 'Not provided'}</p>
-        <p><strong>Check-in:</strong> ${bookingData.date}</p>
-        <p><strong>Check-out:</strong> ${checkout}</p>
-        <p><strong>Nights:</strong> ${bookingData.nights || 1}</p>
-        <p><strong>Guests:</strong> ${bookingData.guests || 1}</p>
-        <p><strong>Plan:</strong> ${bookingData.plan || 'Standard'}</p>
-        <p><strong>Total:</strong> ¥${bookingData.totalPrice?.toLocaleString() || 0}</p>
-        <p><strong>Special Requests:</strong> ${bookingData.requests || 'None'}</p>
-      </div>
-    `;
+    // Format price
+    const formattedPrice = bookingData.totalPrice ? 
+      `¥${bookingData.totalPrice.toLocaleString()}` : 
+      '¥0';
 
-    // 3. Send email to CUSTOMER
-    const customerEmail = {
-      from: `"Snow Station" <${process.env.GMAIL_USER}>`,
+    const mailOptions = {
+      from: `"Snow Station Guest House" <${process.env.GMAIL_USER}>`,
       to: bookingData.email,
-      subject: `Your Booking Confirmation: ${bookingData.bookingId}`,
+      subject: `Booking Confirmation: ${bookingData.bookingId}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #3498db;">Booking Confirmed!</h2>
-          <p>Dear <strong>${bookingData.name}</strong>,</p>
-          <p>Your booking at Snow Station Guest House has been confirmed.</p>
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #2c3e50, #3498db); color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">Booking Confirmed!</h1>
+            <p style="margin: 10px 0 0; opacity: 0.9;">Snow Station Guest House</p>
+          </div>
           
-          ${bookingDetails}
+          <div style="padding: 30px; background: #f9f9f9;">
+            <p style="font-size: 16px;">Dear <strong>${bookingData.name}</strong>,</p>
+            <p>Thank you for choosing Snow Station. Your booking has been confirmed.</p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3498db;">
+              <h3 style="margin-top: 0; color: #2c3e50;">Booking Details</h3>
+              
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #666;"><strong>Booking ID:</strong></td>
+                  <td style="padding: 8px 0; color: #3498db;">${bookingData.bookingId}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666;"><strong>Check-in:</strong></td>
+                  <td style="padding: 8px 0;">${bookingData.date}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666;"><strong>Check-out:</strong></td>
+                  <td style="padding: 8px 0;">${checkout}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666;"><strong>Nights:</strong></td>
+                  <td style="padding: 8px 0;">${bookingData.nights || 1}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666;"><strong>Guests:</strong></td>
+                  <td style="padding: 8px 0;">${bookingData.guests || 1}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666;"><strong>Plan:</strong></td>
+                  <td style="padding: 8px 0;">${bookingData.plan || 'Standard'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666;"><strong>Total:</strong></td>
+                  <td style="padding: 8px 0; font-weight: bold; color: #27ae60;">${formattedPrice}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <h3 style="color: #2c3e50;">Guest House Information</h3>
+            <p style="margin: 5px 0;">
+              <strong>Address:</strong> 123 Ski Hill Road, Meiho, Japan<br>
+              <strong>Check-in:</strong> 15:00 - 22:00<br>
+              <strong>Check-out:</strong> 10:00<br>
+              <strong>Phone:</strong> +81 123-456-7890
+            </p>
+            
+            <p style="margin-top: 25px;">If you have any questions, please contact us.</p>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="https://snowstation.netlify.app" style="background: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Visit Our Website</a>
+            </div>
+          </div>
           
-          <p><strong>Address:</strong> 123 Ski Hill Road, Meiho, Japan</p>
-          <p><strong>Phone:</strong> +81 123-456-7890</p>
-          
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="color: #666; font-size: 0.9em;">Thank you for choosing Snow Station!</p>
+          <div style="background: #2c3e50; color: white; padding: 20px; text-align: center; font-size: 14px;">
+            <p style="margin: 0;">Snow Station Guest House - Near Meiho Ski Resort</p>
+            <p style="margin: 5px 0 0; opacity: 0.8;">Serve Your Convenience</p>
+          </div>
         </div>
       `
     };
 
-    // 4. Send email to SERVICE MEMBER (with more details)
-    const serviceEmail = {
-      from: `"Snow Station Bookings" <${process.env.GMAIL_USER}>`,
-      to: process.env.SERVICE_EMAIL || 'service@snowstation.com',
-      subject: `🔔 NEW BOOKING: ${bookingData.bookingId} - ${bookingData.name}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #e74c3c;">New Booking Received!</h2>
-          <p>A new booking has been confirmed:</p>
-          
-          ${bookingDetails}
-          
-          <hr style="border: none; border-top: 2px solid #e74c3c; margin: 20px 0;">
-          <p style="color: #666;">Please ensure the room is prepared for check-in.</p>
-        </div>
-      `
-    };
-
-    // Send both emails
-    await transporter.sendMail(customerEmail);
-    console.log('✅ Customer email sent to:', bookingData.email);
-    
-    await transporter.sendMail(serviceEmail);
-    console.log('✅ Service email sent to:', process.env.SERVICE_EMAIL || 'service@snowstation.com');
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Confirmation email sent to:', bookingData.email);
 
     return {
       statusCode: 200,
       body: JSON.stringify({ 
         success: true, 
-        bookingId: bookingData.bookingId 
+        bookingId: bookingData.bookingId,
+        message: 'Booking confirmed! Check your email.'
       })
     };
 
@@ -123,7 +214,11 @@ exports.handler = async (event) => {
     console.error('❌ Error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Booking failed: ' + error.message })
+      body: JSON.stringify({ 
+        success: false,
+        error: 'Booking failed. Please try again.',
+        code: 'SERVER_ERROR'
+      })
     };
   }
 };

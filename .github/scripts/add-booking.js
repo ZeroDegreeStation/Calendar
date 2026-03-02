@@ -11,7 +11,6 @@ try {
   bookingData = JSON.parse(process.env.BOOKING_DATA || '{}');
   console.log('✅ Booking data loaded from environment');
   console.log('Booking ID:', bookingData.bookingId);
-  console.log('Date:', bookingData.date);
 } catch (e) {
   console.error('❌ Error parsing environment data:', e);
   process.exit(1);
@@ -30,7 +29,6 @@ let workbook;
 let bookings = [];
 
 try {
-  // Read existing file if it exists
   if (fs.existsSync(excelFilePath)) {
     console.log('📖 Reading existing Excel file...');
     workbook = XLSX.readFile(excelFilePath);
@@ -49,53 +47,44 @@ try {
 // ============= OVERBOOKING PROTECTION =============
 const MAX_BOOKINGS_PER_DAY = 2;
 
-// Count how many bookings already exist for this date
-const bookingsForThisDate = bookings.filter(b => b.Date === bookingData.date);
-const currentCount = bookingsForThisDate.length;
+// Parse the date(s) to check
+const datesToCheck = [];
+const [month, day, year] = bookingData.date.split('/').map(Number);
+const startDate = new Date(year, month - 1, day);
 
-console.log(`📊 Current bookings for ${bookingData.date}: ${currentCount}/${MAX_BOOKINGS_PER_DAY}`);
-
-// Check if adding this booking would exceed the limit
-if (currentCount >= MAX_BOOKINGS_PER_DAY) {
-  console.error(`❌ OVERBOOKING PREVENTED: Date ${bookingData.date} already has ${currentCount} bookings (max ${MAX_BOOKINGS_PER_DAY})`);
-  console.log(`⚠️ Booking ${bookingData.bookingId} REJECTED - no availability`);
+// For multi-night bookings, check all nights
+const nights = bookingData.nights || 1;
+for (let i = 0; i < nights; i++) {
+  const checkDate = new Date(startDate);
+  checkDate.setDate(startDate.getDate() + i);
   
-  // Exit with error code to fail the GitHub Action
+  const checkMonth = checkDate.getMonth() + 1;
+  const checkDay = checkDate.getDate();
+  const checkYear = checkDate.getFullYear();
+  const dateStr = `${checkMonth}/${checkDay}/${checkYear}`;
+  datesToCheck.push(dateStr);
+}
+
+// Check each date for availability
+let firstFullDate = null;
+for (const dateStr of datesToCheck) {
+  const countForDate = bookings.filter(b => b.Date === dateStr).length;
+  console.log(`📊 ${dateStr}: ${countForDate}/${MAX_BOOKINGS_PER_DAY} bookings`);
+  
+  if (countForDate >= MAX_BOOKINGS_PER_DAY) {
+    firstFullDate = dateStr;
+    break;
+  }
+}
+
+// If any date is full, reject the booking
+if (firstFullDate) {
+  console.error(`❌ OVERBOOKING PREVENTED: Date ${firstFullDate} is already full`);
+  console.log(`⚠️ Booking ${bookingData.bookingId} REJECTED - no availability`);
   process.exit(1);
 }
 
-// Also check if this is a multi-night booking
-if (bookingData.nights && bookingData.nights > 1) {
-  console.log(`📅 Multi-night booking detected (${bookingData.nights} nights)`);
-  
-  // Parse the start date
-  const [month, day, year] = bookingData.date.split('/').map(Number);
-  const startDate = new Date(year, month - 1, day);
-  
-  // Check each night
-  for (let i = 0; i < bookingData.nights; i++) {
-    const checkDate = new Date(startDate);
-    checkDate.setDate(startDate.getDate() + i);
-    
-    const checkMonth = checkDate.getMonth() + 1;
-    const checkDay = checkDate.getDate();
-    const checkYear = checkDate.getFullYear();
-    const dateStr = `${checkMonth}/${checkDay}/${checkYear}`;
-    
-    // Count bookings for this specific date
-    const countForDate = bookings.filter(b => b.Date === dateStr).length;
-    
-    console.log(`📊 ${dateStr}: ${countForDate}/${MAX_BOOKINGS_PER_DAY} bookings`);
-    
-    if (countForDate >= MAX_BOOKINGS_PER_DAY) {
-      console.error(`❌ OVERBOOKING PREVENTED: Date ${dateStr} is already full (${countForDate}/${MAX_BOOKINGS_PER_DAY})`);
-      console.log(`⚠️ Booking ${bookingData.bookingId} REJECTED - no availability on ${dateStr}`);
-      process.exit(1);
-    }
-  }
-  
-  console.log('✅ All dates in multi-night booking have availability');
-}
+console.log('✅ All dates have availability');
 // ============= END OVERBOOKING PROTECTION =============
 
 // Create new booking record
@@ -115,9 +104,6 @@ const newBooking = {
 };
 
 console.log('➕ Adding new booking:', newBooking['Booking ID']);
-console.log('Booking details:', JSON.stringify(newBooking, null, 2));
-
-// Add to bookings
 bookings.push(newBooking);
 
 // Create worksheet
