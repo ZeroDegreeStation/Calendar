@@ -1,5 +1,6 @@
 /**
- * GitHub Sync - Triggers workflow and manages read token
+ * GitHub Sync - Manages read token for admin users only
+ * UPDATED: No embedded token - only admin tokens from localStorage
  */
 class GitHubSync {
     constructor() {
@@ -9,32 +10,20 @@ class GitHubSync {
             dataRepo: 'Calendar-Data'
         };
         
-        // Try localStorage first (admin override), fall back to embedded token
-        this.readToken = this.loadReadToken() || this.getEmbeddedToken();
+        // Only load from localStorage - NO embedded token
+        this.readToken = this.loadReadToken();
         
         console.log('✅ GitHubSync initialized');
-        console.log('🔑 Token source:', this.loadReadToken() ? 'localStorage' : 'embedded');
         console.log('🔑 Token exists?', !!this.readToken);
-        console.log('🔑 Token preview:', this.readToken ? this.readToken.substring(0, 10) + '...' : 'none');
-    }
-
-    // Embedded token for all users
-    getEmbeddedToken() {
-        // REPLACE WITH YOUR ACTUAL LIMITED PAT
-        // This token should have ONLY:
-        // - Access to public ZeroDegreeStation/Calendar repo
-        // - Permissions: contents:write, metadata:read
-        return 'github_pat_embed_in_code_do_not_work_firbidden_by_github';
     }
 
     loadReadToken() {
         try {
             const token = localStorage.getItem('github_read_token');
             if (token) {
-                console.log('🔑 Found token in localStorage, length:', token.length);
+                console.log('🔑 Found admin token in localStorage');
                 return token;
             }
-            console.log('ℹ️ No token in localStorage');
             return null;
         } catch (e) {
             console.error('Error loading token:', e);
@@ -44,14 +33,13 @@ class GitHubSync {
 
     setReadToken(token) {
         if (!token || token.trim() === '') {
-            console.error('Invalid token provided');
             return false;
         }
         
         try {
             localStorage.setItem('github_read_token', token);
             this.readToken = token;
-            console.log('✅ Read token saved to localStorage');
+            console.log('✅ Admin token saved');
             return true;
         } catch (e) {
             console.error('Error saving token:', e);
@@ -64,28 +52,25 @@ class GitHubSync {
     }
 
     hasReadToken() {
-        return !!this.readToken && this.readToken.length > 0;
+        return !!this.readToken;
     }
 
     async pushBookings(bookings) {
+        // Only admins with tokens can trigger workflows
+        if (!this.hasReadToken()) {
+            console.log('ℹ️ No admin token - booking saved locally only');
+            return false;
+        }
+        
         try {
-            console.log('📤 Triggering GitHub Actions workflow...');
-            console.log('Current token exists?', !!this.readToken);
-            
-            if (!this.hasReadToken()) {
-                console.error('❌ No valid token available');
-                return false;
-            }
+            console.log('📤 Admin triggering GitHub Actions workflow...');
             
             if (!bookings || bookings.length === 0) {
-                console.log('⚠️ No bookings to sync');
                 return false;
             }
             
             const latestBooking = bookings[bookings.length - 1];
-            console.log('Latest booking:', latestBooking['Booking ID']);
             
-            // Prepare the payload
             const payload = {
                 event_type: 'new-booking',
                 client_payload: {
@@ -101,9 +86,6 @@ class GitHubSync {
                     requests: latestBooking['Special Requests'] || ''
                 }
             };
-            
-            console.log('Sending payload to GitHub API...');
-            console.log('Using token:', this.readToken.substring(0, 10) + '...');
             
             const response = await fetch(
                 `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/dispatches`,
@@ -121,19 +103,10 @@ class GitHubSync {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('GitHub API error:', response.status, errorText);
-                
-                if (response.status === 401) {
-                    throw new Error('Authentication failed. Token invalid or expired.');
-                } else if (response.status === 404) {
-                    throw new Error('Repository or workflow not found');
-                } else {
-                    throw new Error(`GitHub API error: ${response.status}`);
-                }
+                return false;
             }
             
-            console.log('✅ Workflow triggered successfully');
-            console.log('🔗 Check: https://github.com/ZeroDegreeStation/Calendar/actions');
-            
+            console.log('✅ Workflow triggered by admin');
             return true;
             
         } catch (error) {

@@ -1,0 +1,8 @@
+{
+  "name": "snow-station-booking",
+  "version": "1.0.0",
+  "description": "Snow Station Guest House Booking System",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}

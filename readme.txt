@@ -3,6 +3,11 @@ Calendar/ (Public Repository)
 ├── 📄 index.html                 # Main booking page
 ├── 📄 admin.html                 # Admin dashboard (basic, points to private data)
 ├── 📄 readme.txt                 # Documentation
+├── 📄package.json                # NEW
+├── 📄netlify.toml                # NEW
+├── 📁netlify/
+│   └── 📁functions/
+│       └── create-booking.js     # NEW
 │
 ├── 📁 .github/
 │   └── 📁 workflows/
