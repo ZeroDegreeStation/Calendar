@@ -808,5 +808,14 @@
     "available": 2,
     "price": null,
     "notes": ""
+  },
+  {
+    "date": "5/30/2026",
+    "status": "Available",
+    "maxBookings": 2,
+    "booked": 0,
+    "available": 2,
+    "price": null,
+    "notes": ""
   }
 ]
