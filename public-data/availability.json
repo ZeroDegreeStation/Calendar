@@ -73,10 +73,10 @@
   },
   {
     "date": "3/10/2026",
-    "status": "Limited",
+    "status": "Booked",
     "maxBookings": 2,
-    "booked": 1,
-    "available": 1,
+    "booked": 2,
+    "available": 0,
     "price": null,
     "notes": ""
   },
