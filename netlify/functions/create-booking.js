@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const fetch = require('node-fetch');  // ← ADDED THIS LINE
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -10,7 +11,7 @@ exports.handler = async (event) => {
     
     console.log('📦 Processing booking:', bookingData.bookingId);
 
-    // 1. Trigger GitHub Action (your existing code)
+    // 1. Trigger GitHub Action
     const githubResponse = await fetch(
       `https://api.github.com/repos/${process.env.GITHUB_OWNER || 'ZeroDegreeStation'}/${process.env.GITHUB_REPO || 'Calendar'}/dispatches`,
       {
@@ -27,16 +28,29 @@ exports.handler = async (event) => {
       }
     );
 
+    if (!githubResponse.ok) {
+      console.error('GitHub API error:', await githubResponse.text());
+    } else {
+      console.log('✅ GitHub Action triggered');
+    }
+
     // 2. SEND EMAIL VIA GMAIL
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
       auth: {
-        user: process.env.GMAIL_USER,     // Your full Gmail address
-        pass: process.env.GMAIL_APP_PASSWORD // 16-char app password
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
       }
     });
+
+    // Calculate checkout date if not provided
+    const checkout = bookingData.checkout || (() => {
+      const date = new Date(bookingData.date);
+      date.setDate(date.getDate() + (bookingData.nights || 1));
+      return date.toISOString().split('T')[0];
+    })();
 
     const mailOptions = {
       from: `"Snow Station" <${process.env.GMAIL_USER}>`,
@@ -52,11 +66,11 @@ exports.handler = async (event) => {
             <h3 style="margin-top: 0;">Booking Details</h3>
             <p><strong>Booking ID:</strong> ${bookingData.bookingId}</p>
             <p><strong>Check-in:</strong> ${bookingData.date}</p>
-            <p><strong>Check-out:</strong> ${bookingData.checkout || ''}</p>
+            <p><strong>Check-out:</strong> ${checkout}</p>
             <p><strong>Nights:</strong> ${bookingData.nights || 1}</p>
             <p><strong>Guests:</strong> ${bookingData.guests || 1}</p>
             <p><strong>Plan:</strong> ${bookingData.plan || 'Standard'}</p>
-            <p><strong>Total:</strong> ¥${bookingData.totalPrice || 0}</p>
+            <p><strong>Total:</strong> ¥${bookingData.totalPrice?.toLocaleString() || 0}</p>
           </div>
           
           <p><strong>Address:</strong> 123 Ski Hill Road, Meiho, Japan</p>
@@ -83,7 +97,7 @@ exports.handler = async (event) => {
     console.error('❌ Error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Booking failed' })
+      body: JSON.stringify({ error: 'Booking failed: ' + error.message })
     };
   }
 };
