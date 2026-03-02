@@ -747,13 +747,10 @@ class BookingSystem {
             // Clear selection and refresh display
             this.clearDateSelection(false);
             this.refreshCalendarData();
-            
-            // Show success
-            this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
-            
-            // Show email modal
-            // this.showEmailModal(bookingData.email, bookingId);
-            
+    
+            // Show success with email confirmation message (UPDATED)
+            this.showNotification(`✅ Booking confirmed! Check your email for details. Reference: ${bookingId}`, 'success', 5000);
+
             return { success: true, bookingId };
             
         } catch (error) {
@@ -856,14 +853,6 @@ class BookingSystem {
         } finally {
             this.isLoading = false;
         }
-    }
-
-    showEmailModal(email, bookingId) {
-        // Just show a success notification instead of modal
-        this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
-        
-        // You can also add a simple alert or console log
-        console.log(`✅ Booking confirmed for ${email} with ID: ${bookingId}`);
     }
 
     showNotification(message, type = 'info', duration = 3000) {
