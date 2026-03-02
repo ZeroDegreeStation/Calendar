@@ -1,8 +1,16 @@
 {
-  "totalBookings": 10,
-  "totalRevenue": 189200,
-  "lastUpdated": "2026-03-02T02:44:02.708Z",
+  "totalBookings": 11,
+  "totalRevenue": 221200,
+  "lastUpdated": "2026-03-02T02:48:33.419Z",
   "recentBookings": [
+    {
+      "bookingId": "SNOW-698560319",
+      "date": "3/2/2026",
+      "name": "n",
+      "guests": 3,
+      "plan": "Family Ski Package",
+      "totalPrice": 32000
+    },
     {
       "bookingId": "SNOW-428153971",
       "date": "3/2/2026",
