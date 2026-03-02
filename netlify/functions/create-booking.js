@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const fetch = require('node-fetch');  // ← ADDED THIS LINE
+const fetch = require('node-fetch');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -28,13 +28,7 @@ exports.handler = async (event) => {
       }
     );
 
-    if (!githubResponse.ok) {
-      console.error('GitHub API error:', await githubResponse.text());
-    } else {
-      console.log('✅ GitHub Action triggered');
-    }
-
-    // 2. SEND EMAIL VIA GMAIL
+    // 2. Setup email transporter
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
@@ -45,33 +39,43 @@ exports.handler = async (event) => {
       }
     });
 
-    // Calculate checkout date if not provided
+    // Calculate checkout date
     const checkout = bookingData.checkout || (() => {
       const date = new Date(bookingData.date);
       date.setDate(date.getDate() + (bookingData.nights || 1));
       return date.toISOString().split('T')[0];
     })();
 
-    const mailOptions = {
+    // Common booking details for email
+    const bookingDetails = `
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">Booking Details</h3>
+        <p><strong>Booking ID:</strong> ${bookingData.bookingId}</p>
+        <p><strong>Customer:</strong> ${bookingData.name}</p>
+        <p><strong>Email:</strong> ${bookingData.email}</p>
+        <p><strong>Phone:</strong> ${bookingData.phone || 'Not provided'}</p>
+        <p><strong>Check-in:</strong> ${bookingData.date}</p>
+        <p><strong>Check-out:</strong> ${checkout}</p>
+        <p><strong>Nights:</strong> ${bookingData.nights || 1}</p>
+        <p><strong>Guests:</strong> ${bookingData.guests || 1}</p>
+        <p><strong>Plan:</strong> ${bookingData.plan || 'Standard'}</p>
+        <p><strong>Total:</strong> ¥${bookingData.totalPrice?.toLocaleString() || 0}</p>
+        <p><strong>Special Requests:</strong> ${bookingData.requests || 'None'}</p>
+      </div>
+    `;
+
+    // 3. Send email to CUSTOMER
+    const customerEmail = {
       from: `"Snow Station" <${process.env.GMAIL_USER}>`,
       to: bookingData.email,
-      subject: `Booking Confirmation: ${bookingData.bookingId}`,
+      subject: `Your Booking Confirmation: ${bookingData.bookingId}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #3498db;">Booking Confirmed!</h2>
           <p>Dear <strong>${bookingData.name}</strong>,</p>
           <p>Your booking at Snow Station Guest House has been confirmed.</p>
           
-          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">Booking Details</h3>
-            <p><strong>Booking ID:</strong> ${bookingData.bookingId}</p>
-            <p><strong>Check-in:</strong> ${bookingData.date}</p>
-            <p><strong>Check-out:</strong> ${checkout}</p>
-            <p><strong>Nights:</strong> ${bookingData.nights || 1}</p>
-            <p><strong>Guests:</strong> ${bookingData.guests || 1}</p>
-            <p><strong>Plan:</strong> ${bookingData.plan || 'Standard'}</p>
-            <p><strong>Total:</strong> ¥${bookingData.totalPrice?.toLocaleString() || 0}</p>
-          </div>
+          ${bookingDetails}
           
           <p><strong>Address:</strong> 123 Ski Hill Road, Meiho, Japan</p>
           <p><strong>Phone:</strong> +81 123-456-7890</p>
@@ -82,8 +86,30 @@ exports.handler = async (event) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent to:', bookingData.email);
+    // 4. Send email to SERVICE MEMBER (with more details)
+    const serviceEmail = {
+      from: `"Snow Station Bookings" <${process.env.GMAIL_USER}>`,
+      to: process.env.SERVICE_EMAIL || 'service@snowstation.com',
+      subject: `🔔 NEW BOOKING: ${bookingData.bookingId} - ${bookingData.name}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #e74c3c;">New Booking Received!</h2>
+          <p>A new booking has been confirmed:</p>
+          
+          ${bookingDetails}
+          
+          <hr style="border: none; border-top: 2px solid #e74c3c; margin: 20px 0;">
+          <p style="color: #666;">Please ensure the room is prepared for check-in.</p>
+        </div>
+      `
+    };
+
+    // Send both emails
+    await transporter.sendMail(customerEmail);
+    console.log('✅ Customer email sent to:', bookingData.email);
+    
+    await transporter.sendMail(serviceEmail);
+    console.log('✅ Service email sent to:', process.env.SERVICE_EMAIL || 'service@snowstation.com');
 
     return {
       statusCode: 200,
