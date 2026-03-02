@@ -751,6 +751,9 @@ class BookingSystem {
             // Show success
             this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
+            // Show email modal
+            // this.showEmailModal(bookingData.email, bookingId);
+            
             return { success: true, bookingId };
             
         } catch (error) {
