@@ -35,7 +35,6 @@ class BookingSystem {
         this.refreshCalendarData = this.refreshCalendarData.bind(this);
         this.resyncFromExcel = this.resyncFromExcel.bind(this);
         this.manualRefresh = this.manualRefresh.bind(this);
-        this.refreshAfterSync = this.refreshAfterSync.bind(this);
         this.loadPublicData = this.loadPublicData.bind(this);
         
         this.init();
