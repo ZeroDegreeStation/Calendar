@@ -1,28 +1,19 @@
 [
   {
-    "date": "3/1/2026",
-    "status": "Limited",
-    "maxBookings": 2,
-    "booked": 1,
-    "available": 1,
-    "price": null,
-    "notes": ""
-  },
-  {
     "date": "3/2/2026",
-    "status": "Booked",
+    "status": "Available",
     "maxBookings": 2,
-    "booked": 2,
-    "available": 0,
+    "booked": 0,
+    "available": 2,
     "price": null,
     "notes": ""
   },
   {
     "date": "3/3/2026",
-    "status": "Booked",
+    "status": "Available",
     "maxBookings": 2,
-    "booked": 3,
-    "available": 0,
+    "booked": 0,
+    "available": 2,
     "price": null,
     "notes": ""
   },
@@ -145,10 +136,10 @@
   },
   {
     "date": "3/17/2026",
-    "status": "Limited",
+    "status": "Available",
     "maxBookings": 2,
-    "booked": 1,
-    "available": 1,
+    "booked": 0,
+    "available": 2,
     "price": null,
     "notes": ""
   },

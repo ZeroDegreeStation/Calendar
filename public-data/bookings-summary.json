@@ -1,64 +1,8 @@
 {
-  "totalBookings": 11,
-  "totalRevenue": 221200,
-  "lastUpdated": "2026-03-02T02:48:33.419Z",
+  "totalBookings": 4,
+  "totalRevenue": 51200,
+  "lastUpdated": "2026-03-02T03:04:13.766Z",
   "recentBookings": [
-    {
-      "bookingId": "SNOW-698560319",
-      "date": "3/2/2026",
-      "name": "n",
-      "guests": 3,
-      "plan": "Family Ski Package",
-      "totalPrice": 32000
-    },
-    {
-      "bookingId": "SNOW-428153971",
-      "date": "3/2/2026",
-      "name": "n*t",
-      "guests": 2,
-      "plan": "Ski Adventure",
-      "totalPrice": 18500
-    },
-    {
-      "bookingId": "SNOW-338272511",
-      "date": "3/3/2026",
-      "name": "n",
-      "guests": 2,
-      "plan": "Ski Adventure",
-      "totalPrice": 18500
-    },
-    {
-      "bookingId": "SNOW-101021907",
-      "date": "3/3/2026",
-      "name": "n******2",
-      "guests": 1,
-      "plan": "Ski Adventure",
-      "totalPrice": 18500
-    },
-    {
-      "bookingId": "SNOW-282272736",
-      "date": "3/3/2026",
-      "name": "n*****y",
-      "guests": 3,
-      "plan": "Family Ski Package",
-      "totalPrice": 32000
-    },
-    {
-      "bookingId": "SNOW-112953254",
-      "date": "3/1/2026",
-      "name": "a",
-      "guests": 3,
-      "plan": "Ski Adventure",
-      "totalPrice": 18500
-    },
-    {
-      "bookingId": "SNOW-795364116",
-      "date": "3/17/2026",
-      "name": "t**t",
-      "guests": 2,
-      "plan": "Family Ski Package",
-      "totalPrice": 32000
-    },
     {
       "bookingId": "SNOW-004",
       "date": "3/26/2026",
