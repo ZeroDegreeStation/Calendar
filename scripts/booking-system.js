@@ -751,9 +751,6 @@ class BookingSystem {
             // Show success
             this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
             
-            // Show email modal
-            this.showEmailModal(bookingData.email, bookingId);
-            
             return { success: true, bookingId };
             
         } catch (error) {
@@ -859,31 +856,11 @@ class BookingSystem {
     }
 
     showEmailModal(email, bookingId) {
-        const modal = document.getElementById('emailModal');
-        const customerEmail = document.getElementById('customerEmail');
-        const progressText = document.getElementById('progressText');
+        // Just show a success notification instead of modal
+        this.showNotification(`Booking confirmed! Reference: ${bookingId}`, 'success');
         
-        if (!modal) return;
-        
-        customerEmail.textContent = email;
-        progressText.textContent = 'Processing your booking...';
-        
-        // Animate progress steps
-        document.getElementById('step2').classList.add('active');
-        
-        modal.classList.add('active');
-        
-        // Auto-close after 5 seconds
-        setTimeout(() => {
-            document.getElementById('step2').classList.add('completed');
-            document.getElementById('step2').classList.remove('active');
-            document.getElementById('step3').classList.add('active');
-            
-            setTimeout(() => {
-                document.getElementById('step3').classList.add('completed');
-                document.getElementById('successMessage').style.display = 'block';
-            }, 1000);
-        }, 2000);
+        // You can also add a simple alert or console log
+        console.log(`✅ Booking confirmed for ${email} with ID: ${bookingId}`);
     }
 
     showNotification(message, type = 'info', duration = 3000) {
