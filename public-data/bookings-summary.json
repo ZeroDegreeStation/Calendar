@@ -1,8 +1,16 @@
 {
-  "totalBookings": 14,
-  "totalRevenue": 338500,
-  "lastUpdated": "2026-03-02T06:40:45.718Z",
+  "totalBookings": 15,
+  "totalRevenue": 357000,
+  "lastUpdated": "2026-03-02T07:05:38.522Z",
   "recentBookings": [
+    {
+      "bookingId": "SNOW-122308600",
+      "date": "3/9/2026",
+      "name": "n*****y",
+      "guests": 2,
+      "plan": "Ski Adventure",
+      "totalPrice": 18500
+    },
     {
       "bookingId": "SNOW-631075285",
       "date": "3/9/2026",
