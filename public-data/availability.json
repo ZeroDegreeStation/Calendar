@@ -21,7 +21,7 @@
     "date": "3/3/2026",
     "status": "Booked",
     "maxBookings": 2,
-    "booked": 2,
+    "booked": 3,
     "available": 0,
     "price": null,
     "notes": ""
